@@ -6,6 +6,7 @@ import { UserRepository } from './user.repository';
 import { User, userSchema } from './entities/user.entity';
 
 @Module({
+  exports: [UsersService],
   imports: [
     DatabaseModule.forFeature([{ name: User.name, schema: userSchema }]),
   ],

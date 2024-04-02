@@ -33,6 +33,6 @@ async function bootstrap() {
     }),
   );
   const port = app.get(ConfigService).get('PORT');
-  await app.listen(port);
+  await app.listen(port ? Number(port) : 8000);
 }
 bootstrap();

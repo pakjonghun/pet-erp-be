@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateUserInput } from './dto/create-user.input';
 import { UpdateUserInput } from './dto/update-user.input';
 import { UserRepository } from './user.repository';
@@ -33,8 +33,23 @@ export class UsersService {
     return this.userRepository.update({ _id }, body);
   }
 
-  remove(id: string) {
+  async remove(id: string) {
     return this.userRepository.remove({ _id: id });
+  }
+
+  async validate(email: string, password: string) {
+    const account = await this.userRepository.findOne({ email });
+    if (!account) this.throwUnAuthorize();
+
+    const isAuthorized = await bcrypt.compare(password, account.password);
+    if (!isAuthorized) this.throwUnAuthorize();
+
+    const { password: _, ...rest } = account;
+    return rest;
+  }
+
+  private throwUnAuthorize() {
+    throw new UnauthorizedException('로그인이 실패했습니다.');
   }
 
   private async hashPassword(password: string) {
