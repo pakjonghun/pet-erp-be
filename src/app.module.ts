@@ -6,7 +6,7 @@ import * as Joi from 'joi';
 import { DatabaseModule } from './common/database/database.module';
 import { LoggerModule } from 'nestjs-pino';
 import { GraphQLModule } from '@nestjs/graphql';
-import { ApolloDriver } from '@nestjs/apollo';
+import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -38,9 +38,17 @@ import { UsersModule } from './users/users.module';
       },
       inject: [ConfigService],
     }),
-    GraphQLModule.forRoot({
+    GraphQLModule.forRoot<ApolloDriverConfig>({
       autoSchemaFile: true,
       driver: ApolloDriver,
+      formatError: (error) => {
+        return {
+          message: error.message,
+          code: error.extensions.code,
+          locations: error.locations,
+          path: error.path,
+        };
+      },
     }),
     DatabaseModule,
     UsersModule,

@@ -20,7 +20,12 @@ async function bootstrap() {
         const messages = errors.map((error) => {
           const attr = error.property;
           const value = error.value;
-          return `${attr}의 값 ${value}는 잘못된 값입니다.`;
+          const constraints = error.constraints;
+          if (Object.keys(constraints).length === 0) {
+            return `${attr}의 값 ${value}는 잘못된 값입니다.`;
+          } else {
+            return Object.values(constraints)[0];
+          }
         });
 
         return new ValidationException(messages);
