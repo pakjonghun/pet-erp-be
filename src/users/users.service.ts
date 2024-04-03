@@ -37,14 +37,14 @@ export class UsersService {
     return this.userRepository.remove({ _id: id });
   }
 
-  async validate(email: string, password: string) {
+  async validate(email: string, originPassword: string) {
     const account = await this.userRepository.findOne({ email });
     if (!account) this.throwUnAuthorize();
 
-    const isAuthorized = await bcrypt.compare(password, account.password);
+    const { password, ...rest } = account;
+    const isAuthorized = await bcrypt.compare(originPassword, password);
     if (!isAuthorized) this.throwUnAuthorize();
 
-    const { password: _, ...rest } = account;
     return rest;
   }
 

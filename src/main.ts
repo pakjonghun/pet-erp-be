@@ -6,10 +6,12 @@ import { ValidationPipe } from '@nestjs/common';
 import { ValidationException } from './common/exceptions/validation.exception';
 import { ValidationFilter } from './common/filter/validation.filter';
 import { HttpFilter } from './common/filter/http.filter';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useLogger(app.get(Logger));
+  app.use(cookieParser());
   app.useGlobalFilters(new HttpFilter(), new ValidationFilter());
   app.useGlobalPipes(
     new ValidationPipe({

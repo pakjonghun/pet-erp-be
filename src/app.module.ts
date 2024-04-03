@@ -18,6 +18,8 @@ import { AuthModule } from './auth/auth.module';
         PORT: Joi.string().required(),
         DB_NAME: Joi.string().required(),
         DB_URL: Joi.string().required(),
+        JWT_SECRET: Joi.string().required(),
+        JWT_EXPIRATION: Joi.string().required(),
       }),
     }),
     LoggerModule.forRootAsync({
