@@ -4,7 +4,7 @@ import { IsOneOf } from 'src/common/validations/enum.validation';
 import { UserInterface, UserRoleEnum } from '../entities/user.entity';
 
 @InputType()
-export class CreateUserInput implements UserInterface {
+export class CreateUserDTO implements UserInterface {
   @Field()
   @IsNotEmpty({ message: '아이디를 입력해주세요.' })
   id: string;

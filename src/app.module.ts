@@ -1,3 +1,4 @@
+import { LogInterceptor } from './common/interceptors/log.interceptor';
 import { Logger, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -9,8 +10,9 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { GqlAuthGuard } from './auth/guards/gql.guard';
+import { LogModule } from './log/log.module';
 
 @Module({
   imports: [
@@ -60,12 +62,17 @@ import { GqlAuthGuard } from './auth/guards/gql.guard';
     DatabaseModule,
     UsersModule,
     AuthModule,
+    LogModule,
   ],
   controllers: [AppController],
   providers: [
     {
       provide: APP_GUARD,
       useClass: GqlAuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LogInterceptor,
     },
     AppService,
   ],

@@ -3,15 +3,15 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { CreateUserInput } from './dto/create-user.input';
-import { UpdateUserInput } from './dto/update-user.input';
+import { CreateUserDTO } from './dto/create.user.dto';
+import { UpdateUserDTO } from './dto/update.user.dto';
 import { UserRepository } from './user.repository';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly userRepository: UserRepository) {}
-  async create(createUserInput: CreateUserInput) {
+  async create(createUserInput: CreateUserDTO) {
     const isExistUser = await this.userRepository.exists({
       id: createUserInput.id,
     });
@@ -20,7 +20,8 @@ export class UsersService {
     const password = createUserInput.password;
     const hashedPassword = await this.hashPassword(password);
     createUserInput.password = hashedPassword;
-    return this.userRepository.create(createUserInput);
+    const { id, role } = await this.userRepository.create(createUserInput);
+    return { id, role };
   }
 
   findAll() {
@@ -31,7 +32,7 @@ export class UsersService {
     return this.userRepository.findOne({ _id });
   }
 
-  async update(updateInput: UpdateUserInput) {
+  async update(updateInput: UpdateUserDTO) {
     const password = updateInput.password;
     if (updateInput.password) {
       const hashedPassword = await this.hashPassword(password);
