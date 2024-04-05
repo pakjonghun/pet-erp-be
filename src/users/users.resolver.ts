@@ -6,6 +6,7 @@ import { UpdateUserDTO } from './dto/update.user.dto';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
 import { LogData } from 'src/common/decorators/log.decorator';
+import { GetUser } from 'src/common/decorators/user.decorator';
 
 @Resolver(() => User)
 export class UsersResolver {
@@ -42,5 +43,11 @@ export class UsersResolver {
   @Mutation(() => User)
   removeUser(@Args('_id') _id: string) {
     return this.usersService.remove(_id);
+  }
+
+  @Roles([UserRoleEnum.ANY])
+  @Query(() => User, { name: 'myInfo' })
+  getMyInfo(@GetUser() user: User) {
+    return user;
   }
 }
