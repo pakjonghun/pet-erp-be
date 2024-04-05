@@ -2,17 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
-import { ValidationPipe } from '@nestjs/common';
-import { ValidationException } from './common/exceptions/validation.exception';
-import { ValidationFilter } from './common/filter/validation.filter';
-import { HttpFilter } from './common/filter/http.filter';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useLogger(app.get(Logger));
   app.use(cookieParser());
-  app.useGlobalFilters(new HttpFilter(), new ValidationFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -29,8 +24,9 @@ async function bootstrap() {
             return Object.values(constraints)[0];
           }
         });
-
-        return new ValidationException(messages);
+        return new BadRequestException(
+          messages?.[0] ?? BadRequestException.name,
+        );
       },
     }),
   );

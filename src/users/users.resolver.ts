@@ -3,8 +3,7 @@ import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { CreateUserInput } from './dto/create-user.input';
 import { UpdateUserInput } from './dto/update-user.input';
-import { UseGuards } from '@nestjs/common';
-import { GqlAuthGuard } from 'src/auth/guards/gq..guard';
+import { Roles } from 'src/auth/decorators/role.decorator';
 
 @Resolver(() => User)
 export class UsersResolver {
@@ -15,22 +14,25 @@ export class UsersResolver {
     return this.usersService.create(createUserInput);
   }
 
-  @UseGuards(GqlAuthGuard)
+  @Roles(['ADMIN'])
   @Query(() => [User], { name: 'users' })
   findAll() {
     return this.usersService.findAll();
   }
 
+  @Roles(['ANY'])
   @Query(() => User, { name: 'user' })
   findOne(@Args('_id') _id: string) {
     return this.usersService.findOne(_id);
   }
 
+  @Roles(['ANY'])
   @Mutation(() => User)
   updateUser(@Args('updateUserInput') body: UpdateUserInput) {
     return this.usersService.update(body);
   }
 
+  @Roles(['ADMIN'])
   @Mutation(() => User)
   removeUser(@Args('_id') _id: string) {
     return this.usersService.remove(_id);

@@ -28,6 +28,11 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
     return result;
   }
 
+  async exists(query: FilterQuery<T>) {
+    const result = await this.model.exists(query);
+    return result;
+  }
+
   async findOne(query: FilterQuery<T>): Promise<T> {
     const result = await this.model.findOne(query).lean<T>();
     if (!result) {

@@ -7,12 +7,12 @@ import { UsersService } from 'src/users/users.service';
 export class LocalStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly userService: UsersService) {
     super({
-      usernameField: 'email',
+      usernameField: 'id',
     });
   }
 
-  async validate(email: string, password: string): Promise<any> {
-    const user = await this.userService.validate(email, password);
+  async validate(id: string, password: string): Promise<any> {
+    const user = await this.userService.validate(id, password);
     return user;
   }
 }

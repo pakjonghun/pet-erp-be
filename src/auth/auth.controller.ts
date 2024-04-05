@@ -9,7 +9,7 @@ import { Response } from 'express';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('')
+  @Post('login')
   @UseGuards(LocalAuthGuard)
   async login(
     @GetUser() user: User,

@@ -4,14 +4,16 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { User } from 'src/users/entities/user.entity';
+import { COOKIE_KEY } from '../constants';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(config: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (request: Request) => request.cookies.Authentication,
+        (request: Request) => request.cookies[COOKIE_KEY],
       ]),
+      ignoreExpiration: false,
       secretOrKey: config.get('JWT_SECRET'),
     });
   }

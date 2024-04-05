@@ -2,6 +2,6 @@ import { Db } from 'mongodb';
 
 module.exports = {
   async up(db: Db) {
-    return db.collection('users').createIndex({ email: 1 }, { unique: true });
+    return db.collection('users').createIndex({ id: 1 }, { unique: true });
   },
 };
