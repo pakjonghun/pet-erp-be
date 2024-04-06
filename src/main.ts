@@ -6,7 +6,13 @@ import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const config = app.get(ConfigService);
+  const origin = config.get('WHITE_ORIGIN');
   app.useLogger(app.get(Logger));
+  app.enableCors({
+    credentials: true,
+    origin,
+  });
   app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({
@@ -30,7 +36,7 @@ async function bootstrap() {
       },
     }),
   );
-  const port = app.get(ConfigService).get('PORT');
+  const port = config.get('PORT');
   await app.listen(port ? Number(port) : 8000);
 }
 bootstrap();

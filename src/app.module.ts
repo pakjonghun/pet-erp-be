@@ -24,6 +24,7 @@ import { LogModule } from './log/log.module';
         DB_URL: Joi.string().required(),
         JWT_SECRET: Joi.string().required(),
         JWT_EXPIRATION: Joi.string().required(),
+        WHITE_ORIGIN: Joi.string().required(),
       }),
     }),
     LoggerModule.forRootAsync({
