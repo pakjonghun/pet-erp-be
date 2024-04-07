@@ -7,6 +7,8 @@ import { CreateUserDTO } from './dto/create.user.dto';
 import { UpdateUserDTO } from './dto/update.user.dto';
 import { UserRepository } from './user.repository';
 import * as bcrypt from 'bcrypt';
+import { FilterQuery } from 'mongoose';
+import { User } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
@@ -24,8 +26,8 @@ export class UsersService {
     return { id, role };
   }
 
-  findAll() {
-    return this.userRepository.findAll({});
+  findAll(filterQuery: FilterQuery<User>) {
+    return this.userRepository.findAll(filterQuery);
   }
 
   findOne(_id: string) {
@@ -39,8 +41,8 @@ export class UsersService {
       updateInput.password = hashedPassword;
     }
 
-    const { _id, ...body } = updateInput;
-    return this.userRepository.update({ _id }, body);
+    const { id, ...body } = updateInput;
+    return this.userRepository.update({ id }, body);
   }
 
   async remove(_id: string) {

@@ -51,12 +51,17 @@ import { LogModule } from './log/log.module';
       autoSchemaFile: true,
       driver: ApolloDriver,
       formatError: (error) => {
+        const originalError = error.extensions?.originalError as object;
+        const statusCode =
+          'statusCode' in originalError && originalError.statusCode;
+
         new Logger().error(error);
         return {
           message: error.message,
           code: error.extensions.code,
           locations: error.locations,
           path: error.path,
+          statusCode,
         };
       },
     }),

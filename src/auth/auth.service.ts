@@ -15,11 +15,10 @@ export class AuthService {
 
   async login(user: User, res: Response) {
     const payload = {
-      _id: user._id,
+      id: user.id,
       role: user.role,
     };
     const token = await this.jwtService.signAsync(payload);
-    console.log('token : ', token);
     const expiration = this.config.get('JWT_EXPIRATION');
     const expires = dayjs().add(Number(expiration), 'second').toDate();
     res.cookie(AUTH_COOKIE_KEY, token, {

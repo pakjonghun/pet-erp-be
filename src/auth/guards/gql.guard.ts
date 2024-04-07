@@ -8,7 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
-import { UserRoleEnum } from 'src/users/entities/user.entity';
+import { AuthRoleEnum, UserRoleEnum } from 'src/users/entities/user.entity';
 import { ROLE_META_KEY } from '../constants';
 import {
   FORBIDDEN_ERROR,
@@ -29,10 +29,13 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
   }
 
   handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
-    const roles = this.reflector.get<UserRoleEnum[]>(
+    const roles = this.reflector.get<AuthRoleEnum[]>(
       ROLE_META_KEY,
       context.getHandler(),
     );
+
+    console.log('user', user, roles);
+
     switch (true) {
       case err:
         throw new UnauthorizedException(UNAUTHORIZE_ERROR);
@@ -40,7 +43,7 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
       case roles == null:
         return user;
 
-      case roles.includes(UserRoleEnum.ANY):
+      case roles.includes(AuthRoleEnum.ANY):
         if (!!user) return user;
         else throw new UnauthorizedException(UNAUTHORIZE_ERROR);
 

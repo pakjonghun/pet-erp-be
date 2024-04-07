@@ -1,6 +1,6 @@
 import { Controller, Post, Res, UseGuards } from '@nestjs/common';
 import { GetUser } from '../common/decorators/user.decorator';
-import { User, UserRoleEnum } from 'src/users/entities/user.entity';
+import { AuthRoleEnum, User } from 'src/users/entities/user.entity';
 import { AuthService } from './auth.service';
 import { Response } from 'express';
 import { Roles } from 'src/common/decorators/role.decorator';
@@ -21,7 +21,7 @@ export class AuthController {
   }
 
   @Post('logout')
-  @Roles([UserRoleEnum.ANY])
+  @Roles([AuthRoleEnum.ANY])
   async logout(@Res({ passthrough: true }) res: Response) {
     await this.authService.logout(res);
   }

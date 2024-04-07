@@ -6,6 +6,12 @@ export enum UserRoleEnum {
   ADMIN = 'ADMIN',
   MANAGER = 'MANAGER',
   STAFF = 'STAFF',
+}
+
+export enum AuthRoleEnum {
+  ADMIN = 'ADMIN',
+  MANAGER = 'MANAGER',
+  STAFF = 'STAFF',
   ANY = 'ANY',
 }
 
