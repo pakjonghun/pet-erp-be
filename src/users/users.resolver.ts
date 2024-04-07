@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
 import { UsersService } from './users.service';
 import { User, AuthRoleEnum } from './entities/user.entity';
 import { CreateUserDTO } from './dto/create.user.dto';
@@ -8,10 +8,15 @@ import { LogTypeEnum } from 'src/log/entities/log.entity';
 import { LogData } from 'src/common/decorators/log.decorator';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { MyInfo } from './dto/myInfo.dto';
+import { Response } from 'express';
+import { AuthService } from 'src/auth/auth.service';
 
 @Resolver(() => User)
 export class UsersResolver {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Roles([AuthRoleEnum.ADMIN])
   @Mutation(() => User)
@@ -22,7 +27,7 @@ export class UsersResolver {
 
   @Roles([AuthRoleEnum.ADMIN])
   @Query(() => [User], { name: 'users' })
-  findAll(@GetUser() user: MyInfo) {
+  findAll(@GetUser() user: User) {
     return this.usersService.findAll({ id: { $ne: user.id } });
   }
 
@@ -42,11 +47,15 @@ export class UsersResolver {
   @Roles([AuthRoleEnum.ADMIN])
   @Mutation(() => User)
   @LogData({ description: '프로필 수정', logType: LogTypeEnum.UPDATE })
-  updateProfile(
+  async updateProfile(
     @Args('updateProfileInput') body: UpdateProfileDTO,
     @GetUser() user: MyInfo,
+    @Context() context: any,
   ) {
-    return this.usersService.update({ id: user.id, ...body });
+    const res = context.res as Response;
+    const newUser = await this.usersService.update({ id: user.id, ...body });
+    this.authService.login(newUser, res);
+    return newUser;
   }
 
   @Roles([AuthRoleEnum.ADMIN])
@@ -58,7 +67,7 @@ export class UsersResolver {
 
   @Roles([AuthRoleEnum.ANY])
   @Query(() => MyInfo, { name: 'myInfo' })
-  getMyInfo(@GetUser() user: Pick<User, 'id' | 'role'>) {
+  getMyInfo(@GetUser() user: User) {
     return user;
   }
 }

@@ -34,8 +34,6 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
       context.getHandler(),
     );
 
-    console.log('user', user, roles);
-
     switch (true) {
       case err:
         throw new UnauthorizedException(UNAUTHORIZE_ERROR);

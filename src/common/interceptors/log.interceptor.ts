@@ -36,7 +36,6 @@ export class LogInterceptor implements NestInterceptor {
           LOG_META_KEY,
           context.getHandler(),
         );
-        console.log(data);
 
         if (logData && user) {
           const description = data //

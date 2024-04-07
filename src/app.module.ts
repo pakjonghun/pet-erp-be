@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { GqlAuthGuard } from './auth/guards/gql.guard';
 import { LogModule } from './log/log.module';
+import { DateScalar } from './common/scalars/datetime.scalar';
 
 @Module({
   imports: [
@@ -50,10 +51,13 @@ import { LogModule } from './log/log.module';
     GraphQLModule.forRoot<ApolloDriverConfig>({
       autoSchemaFile: true,
       driver: ApolloDriver,
+      context: ({ req, res }) => ({ req, res }),
       formatError: (error) => {
         const originalError = error.extensions?.originalError as object;
         const statusCode =
-          'statusCode' in originalError && originalError.statusCode;
+          typeof originalError == 'object' &&
+          'statusCode' in originalError &&
+          originalError.statusCode;
 
         new Logger().error(error);
         return {
@@ -80,6 +84,7 @@ import { LogModule } from './log/log.module';
       provide: APP_INTERCEPTOR,
       useClass: LogInterceptor,
     },
+    DateScalar,
     AppService,
   ],
 })

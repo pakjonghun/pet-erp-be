@@ -17,6 +17,7 @@ export class AuthService {
     const payload = {
       id: user.id,
       role: user.role,
+      createdAt: user.createdAt,
     };
     const token = await this.jwtService.signAsync(payload);
     const expiration = this.config.get('JWT_EXPIRATION');

@@ -39,6 +39,12 @@ export class User extends AbstractEntity implements UserInterface {
   @Field(() => UserRoleEnum)
   @Prop({ type: String, enum: UserRoleEnum })
   role: UserRoleEnum;
+
+  @Field(() => Date)
+  createdAt: Date;
+
+  @Field(() => Date)
+  updatedAt: Date;
 }
 
 export const userSchema = SchemaFactory.createForClass(User);
