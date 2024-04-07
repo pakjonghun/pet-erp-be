@@ -33,8 +33,8 @@ export class UsersResolver {
 
   @Roles([AuthRoleEnum.ANY])
   @Query(() => User, { name: 'user' })
-  findOne(@Args('_id') _id: string) {
-    return this.usersService.findOne(_id);
+  findOne(@Args('id') id: string) {
+    return this.usersService.findOne(id);
   }
 
   @Roles([AuthRoleEnum.ADMIN])
@@ -61,8 +61,8 @@ export class UsersResolver {
   @Roles([AuthRoleEnum.ADMIN])
   @LogData({ description: '계정삭제', logType: LogTypeEnum.DELETE })
   @Mutation(() => User)
-  removeUser(@Args('_id') _id: string) {
-    return this.usersService.remove(_id);
+  removeUser(@Args('id') id: string) {
+    return this.usersService.remove(id);
   }
 
   @Roles([AuthRoleEnum.ANY])

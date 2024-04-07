@@ -9,6 +9,6 @@ export class MyInfo implements Pick<UserInterface, 'id' | 'role'> {
   @Field(() => UserRoleEnum)
   role: UserRoleEnum;
 
-  @Field(() => Date, { nullable: true })
+  @Field(() => Date)
   createdAt: Date;
 }

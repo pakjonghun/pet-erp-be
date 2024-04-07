@@ -30,8 +30,8 @@ export class UsersService {
     return this.userRepository.findAll(filterQuery);
   }
 
-  findOne(_id: string) {
-    return this.userRepository.findOne({ _id });
+  findOne(id: string) {
+    return this.userRepository.findOne({ id });
   }
 
   async update(updateInput: UpdateUserDTO) {
@@ -45,8 +45,8 @@ export class UsersService {
     return this.userRepository.update({ id }, body);
   }
 
-  async remove(_id: string) {
-    return this.userRepository.remove({ _id });
+  async remove(id: string) {
+    return this.userRepository.remove({ id });
   }
 
   async validate(id: string, originPassword: string) {
