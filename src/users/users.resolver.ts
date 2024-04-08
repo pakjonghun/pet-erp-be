@@ -57,6 +57,7 @@ export class UsersResolver {
     this.authService.login(newUser, res);
     return newUser;
   }
+  //
 
   @Roles([AuthRoleEnum.ADMIN])
   @LogData({ description: '계정삭제', logType: LogTypeEnum.DELETE })

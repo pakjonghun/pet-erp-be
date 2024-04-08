@@ -22,8 +22,9 @@ export class UsersService {
     const password = createUserInput.password;
     const hashedPassword = await this.hashPassword(password);
     createUserInput.password = hashedPassword;
-    const { id, role } = await this.userRepository.create(createUserInput);
-    return { id, role };
+    const { id, role, createdAt } =
+      await this.userRepository.create(createUserInput);
+    return { id, role, createdAt };
   }
 
   findAll(filterQuery: FilterQuery<User>) {
