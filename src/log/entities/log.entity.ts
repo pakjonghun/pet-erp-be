@@ -32,6 +32,9 @@ export class Log extends AbstractEntity implements LogInterface {
   @Prop({ type: String, enum: LogTypeEnum })
   @Field(() => LogTypeEnum)
   logType: LogTypeEnum;
+
+  @Field(() => Date)
+  createdAt: Date;
 }
 
 export const LogSchema = SchemaFactory.createForClass(Log);

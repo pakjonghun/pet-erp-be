@@ -47,7 +47,12 @@ export class UsersService {
   }
 
   async remove(id: string) {
-    return this.userRepository.remove({ id });
+    const {
+      id: userId,
+      role,
+      createdAt,
+    } = await this.userRepository.remove({ id });
+    return { id: userId, role, createdAt };
   }
 
   async validate(id: string, originPassword: string) {

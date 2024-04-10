@@ -22,7 +22,7 @@ export class UsersResolver {
   @Mutation(() => User)
   @LogData({ description: '회원가입', logType: LogTypeEnum.CREATE })
   async createUser(@Args('createUserInput') createUserInput: CreateUserDTO) {
-    return this.usersService.create(createUserInput);
+    await this.usersService.create(createUserInput);
   }
 
   @Roles([AuthRoleEnum.ADMIN])
@@ -54,8 +54,9 @@ export class UsersResolver {
   ) {
     const res = context.res as Response;
     const newUser = await this.usersService.update({ id: user.id, ...body });
-    this.authService.login(newUser, res);
-    return newUser;
+    await this.authService.login(newUser, res);
+    const { id } = newUser;
+    return { id, ...body };
   }
   //
 

@@ -11,8 +11,4 @@ export class UserRepository extends AbstractRepository<User> {
   constructor(@InjectModel(User.name) userModel: Model<User>) {
     super(userModel);
   }
-
-  createUser() {
-    //
-  }
 }

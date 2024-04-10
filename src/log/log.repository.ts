@@ -5,6 +5,7 @@ import { Log } from './entities/log.entity';
 import { FilterQuery, Model } from 'mongoose';
 import { FindLogsDTO } from './dto/find-log.input';
 import { OrderEnum } from 'src/common/dtos/findMany.DTO';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class LogRepository extends AbstractRepository<Log> {
@@ -20,9 +21,15 @@ export class LogRepository extends AbstractRepository<Log> {
     keywordTarget,
     order = OrderEnum.DESC,
     sort = 'createdAt',
+    from = dayjs().startOf('month').startOf('date').toDate(),
+    to = dayjs().endOf('month').endOf('date').toDate(),
   }: FindLogsDTO) {
     const filter: FilterQuery<Log> = {
       [keywordTarget]: { $regex: keyword, $options: 'i' },
+      createdAt: {
+        $gte: from,
+        $lte: to,
+      },
     };
 
     const orderNumber = order === OrderEnum.DESC ? -1 : 1;
