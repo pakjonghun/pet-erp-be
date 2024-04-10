@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateLogDTO } from './dto/create-log.input';
 import { LogRepository } from './log.repository';
+import { FindLogsDTO } from './dto/find-log.input';
 
 @Injectable()
 export class LogService {
@@ -10,11 +11,7 @@ export class LogService {
     return this.logRepository.create(createLogInput);
   }
 
-  findAll() {
-    return this.logRepository.findAll({});
-  }
-
-  remove(_id: string) {
-    return this.logRepository.remove({ _id });
+  findMany(query: FindLogsDTO) {
+    return this.logRepository.findMany(query);
   }
 }

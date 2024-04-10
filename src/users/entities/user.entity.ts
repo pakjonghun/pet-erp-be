@@ -15,7 +15,6 @@ export enum AuthRoleEnum {
   ANY = 'ANY',
 }
 
-export type UserRole = Exclude<keyof typeof UserRoleEnum, 'ANY'>;
 export interface UserInterface {
   id: string;
   password: string;

@@ -4,6 +4,8 @@ import { LogService } from './log.service';
 import { Log } from './entities/log.entity';
 import { CreateLogDTO } from './dto/create-log.input';
 import { Roles } from 'src/common/decorators/role.decorator';
+import { FindLogsDTO } from './dto/find-log.input';
+import { FindLogsResponseDTO } from './dto/find-log.output';
 
 @Resolver(() => Log)
 export class LogResolver {
@@ -16,14 +18,8 @@ export class LogResolver {
   }
 
   @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
-  @Query(() => [Log], { name: 'logs' })
-  findAll() {
-    return this.logService.findAll();
-  }
-
-  @Roles([AuthRoleEnum.ADMIN])
-  @Mutation(() => Log)
-  removeLog(@Args('_id') _id: string) {
-    return this.logService.remove(_id);
+  @Query(() => FindLogsResponseDTO, { name: 'logs' })
+  findMany(@Args('findLogsQuery') query: FindLogsDTO) {
+    return this.logService.findMany(query);
   }
 }

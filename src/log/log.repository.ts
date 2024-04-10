@@ -2,12 +2,38 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { AbstractRepository } from 'src/common/database/abstract.repository';
 import { Log } from './entities/log.entity';
-import { Model } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
+import { FindLogsDTO } from './dto/find-log.input';
+import { OrderEnum } from 'src/common/dtos/findMany.DTO';
 
 @Injectable()
 export class LogRepository extends AbstractRepository<Log> {
   protected readonly logger = new Logger(LogRepository.name);
   constructor(@InjectModel(Log.name) model: Model<Log>) {
     super(model);
+  }
+
+  async findMany({
+    offset,
+    skip,
+    keyword,
+    keywordTarget,
+    order = OrderEnum.DESC,
+    sort = 'createdAt',
+  }: FindLogsDTO) {
+    const filter: FilterQuery<Log> = {
+      [keywordTarget]: { $regex: keyword, $options: 'i' },
+    };
+
+    const orderNumber = order === OrderEnum.DESC ? -1 : 1;
+    const totalCount = await this.model.countDocuments(filter);
+    const data = await this.model
+      .find(filter)
+      .sort({ [sort]: orderNumber })
+      .skip(skip)
+      .limit(offset)
+      .lean<Log[]>();
+
+    return { totalCount, data };
   }
 }
