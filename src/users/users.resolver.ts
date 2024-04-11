@@ -40,8 +40,9 @@ export class UsersResolver {
   @Roles([AuthRoleEnum.ADMIN])
   @Mutation(() => User)
   @LogData({ description: '계정정보 수정', logType: LogTypeEnum.UPDATE })
-  updateUser(@Args('updateUserInput') body: UpdateUserDTO) {
-    return this.usersService.update(body);
+  async updateUser(@Args('updateUserInput') body: UpdateUserDTO) {
+    const { id, role, createdAt } = await this.usersService.update(body);
+    return { id, role, createdAt };
   }
 
   @Roles([AuthRoleEnum.ADMIN])
