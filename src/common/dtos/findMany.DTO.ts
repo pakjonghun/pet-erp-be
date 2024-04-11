@@ -19,7 +19,7 @@ export class FindManyDTO {
 
   @Field(() => Int)
   @IsNumber()
-  offset: number;
+  limit: number;
 
   @Field(() => Int)
   @IsNumber()

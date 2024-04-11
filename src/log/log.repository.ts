@@ -15,8 +15,8 @@ export class LogRepository extends AbstractRepository<Log> {
   }
 
   async findMany({
-    offset,
     skip,
+    limit,
     keyword,
     keywordTarget,
     order = OrderEnum.DESC,
@@ -38,7 +38,7 @@ export class LogRepository extends AbstractRepository<Log> {
       .find(filter)
       .sort({ [sort]: orderNumber })
       .skip(skip)
-      .limit(offset)
+      .limit(limit)
       .lean<Log[]>();
 
     return { totalCount, data };
