@@ -22,7 +22,7 @@ export class UsersResolver {
   @Mutation(() => User)
   @LogData({ description: '회원가입', logType: LogTypeEnum.CREATE })
   async createUser(@Args('createUserInput') createUserInput: CreateUserDTO) {
-    await this.usersService.create(createUserInput);
+    return this.usersService.create(createUserInput);
   }
 
   @Roles([AuthRoleEnum.ADMIN])
