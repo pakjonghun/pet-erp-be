@@ -24,7 +24,10 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
   }
 
   async findAll(query: FilterQuery<T>): Promise<T[]> {
-    const result = await this.model.find(query).lean<T[]>();
+    const result = await this.model
+      .find(query)
+      .sort({ createdAt: -1 })
+      .lean<T[]>();
     return result;
   }
 
