@@ -16,6 +16,7 @@ import { LogModule } from './log/log.module';
 import { DateScalar } from './common/scalars/datetime.scalar';
 import { ProductModule } from './product/product.module';
 import { ClientModule } from './client/client.module';
+import { FileService } from './common/services/file.service';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { ClientModule } from './client/client.module';
     ProductModule,
     ClientModule,
   ],
+  exports: [AppService],
   controllers: [AppController],
   providers: [
     {
@@ -90,6 +92,7 @@ import { ClientModule } from './client/client.module';
     },
     DateScalar,
     AppService,
+    FileService,
   ],
 })
 export class AppModule {}

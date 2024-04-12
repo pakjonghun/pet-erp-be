@@ -1,3 +1,4 @@
+import { FileService } from './common/services/file.service';
 import {
   Controller,
   Get,
@@ -21,7 +22,10 @@ import { diskStorage } from 'multer';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly fileService: FileService,
+  ) {}
 
   @Get()
   getHello(): string {
@@ -53,6 +57,6 @@ export class AppController {
     )
     file: Express.Multer.File,
   ) {
-    await this.appService.upload(file, service);
+    await this.fileService.upload(file, service);
   }
 }

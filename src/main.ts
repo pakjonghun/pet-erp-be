@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
+import { HttpExceptionFilter } from './common/filter/http-exception';
+import { FileService } from './common/services/file.service';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
@@ -14,6 +16,9 @@ async function bootstrap() {
     origin,
   });
   app.use(cookieParser());
+  const fileService = app.get(FileService);
+  app.useGlobalFilters(new HttpExceptionFilter(fileService));
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
