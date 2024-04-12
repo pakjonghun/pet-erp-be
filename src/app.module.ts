@@ -14,6 +14,8 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { GqlAuthGuard } from './auth/guards/gql.guard';
 import { LogModule } from './log/log.module';
 import { DateScalar } from './common/scalars/datetime.scalar';
+import { ProductModule } from './product/product.module';
+import { ClientModule } from './client/client.module';
 
 @Module({
   imports: [
@@ -73,6 +75,8 @@ import { DateScalar } from './common/scalars/datetime.scalar';
     UsersModule,
     AuthModule,
     LogModule,
+    ProductModule,
+    ClientModule,
   ],
   controllers: [AppController],
   providers: [

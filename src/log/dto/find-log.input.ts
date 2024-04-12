@@ -1,4 +1,4 @@
-import { FindManyDTO } from 'src/common/dtos/findMany.DTO';
+import { FindManyDTO } from 'src/common/dtos/find-many.input';
 import { LogInterface } from '../entities/log.entity';
 import { Field, InputType } from '@nestjs/graphql';
 import { IsOneOf } from 'src/common/validations/enum.validation';

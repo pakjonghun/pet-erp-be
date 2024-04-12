@@ -3,8 +3,8 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { CreateUserDTO } from './dto/create.user.dto';
-import { UpdateUserDTO } from './dto/update.user.dto';
+import { CreateUserDTO } from './dto/create-user.input';
+import { UpdateUserDTO } from './dto/update-user.input';
 import { UserRepository } from './user.repository';
 import * as bcrypt from 'bcrypt';
 import { FilterQuery } from 'mongoose';

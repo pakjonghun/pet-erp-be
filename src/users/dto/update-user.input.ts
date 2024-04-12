@@ -1,4 +1,4 @@
-import { CreateUserDTO } from './create.user.dto';
+import { CreateUserDTO } from './create-user.input';
 import { InputType, OmitType, PartialType } from '@nestjs/graphql';
 
 @InputType()

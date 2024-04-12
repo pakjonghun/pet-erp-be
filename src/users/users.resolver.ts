@@ -1,13 +1,13 @@
 import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
 import { UsersService } from './users.service';
 import { User, AuthRoleEnum } from './entities/user.entity';
-import { CreateUserDTO } from './dto/create.user.dto';
-import { UpdateProfileDTO, UpdateUserDTO } from './dto/update.user.dto';
+import { CreateUserDTO } from './dto/create-user.input';
+import { UpdateProfileDTO, UpdateUserDTO } from './dto/update-user.input';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
 import { LogData } from 'src/common/decorators/log.decorator';
 import { GetUser } from 'src/common/decorators/user.decorator';
-import { MyInfo } from './dto/myInfo.dto';
+import { MyInfo } from './dto/myInfo.output';
 import { Response } from 'express';
 import { AuthService } from 'src/auth/auth.service';
 
