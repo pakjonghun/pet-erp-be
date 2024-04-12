@@ -61,7 +61,6 @@ import { FileService } from './common/services/file.service';
           typeof originalError == 'object' &&
           'statusCode' in originalError &&
           originalError.statusCode;
-
         new Logger().error(error);
         return {
           message: error.message,

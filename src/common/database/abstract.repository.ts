@@ -1,3 +1,4 @@
+import { Document } from 'mongoose';
 import {
   BadRequestException,
   Injectable,
@@ -5,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AbstractEntity } from './abstract.entity';
-import { FilterQuery, Model, Types, UpdateQuery } from 'mongoose';
+import { FilterQuery, Model, UpdateQuery } from 'mongoose';
 
 @Injectable()
 export abstract class AbstractRepository<T extends AbstractEntity> {
@@ -13,11 +14,12 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
 
   constructor(protected readonly model: Model<T>) {}
 
+  getDocument(body?: Omit<T, '_id' | 'createdAt' | 'updatedAt'>) {
+    return body ? new this.model(body) : new this.model();
+  }
+
   async create(body: Omit<T, '_id' | 'createdAt' | 'updatedAt'>): Promise<T> {
-    const newDocument = new this.model({
-      ...body,
-      _id: new Types.ObjectId(),
-    });
+    const newDocument = this.getDocument(body);
 
     const result = (await newDocument.save()).toJSON() as unknown as T;
     return result;
@@ -70,28 +72,13 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
     return result;
   }
 
-  async bulkWrite(dataList: Omit<T, 'updatedAt' | 'createdAt' | '_id'>[]) {
-    await this.validateDocuments(dataList);
-
+  async bulkWrite(documents: Document<any, any, T>[]) {
     await this.model.bulkWrite(
-      dataList.map((data) => {
+      documents.map((document) => {
         return {
-          insertOne: { document: new this.model(data) },
+          insertOne: { document },
         };
       }),
     );
-  }
-
-  async validateDocuments(
-    dataList: Omit<T, 'updatedAt' | 'createdAt' | '_id'>[],
-  ) {
-    const documents: T[] = [];
-    for await (const data of dataList) {
-      const document = new this.model(data);
-      await document.validate();
-      documents.push(document);
-    }
-
-    return documents;
   }
 }

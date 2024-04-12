@@ -1,22 +1,24 @@
 import {
-  ExceptionFilter,
-  Catch,
   ArgumentsHost,
-  HttpException,
+  Catch,
+  ExceptionFilter,
+  HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { Error } from 'mongoose';
 import { FileService } from '../services/file.service';
 import { cwd } from 'process';
 
-@Catch(HttpException)
-export class HttpExceptionFilter implements ExceptionFilter {
+@Catch(Error)
+export class ErrorExceptionFilter implements ExceptionFilter {
   constructor(private readonly fileService: FileService) {}
-  async catch(exception: HttpException, host: ArgumentsHost) {
+
+  async catch(exception: Error, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const status = exception.getStatus();
+    const statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     await this.fileService.emptyFolder(`/${cwd()}/upload`);
-    response.status(status).json({
+    response.status(statusCode).json({
       message: exception.message,
     });
   }
