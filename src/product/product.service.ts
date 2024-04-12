@@ -1,26 +1,40 @@
+import * as ExcelJS from 'exceljs';
 import { Injectable } from '@nestjs/common';
 import { CreateProductInput } from './dto/create-product.input';
 import { UpdateProductInput } from './dto/update-product.input';
+import { ProductRepository } from './entities/product.repository';
 
 @Injectable()
 export class ProductService {
+  constructor(private readonly productRepository: ProductRepository) {}
+
   create(createProductInput: CreateProductInput) {
-    return 'This action adds a new product';
+    return this.productRepository.create(createProductInput);
   }
 
   findAll() {
-    return `This action returns all product`;
+    return this.productRepository.findAll({});
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  findOne(_id: string) {
+    return this.productRepository.findOne({ _id });
   }
 
-  update(id: number, updateProductInput: UpdateProductInput) {
-    return `This action updates a #${id} product`;
+  update({ _id, ...body }: UpdateProductInput) {
+    return this.productRepository.update({ _id }, body);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  remove(_id: string) {
+    return this.productRepository.remove({ _id });
+  }
+
+  upload(worksheet: ExcelJS.Worksheet) {
+    worksheet.eachRow((row) => {
+      row.eachCell((cell) => {
+        const value = cell.value;
+        // const $col$row = cell.$col$row;
+        console.log(typeof value, value);
+      });
+    });
   }
 }

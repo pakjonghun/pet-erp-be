@@ -1,22 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { ProductService } from './product/product.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class AppService {
+  constructor(private readonly productService: ProductService) {}
+
   getHello(): string {
-    return 'Hello World!';
+    return 'Good Healthy!';
   }
 
-  async upload(file: Express.Multer.File) {
+  async upload(file: Express.Multer.File, service: string) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = await workbook.xlsx.readFile(file.path);
     const fistSheet = worksheet.getWorksheet(1);
-    fistSheet.eachRow((row) => {
-      row.eachCell((cell) => {
-        const value = cell.value;
-        // const $col$row = cell.$col$row;
-        console.log(typeof value, value);
-      });
-    });
+    switch (service) {
+      case 'product':
+        await this.productService.upload(fistSheet);
+        break;
+
+      default:
+        throw new BadRequestException(
+          `${service}는 올바른 서비스 이름이 아닙니다.`,
+        );
+    }
   }
 }

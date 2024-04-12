@@ -69,4 +69,29 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
 
     return result;
   }
+
+  async bulkWrite(dataList: Omit<T, 'updatedAt' | 'createdAt' | '_id'>[]) {
+    await this.validateDocuments(dataList);
+
+    await this.model.bulkWrite(
+      dataList.map((data) => {
+        return {
+          insertOne: { document: new this.model(data) },
+        };
+      }),
+    );
+  }
+
+  async validateDocuments(
+    dataList: Omit<T, 'updatedAt' | 'createdAt' | '_id'>[],
+  ) {
+    const documents: T[] = [];
+    for await (const data of dataList) {
+      const document = new this.model(data);
+      await document.validate();
+      documents.push(document);
+    }
+
+    return documents;
+  }
 }

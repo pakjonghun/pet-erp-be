@@ -41,7 +41,7 @@ export class AppController {
     }),
   )
   async upload(
-    @Param('service')
+    @Param('service') service: string,
     @UploadedFile(
       new ParseFilePipe({
         errorHttpStatusCode: 400,
@@ -53,7 +53,6 @@ export class AppController {
     )
     file: Express.Multer.File,
   ) {
-    console.log('upload');
-    await this.appService.upload(file);
+    await this.appService.upload(file, service);
   }
 }
