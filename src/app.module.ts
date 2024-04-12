@@ -17,6 +17,7 @@ import { DateScalar } from './common/scalars/datetime.scalar';
 import { ProductModule } from './product/product.module';
 import { ClientModule } from './client/client.module';
 import { FileService } from './common/services/file.service';
+import { UtilService } from './common/services/util.service';
 
 @Module({
   imports: [
@@ -78,7 +79,7 @@ import { FileService } from './common/services/file.service';
     ProductModule,
     ClientModule,
   ],
-  exports: [AppService],
+  exports: [AppService, UtilService],
   controllers: [AppController],
   providers: [
     {
@@ -89,6 +90,7 @@ import { FileService } from './common/services/file.service';
       provide: APP_INTERCEPTOR,
       useClass: LogInterceptor,
     },
+    UtilService,
     DateScalar,
     AppService,
     FileService,

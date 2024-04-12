@@ -1,10 +1,6 @@
-import { Document } from 'mongoose';
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import * as ExcelJS from 'exceljs';
+import { HydratedDocument } from 'mongoose';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { AbstractEntity } from './abstract.entity';
 import { FilterQuery, Model, UpdateQuery } from 'mongoose';
 
@@ -40,11 +36,6 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
 
   async findOne(query: FilterQuery<T>): Promise<T> {
     const result = await this.model.findOne(query).lean<T>();
-    if (!result) {
-      this.logger.warn(`find one failed ${query}`);
-      throw new NotFoundException('검색된 문서가 없습니다.');
-    }
-
     return result;
   }
 
@@ -72,7 +63,7 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
     return result;
   }
 
-  async bulkWrite(documents: Document<any, any, T>[]) {
+  async bulkWrite(documents: HydratedDocument<T>[]) {
     await this.model.bulkWrite(
       documents.map((document) => {
         return {
@@ -80,5 +71,58 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
         };
       }),
     );
+  }
+
+  async excelToDocuments(
+    worksheet: ExcelJS.Worksheet,
+    colToField: Record<number, Partial<keyof T>>,
+    requiredCount: number,
+  ) {
+    const documents: HydratedDocument<T>[] = [];
+    worksheet.eachRow((row, rowIndex) => {
+      if (rowIndex === 1) return;
+
+      const document = this.getDocument();
+      if (row.actualCellCount < requiredCount) {
+        throw new BadRequestException(
+          `${rowIndex}번째 줄에 데이터가 모두 입력되어 있지 않습니다. 필수 데이터를 입력해주세요.`,
+        );
+      }
+      row.eachCell((cell, index) => {
+        const fieldName = colToField[index] as string;
+        if (fieldName) {
+          const value =
+            typeof cell.value == 'string' //
+              ? cell.value.trim().replace(/[\b]/g, '')
+              : cell.value;
+          document[fieldName] = value;
+
+          const isValid = document.$isValid(fieldName);
+          if (!isValid) {
+            throw new BadRequestException(
+              `${cell.$col$row}에 입력된 ${cell.value ?? '입력안됨'}는 잘못된 값입니다.`,
+            );
+          }
+        }
+      });
+      documents.push(document);
+    });
+    for await (const document of documents) {
+      await document.validate();
+    }
+
+    return documents;
+  }
+
+  async checkUnique(documents: HydratedDocument<T>[], fieldName: string) {
+    const fieldList = documents.map((d) => d[fieldName]);
+    const duplicatedItem = await this.findOne({
+      code: { $in: fieldList },
+    });
+    if (duplicatedItem) {
+      throw new BadRequestException(
+        `${fieldName}로 입력된 ${duplicatedItem[fieldName]}는 이미 저장된 데이터 입니다.`,
+      );
+    }
   }
 }

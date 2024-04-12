@@ -38,7 +38,7 @@ export class Product extends AbstractEntity implements ProductInterface {
   @Field(() => Int)
   @Prop({
     type: Number,
-    required: [true, '상품 원가를 입력해주세요.'],
+    default: 0,
     min: [0, '상품 가격은 0이상의 값을 입력해주세요.'],
   })
   wonPrice: number;
@@ -46,7 +46,7 @@ export class Product extends AbstractEntity implements ProductInterface {
   @Field(() => Int)
   @Prop({
     type: Number,
-    required: [true, '상품 판매가를 입력해주세요.'],
+    default: 0,
     min: [0, '상품 가격은 0이상의 값을 입력해주세요.'],
   })
   salePrice: number;
