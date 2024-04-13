@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as dayjs from 'dayjs';
 import { HydratedDocument } from 'mongoose';
-import { DATE_FORMAT } from 'src/sale/constants';
+import { DATE_FORMAT } from '../constants';
 
 @Injectable()
 export class UtilService {

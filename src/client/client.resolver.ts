@@ -1,8 +1,10 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { ClientService } from './client.service';
 import { Client } from './entities/client.entity';
-import { CreateClientInput } from './dto/create-client.input';
-import { UpdateClientInput } from './dto/update-client.input';
+import { CreateClientInput } from './dtos/create-client.input';
+import { UpdateClientInput } from './dtos/update-client.input';
+import { TopClientOutput } from './dtos/top-client.output';
+import { TopClientInput } from './dtos/top-client.input';
 
 @Resolver(() => Client)
 export class ClientResolver {
@@ -35,5 +37,10 @@ export class ClientResolver {
   @Mutation(() => Client)
   removeClient(@Args('id') id: string) {
     return this.clientService.remove(id);
+  }
+
+  @Query(() => [TopClientOutput])
+  topClients(@Args('topClientInput') topClientInput: TopClientInput) {
+    return this.clientService.topClientList(topClientInput);
   }
 }

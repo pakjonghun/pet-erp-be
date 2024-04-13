@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { CreateLogDTO } from './dto/create-log.input';
+import { CreateLogDTO } from './dtos/create-log.input';
 import { LogRepository } from './log.repository';
-import { FindLogsDTO } from './dto/find-log.input';
+import { FindLogsDTO } from './dtos/find-log.input';
 
 @Injectable()
 export class LogService {

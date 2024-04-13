@@ -57,7 +57,6 @@ export class AppController {
     )
     file: Express.Multer.File,
   ) {
-    console.log(service);
     await this.fileService.upload(file, service);
   }
 }

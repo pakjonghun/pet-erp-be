@@ -1,11 +1,11 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 
 interface SaleInterface {
   code: string;
   shoppingMall?: string;
-  count?: string;
+  count?: number;
   barCode?: string;
   consignee?: string;
   address1?: string;
@@ -19,11 +19,11 @@ interface SaleInterface {
   orderNumber?: string;
   productCode?: string;
   saleAt?: string;
-  payCost?: string;
+  payCost?: number;
   orderStatus?: string;
   mallId?: string;
-  wonCost?: string;
-  deliveryCost: number;
+  wonCost?: number;
+  deliveryCost?: number;
 }
 
 @ObjectType()
@@ -38,8 +38,8 @@ export class Sale extends AbstractEntity implements SaleInterface {
   shoppingMall?: string;
 
   @Prop({ default: null })
-  @Field(() => String, { nullable: true })
-  count?: string;
+  @Field(() => Int, { nullable: true })
+  count?: number;
 
   @Prop({ default: null })
   @Field(() => String, { nullable: true })
@@ -93,9 +93,9 @@ export class Sale extends AbstractEntity implements SaleInterface {
   @Field(() => String, { nullable: true })
   saleAt?: string;
 
-  @Prop({ default: null })
-  @Field(() => String, { nullable: true })
-  payCost?: string;
+  @Prop({ default: 0 })
+  @Field(() => Int, { nullable: true })
+  payCost?: number;
 
   @Prop({ default: null })
   @Field(() => String, { nullable: true })
@@ -105,13 +105,13 @@ export class Sale extends AbstractEntity implements SaleInterface {
   @Field(() => String, { nullable: true })
   mallId?: string;
 
-  @Prop({ default: null })
-  @Field(() => String, { nullable: true })
-  wonCost?: string;
+  @Prop({ default: 0 })
+  @Field(() => Int, { nullable: true })
+  wonCost?: number;
 
-  @Prop({ required: true })
+  @Prop({ default: 0 })
   @Field(() => String, { nullable: true })
-  deliveryCost: number;
+  deliveryCost?: number;
 }
 
 export const saleSchema = SchemaFactory.createForClass(Sale);

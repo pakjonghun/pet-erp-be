@@ -72,6 +72,7 @@ import * as Joi from 'joi';
           'statusCode' in originalError &&
           originalError.statusCode;
         new Logger().error(error);
+        console.log(error);
         return {
           message: error.message,
           code: error.extensions.code,

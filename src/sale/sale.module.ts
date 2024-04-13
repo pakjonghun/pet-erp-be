@@ -6,13 +6,15 @@ import { Sale, saleSchema } from './entities/sale.entity';
 import { AppModule } from 'src/app.module';
 import { AwsS3Service } from './aws.service';
 import { SaleRepository } from './sale.repository';
+import { SabandService } from './sabang.service';
 
 @Module({
+  exports: [SaleService],
   imports: [
     DatabaseModule.forFeature([{ name: Sale.name, schema: saleSchema }]),
     forwardRef(() => AppModule),
   ],
   controllers: [SaleController],
-  providers: [SaleService, AwsS3Service, SaleRepository],
+  providers: [SaleService, AwsS3Service, SaleRepository, SabandService],
 })
 export class SaleModule {}

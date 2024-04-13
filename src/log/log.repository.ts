@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { AbstractRepository } from 'src/common/database/abstract.repository';
 import { Log } from './entities/log.entity';
 import { FilterQuery, Model } from 'mongoose';
-import { FindLogsDTO } from './dto/find-log.input';
+import { FindLogsDTO } from './dtos/find-log.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import * as dayjs from 'dayjs';
 

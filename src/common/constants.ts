@@ -4,3 +4,4 @@ export const ALLOW_EXCEL_FILE_TYPE_LIST = [
 ];
 
 export const EXCEL_FILE_SIZE_LIMIT = 1000000;
+export const DATE_FORMAT = 'YYYYMMDD';

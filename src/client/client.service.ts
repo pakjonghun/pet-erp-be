@@ -1,17 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { CreateClientInput } from './dto/create-client.input';
-import { UpdateClientInput } from './dto/update-client.input';
+import { CreateClientInput } from './dtos/create-client.input';
+import { UpdateClientInput } from './dtos/update-client.input';
 import { ClientInterface, ClientType } from './entities/client.entity';
 import { ClientRepository } from './client.repository';
 import { UtilService } from 'src/common/services/util.service';
 import { ColumnOption } from './types';
 import * as ExcelJS from 'exceljs';
+import { SaleService } from 'src/sale/sale.service';
+import { TopClientInput } from './dtos/top-client.input';
 
 @Injectable()
 export class ClientService {
   constructor(
     private readonly clientRepository: ClientRepository,
     private readonly utilService: UtilService,
+    private readonly saleService: SaleService,
   ) {}
 
   create(createClientInput: CreateClientInput) {
@@ -63,5 +66,9 @@ export class ClientService {
     this.utilService.checkDuplicatedField(documents, 'code');
     await this.clientRepository.checkUnique(documents, 'code');
     await this.clientRepository.bulkWrite(documents);
+  }
+
+  topClientList({ limit }: TopClientInput) {
+    return this.saleService.topSaleBy({ limit, groupId: 'mallId' });
   }
 }

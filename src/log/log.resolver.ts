@@ -2,10 +2,10 @@ import { AuthRoleEnum } from './../users/entities/user.entity';
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { LogService } from './log.service';
 import { Log } from './entities/log.entity';
-import { CreateLogDTO } from './dto/create-log.input';
+import { CreateLogDTO } from './dtos/create-log.input';
 import { Roles } from 'src/common/decorators/role.decorator';
-import { FindLogsDTO } from './dto/find-log.input';
-import { FindLogsResponseDTO } from './dto/find-log.output';
+import { FindLogsDTO } from './dtos/find-log.input';
+import { FindLogsResponseDTO } from './dtos/find-log.output';
 
 @Resolver(() => Log)
 export class LogResolver {

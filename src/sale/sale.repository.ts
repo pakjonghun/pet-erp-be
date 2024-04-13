@@ -5,9 +5,7 @@ import { HydratedDocument, Model } from 'mongoose';
 
 @Injectable()
 export class SaleRepository {
-  constructor(
-    @InjectModel(Sale.name) private readonly saleModel: Model<Sale>,
-  ) {}
+  constructor(@InjectModel(Sale.name) public readonly saleModel: Model<Sale>) {}
 
   async bulkUpsert(documents: HydratedDocument<Sale>[]) {
     this.saleModel.bulkWrite(

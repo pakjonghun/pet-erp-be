@@ -9,14 +9,10 @@ import { ColumnOption } from 'src/client/types';
 export abstract class AbstractRepository<T extends AbstractEntity> {
   protected abstract readonly logger: Logger;
 
-  constructor(protected readonly model: Model<T>) {}
-
-  getDocument(body?: Omit<T, '_id' | 'createdAt' | 'updatedAt'>) {
-    return body ? new this.model(body) : new this.model();
-  }
+  constructor(public readonly model: Model<T>) {}
 
   async create(body: Omit<T, '_id' | 'createdAt' | 'updatedAt'>): Promise<T> {
-    const newDocument = this.getDocument(body);
+    const newDocument = new this.model(body);
 
     const result = (await newDocument.save()).toJSON() as unknown as T;
     return result;
@@ -83,7 +79,7 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
     worksheet.eachRow((row, rowIndex) => {
       if (rowIndex === 1) return;
 
-      const document = this.getDocument();
+      const document = new this.model();
       if (row.actualCellCount < requiredCount) {
         throw new BadRequestException(
           `${rowIndex}번째 줄에 데이터가 모두 입력되어 있지 않습니다. 필수 데이터를 입력해주세요.`,

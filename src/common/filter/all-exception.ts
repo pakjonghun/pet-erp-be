@@ -12,13 +12,17 @@ import { cwd } from 'process';
 export class AllErrorExceptionFilter implements ExceptionFilter {
   constructor(private readonly fileService: FileService) {}
   async catch(exception: Error, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const status = HttpStatus.CONFLICT; // 409 Conflict
-    await this.fileService.emptyFolder(`/${cwd()}/upload`);
+    const isHttp = host.getType() == 'http';
+    if (isHttp) {
+      const ctx = host.switchToHttp();
+      const response = ctx.getResponse<Response>();
+      const status = HttpStatus.CONFLICT;
+      await this.fileService.emptyFolder(`/${cwd()}/upload`);
+      response.status(status).json({
+        message: exception.message,
+      });
+    }
 
-    response.status(status).json({
-      message: exception.message,
-    });
+    return exception;
   }
 }
