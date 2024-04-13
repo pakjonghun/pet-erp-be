@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { ClientService } from './client.service';
 import { Client } from './entities/client.entity';
 import { CreateClientInput } from './dto/create-client.input';
@@ -9,7 +9,9 @@ export class ClientResolver {
   constructor(private readonly clientService: ClientService) {}
 
   @Mutation(() => Client)
-  createClient(@Args('createClientInput') createClientInput: CreateClientInput) {
+  createClient(
+    @Args('createClientInput') createClientInput: CreateClientInput,
+  ) {
     return this.clientService.create(createClientInput);
   }
 
@@ -19,17 +21,19 @@ export class ClientResolver {
   }
 
   @Query(() => Client, { name: 'client' })
-  findOne(@Args('id', { type: () => Int }) id: number) {
-    return this.clientService.findOne(id);
+  findOne(@Args('_id') _id: string) {
+    return this.clientService.findOne(_id);
   }
 
   @Mutation(() => Client)
-  updateClient(@Args('updateClientInput') updateClientInput: UpdateClientInput) {
-    return this.clientService.update(updateClientInput.id, updateClientInput);
+  updateClient(
+    @Args('updateClientInput') updateClientInput: UpdateClientInput,
+  ) {
+    return this.clientService.update(updateClientInput);
   }
 
   @Mutation(() => Client)
-  removeClient(@Args('id', { type: () => Int }) id: number) {
+  removeClient(@Args('id') id: string) {
     return this.clientService.remove(id);
   }
 }

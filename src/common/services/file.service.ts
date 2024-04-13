@@ -1,12 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import * as ExcelJS from 'exceljs';
 import { promisify } from 'util';
-import * as fs from 'fs';
 import { ProductService } from 'src/product/product.service';
+import * as ExcelJS from 'exceljs';
+import * as fs from 'fs';
+import { ClientService } from 'src/client/client.service';
 
 @Injectable()
 export class FileService {
-  constructor(private readonly productService: ProductService) {}
+  constructor(
+    private readonly productService: ProductService,
+    private readonly clientService: ClientService,
+  ) {}
 
   async upload(file: Express.Multer.File, service: string) {
     const workbook = new ExcelJS.Workbook();
@@ -14,6 +18,10 @@ export class FileService {
     const fistSheet = worksheet.getWorksheet(1);
     switch (service) {
       case 'product':
+        await this.productService.upload(fistSheet);
+        break;
+
+      case 'client':
         await this.productService.upload(fistSheet);
         break;
 

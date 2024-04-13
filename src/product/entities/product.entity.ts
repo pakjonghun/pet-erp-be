@@ -1,6 +1,5 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 
 export interface ProductInterface {
@@ -61,4 +60,3 @@ export class Product extends AbstractEntity implements ProductInterface {
 }
 
 export const productSchema = SchemaFactory.createForClass(Product);
-export type ProductDocument = HydratedDocument<Product>;
