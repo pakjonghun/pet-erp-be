@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { CreateClientInput } from './dto/create-client.input';
 import { UpdateClientInput } from './dto/update-client.input';
-import { ClientInterface } from './entities/client.entity';
+import { ClientInterface, ClientType } from './entities/client.entity';
 import { ClientRepository } from './client.repository';
 import { UtilService } from 'src/common/services/util.service';
+import { ColumnOption } from './types';
 import * as ExcelJS from 'exceljs';
 
 @Injectable()
@@ -34,11 +35,30 @@ export class ClientService {
   }
 
   async upload(worksheet: ExcelJS.Worksheet) {
-    const colToField: Record<number, Partial<keyof ClientInterface>> = {};
+    const colToField: Record<number, ColumnOption<ClientInterface>> = {
+      1: { fieldName: 'name' },
+      2: { fieldName: 'businessName' },
+      3: { fieldName: 'businessNumber' },
+      4: { fieldName: 'code' },
+      5: { fieldName: 'feeRate' },
+      6: {
+        fieldName: 'clientType',
+        transform: (value) =>
+          value == '도매몰' ? ClientType.wholeSale : ClientType.platform,
+      },
+      7: { fieldName: 'payDate' },
+      8: { fieldName: 'manager' },
+      9: { fieldName: 'managerTel' },
+      10: {
+        fieldName: 'inActive',
+        transform: (value) => value === '거래중',
+      },
+    };
+
     const documents = await this.clientRepository.excelToDocuments(
       worksheet,
       colToField,
-      4,
+      3,
     );
     this.utilService.checkDuplicatedField(documents, 'code');
     await this.clientRepository.checkUnique(documents, 'code');

@@ -1,7 +1,6 @@
-import { ObjectType, Field, Int, registerEnumType } from '@nestjs/graphql';
+import { ObjectType, Field, registerEnumType, Float } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
-import { patternValidator } from 'src/common/validations/schema-type.validation';
 
 export enum ClientType {
   wholeSale = 'wholeSale',
@@ -12,14 +11,15 @@ registerEnumType(ClientType, { name: 'clientType' });
 
 export interface ClientInterface {
   code: string;
+  name: string;
   feeRate?: number;
   clientType: ClientType;
-  businessName: string;
+  businessName?: string;
   businessNumber?: string;
   payDate?: Date;
   manager?: string;
   managerTel?: string;
-  managerEmail?: string;
+  inActive?: boolean;
 }
 
 @ObjectType()
@@ -37,10 +37,14 @@ export class Client extends AbstractEntity implements ClientInterface {
     type: Number,
     default: 0,
     min: [0, '수수료 비율은 0 이상의 값을 입력하세요.'],
-    max: [100, '수수료 비율은 100이하의 값을 입력하세요.'],
+    max: [1, '수수료 비율은 1이하의 값을 입력하세요.'],
   })
-  @Field(() => Int, { nullable: true })
+  @Field(() => Float, { nullable: true })
   feeRate?: number;
+
+  @Prop({ type: String, required: [true, '거래처 이름을 입력하세요.'] })
+  @Field(() => String)
+  name: string;
 
   @Prop({
     type: String,
@@ -50,9 +54,9 @@ export class Client extends AbstractEntity implements ClientInterface {
   @Field(() => ClientType)
   clientType: ClientType;
 
-  @Prop({ type: String, required: [true, '거래처 이름을 입력하세요.'] })
+  @Prop({ type: String })
   @Field(() => String)
-  businessName: string;
+  businessName?: string;
 
   @Prop({ type: String })
   @Field(() => String, { nullable: true })
@@ -70,9 +74,9 @@ export class Client extends AbstractEntity implements ClientInterface {
   @Field(() => String, { nullable: true })
   managerTel?: string;
 
-  @Prop({ type: String, validators: patternValidator('email') })
-  @Field(() => String, { nullable: true })
-  managerEmail?: string;
+  @Prop({ type: Boolean, default: true })
+  @Field(() => Boolean, { nullable: true })
+  inActive?: boolean;
 }
 
 export const clientSchema = SchemaFactory.createForClass(Client);

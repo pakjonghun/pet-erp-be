@@ -3,6 +3,7 @@ import { HydratedDocument } from 'mongoose';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { AbstractEntity } from './abstract.entity';
 import { FilterQuery, Model, UpdateQuery } from 'mongoose';
+import { ColumnOption } from 'src/client/types';
 
 @Injectable()
 export abstract class AbstractRepository<T extends AbstractEntity> {
@@ -75,7 +76,7 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
 
   async excelToDocuments(
     worksheet: ExcelJS.Worksheet,
-    colToField: Record<number, Partial<keyof T>>,
+    colToField: Record<number, ColumnOption<any>>,
     requiredCount: number,
   ) {
     const documents: HydratedDocument<T>[] = [];
@@ -89,18 +90,25 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
         );
       }
       row.eachCell((cell, index) => {
-        const fieldName = colToField[index] as string;
+        const fieldName = colToField[index].fieldName as string;
         if (fieldName) {
-          const value =
-            typeof cell.value == 'string' //
-              ? cell.value.trim().replace(/[\b]/g, '')
-              : cell.value;
+          let value = cell.value;
+          if (typeof value === 'string') {
+            value = value.trim().replace(/[\b]/g, '');
+          }
+
+          if (colToField[index]?.transform) {
+            value = colToField[index]?.transform(
+              cell.value,
+            ) as ExcelJS.CellValue;
+          }
+
           document[fieldName] = value;
 
           const isValid = document.$isValid(fieldName);
           if (!isValid) {
             throw new BadRequestException(
-              `${cell.$col$row}에 입력된 ${cell.value ?? '입력안됨'}는 잘못된 값입니다.`,
+              `${cell.$col$row}에 ${fieldName}으로 입력된 ${cell.value ?? '입력안됨'}는 잘못된 값입니다.`,
             );
           }
         }

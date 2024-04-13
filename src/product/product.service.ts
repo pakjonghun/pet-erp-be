@@ -5,6 +5,7 @@ import { UpdateProductInput } from './dto/update-product.input';
 import { ProductRepository } from './entities/product.repository';
 import { ProductInterface } from './entities/product.entity';
 import { UtilService } from 'src/common/services/util.service';
+import { ColumnOption } from 'src/client/types';
 
 @Injectable()
 export class ProductService {
@@ -37,13 +38,25 @@ export class ProductService {
   }
 
   async upload(worksheet: ExcelJS.Worksheet) {
-    const colToField: Record<number, Partial<keyof ProductInterface>> = {
-      1: 'name',
-      2: 'code',
-      3: 'barCode',
-      4: 'wonPrice',
-      13: 'leadTime',
-      14: 'salePrice',
+    const colToField: Record<number, ColumnOption<ProductInterface>> = {
+      1: {
+        fieldName: 'name',
+      },
+      2: {
+        fieldName: 'code',
+      },
+      3: {
+        fieldName: 'barCode',
+      },
+      4: {
+        fieldName: 'wonPrice',
+      },
+      13: {
+        fieldName: 'leadTime',
+      },
+      14: {
+        fieldName: 'salePrice',
+      },
     };
 
     const documents = await this.productRepository.excelToDocuments(

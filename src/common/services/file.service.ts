@@ -22,7 +22,8 @@ export class FileService {
         break;
 
       case 'client':
-        await this.productService.upload(fistSheet);
+        console.log('client');
+        await this.clientService.upload(fistSheet);
         break;
 
       default:

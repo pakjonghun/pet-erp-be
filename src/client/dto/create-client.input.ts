@@ -1,5 +1,5 @@
 import { InputType, Field } from '@nestjs/graphql';
-import { IsEmail, IsNotEmpty, IsOptional, Max, Min } from 'class-validator';
+import { IsNotEmpty, IsOptional, Max, Min } from 'class-validator';
 import { IsOneOf } from 'src/common/validations/enum.validation';
 import { ClientInterface, ClientType } from '../entities/client.entity';
 import { IsDateValidate } from 'src/common/validations/date.validation';
@@ -21,7 +21,7 @@ export class CreateClientInput implements ClientInterface {
   clientType: ClientType;
 
   @Field(() => String, { nullable: true })
-  @IsNotEmpty({ message: '거래처 이름을 입력하세요.' })
+  @IsNotEmpty({ message: '거래처 상호를 입력하세요.' })
   businessName: string;
 
   @Field(() => String, { nullable: true })
@@ -41,8 +41,11 @@ export class CreateClientInput implements ClientInterface {
   @IsOptional()
   managerTel?: string;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => Boolean, { nullable: true })
   @IsOptional()
-  @IsEmail({}, { message: '이메일은 이메일 형식을 입력하세요.' })
-  managerEmail?: string;
+  inActive?: boolean;
+
+  @Field(() => String)
+  @IsNotEmpty({ message: '거래처 이름을 입력하세요.' })
+  name: string;
 }
