@@ -1,9 +1,8 @@
-import { LogInterceptor } from './common/interceptors/log.interceptor';
+import { LogInterceptor } from './common/interceptors/log.interceptor';
 import { Logger, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import * as Joi from 'joi';
 import { DatabaseModule } from './common/database/database.module';
 import { LoggerModule } from 'nestjs-pino';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -18,6 +17,9 @@ import { ProductModule } from './product/product.module';
 import { ClientModule } from './client/client.module';
 import { FileService } from './common/services/file.service';
 import { UtilService } from './common/services/util.service';
+import { SaleModule } from './sale/sale.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import * as Joi from 'joi';
 
 @Module({
   imports: [
@@ -30,6 +32,13 @@ import { UtilService } from './common/services/util.service';
         JWT_SECRET: Joi.string().required(),
         JWT_EXPIRATION: Joi.string().required(),
         WHITE_ORIGIN: Joi.string().required(),
+        DELIVERY_URL: Joi.string().required(),
+        AWS_REGION: Joi.string().required(),
+        AWS_ACCESS_ID: Joi.string().required(),
+        AWS_SECRET: Joi.string().required(),
+        AWS_BUCKET: Joi.string().required(),
+        COMPANY_ID: Joi.string().required(),
+        SEND_AUTH_KEY: Joi.string().required(),
       }),
     }),
     LoggerModule.forRootAsync({
@@ -72,12 +81,14 @@ import { UtilService } from './common/services/util.service';
         };
       },
     }),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     UsersModule,
     AuthModule,
     LogModule,
     ProductModule,
     ClientModule,
+    SaleModule,
   ],
   exports: [AppService, UtilService],
   controllers: [AppController],
