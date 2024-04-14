@@ -18,7 +18,7 @@ interface SaleInterface {
   originOrderNumber?: string;
   orderNumber?: string;
   productCode?: string;
-  saleAt?: string;
+  saleAt?: Date;
   payCost?: number;
   orderStatus?: string;
   mallId?: string;
@@ -90,8 +90,8 @@ export class Sale extends AbstractEntity implements SaleInterface {
   productCode?: string;
 
   @Prop({ default: null })
-  @Field(() => String, { nullable: true })
-  saleAt?: string;
+  @Field(() => Date, { nullable: true })
+  saleAt?: Date;
 
   @Prop({ default: 0 })
   @Field(() => Int, { nullable: true })

@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UtilService } from 'src/common/services/util.service';
 import { SaleRepository } from './sale.repository';
-import { TopSaleByGroup } from './types';
-import { PipelineStage } from 'mongoose';
+import { FilterQuery, PipelineStage } from 'mongoose';
 import { TopClientOutput } from 'src/client/dtos/top-client.output';
+import { Sale } from './entities/sale.entity';
+import { SaleInfoList } from 'src/product/dtos/product-sale.output';
 
 @Injectable()
 export class SaleService {
@@ -13,14 +14,15 @@ export class SaleService {
     private readonly saleRepository: SaleRepository,
   ) {}
 
-  async topSaleBy({ groupId, limit }: TopSaleByGroup) {
+  async topSaleBy(groupId: string) {
     const pipeLine: PipelineStage[] = [
       {
         $match: {
+          productCode: { $exists: true },
           mallId: { $exists: true },
-          count: { $gt: 0 },
-          payCost: { $gt: 0 },
-          wonCost: { $gt: 0 },
+          count: { $exists: true },
+          payCost: { $exists: true },
+          wonCost: { $exists: true },
         },
       },
       {
@@ -31,12 +33,13 @@ export class SaleService {
           accWonCost: { $sum: '$wonCost' },
         },
       },
+      { $limit: 15 },
       {
         $sort: {
-          payCost: -1,
-          _id: 1,
+          accPayCost: -1,
         },
       },
+
       {
         $addFields: {
           name: '$_id',
@@ -49,11 +52,157 @@ export class SaleService {
           accWonCost: 0,
         },
       },
-      {
-        $limit: limit,
-      },
     ];
 
     return this.saleRepository.saleModel.aggregate<TopClientOutput[]>(pipeLine);
+  }
+
+  async saleBy(filterQuery: FilterQuery<Sale>) {
+    const todayFilter = {
+      saleAt: this.getDateRangeFilter('today'),
+    };
+
+    const thisWeekFilter = {
+      saleAt: this.getDateRangeFilter('thisWeek'),
+    };
+
+    const pipeLine: PipelineStage[] = [
+      {
+        $match: {
+          productCode: { $exists: true },
+          mallId: { $exists: true },
+          count: { $exists: true },
+          payCost: { $exists: true },
+          wonCost: { $exists: true },
+          ...filterQuery,
+        },
+      },
+      {
+        $facet: {
+          today: this.saleInfoStage(todayFilter),
+          thisWeek: this.saleInfoStage(thisWeekFilter),
+          clients: this.clientInfoStage(),
+        },
+      },
+    ];
+    const result =
+      await this.saleRepository.saleModel.aggregate<SaleInfoList>(pipeLine);
+    return result;
+  }
+
+  private saleInfoStage(
+    filterQuery: FilterQuery<Sale>,
+    groupId = 'productCode',
+  ) {
+    return [
+      {
+        $match: {
+          ...filterQuery,
+        },
+      },
+      {
+        $group: {
+          _id: `$${groupId}`,
+          accPayCost: { $sum: '$payCost' },
+          accCount: { $sum: '$count' },
+          accWonCost: { $sum: '$wonCost' },
+        },
+      },
+      {
+        $addFields: {
+          name: '$_id',
+          accProfit: {
+            $subtract: ['$accPayCost', '$accWonCost'],
+          },
+          averagePayCost: {
+            $round: [
+              {
+                $cond: {
+                  if: { $ne: ['$accCount', 0] },
+                  then: { $divide: ['$accPayCost', '$accCount'] },
+                  else: 0,
+                },
+              },
+              2,
+            ],
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          wonCost: 0,
+        },
+      },
+    ];
+  }
+
+  private clientInfoStage() {
+    const pipeLine: PipelineStage.FacetPipelineStage[] = [
+      {
+        $group: {
+          _id: {
+            mallId: '$mallId',
+            productCode: '$productCode',
+          },
+          accPayCost: { $sum: '$payCost' },
+          accCount: { $sum: '$count' },
+          accWonCost: { $sum: '$wonCost' },
+        },
+      },
+      {
+        $sort: {
+          accPayCost: -1,
+        },
+      },
+      {
+        $addFields: {
+          accProfit: {
+            $subtract: ['$accPayCost', '$accWonCost'],
+          },
+          averagePayCost: {
+            $round: [
+              {
+                $cond: {
+                  if: { $ne: ['$accCount', 0] },
+                  then: { $divide: ['$accPayCost', '$accCount'] },
+                  else: 0,
+                },
+              },
+              2,
+            ],
+          },
+        },
+      },
+      {
+        $project: {
+          wonCost: 0,
+        },
+      },
+    ];
+
+    return pipeLine;
+  }
+
+  private getDateRangeFilter(rangeOption: 'today' | 'thisWeek') {
+    switch (rangeOption) {
+      case 'today': {
+        const [from, to] = this.utilService.todayDayjsRange();
+        return {
+          $gte: from.toDate(),
+          $lte: to.toDate(),
+        };
+      }
+      case 'thisWeek': {
+        const [from, to] = this.utilService.thisWeekDayjsRange();
+        return {
+          $gte: from.toDate(),
+          $lte: to.toDate(),
+        };
+      }
+
+      default:
+        return {};
+    }
   }
 }

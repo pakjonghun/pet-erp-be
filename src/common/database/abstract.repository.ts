@@ -1,9 +1,10 @@
 import * as ExcelJS from 'exceljs';
-import { HydratedDocument } from 'mongoose';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { AbstractEntity } from './abstract.entity';
-import { FilterQuery, Model, UpdateQuery } from 'mongoose';
+import { FilterQuery, Model, UpdateQuery, HydratedDocument } from 'mongoose';
 import { ColumnOption } from 'src/client/types';
+import { OrderEnum } from 'src/common/dtos/find-many.input';
+import { FindManyInput } from './types';
 
 @Injectable()
 export abstract class AbstractRepository<T extends AbstractEntity> {
@@ -128,5 +129,24 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
         `${fieldName}로 입력된 ${duplicatedItem[fieldName]}는 이미 저장된 데이터 입니다.`,
       );
     }
+  }
+
+  async findMany({
+    skip,
+    limit,
+    order = OrderEnum.DESC,
+    sort = 'createdAt',
+    filterQuery,
+  }: FindManyInput<T>) {
+    const orderNumber = order === OrderEnum.DESC ? -1 : 1;
+    const totalCount = await this.model.countDocuments(filterQuery);
+    const data = await this.model
+      .find(filterQuery)
+      .sort({ [sort]: orderNumber })
+      .skip(skip)
+      .limit(limit)
+      .lean<T[]>();
+
+    return { totalCount, data };
   }
 }

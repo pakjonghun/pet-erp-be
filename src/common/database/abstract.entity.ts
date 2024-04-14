@@ -8,4 +8,6 @@ export class AbstractEntity {
   @Field(() => ID)
   @Prop({ type: SchemaTypes.ObjectId })
   _id: Types.ObjectId;
+
+  createdAt: Date;
 }

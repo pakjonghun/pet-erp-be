@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as dayjs from 'dayjs';
 import { HydratedDocument } from 'mongoose';
-import { DATE_FORMAT } from '../constants';
+import * as isoweek from 'dayjs/plugin/isoWeek';
+dayjs.extend(isoweek);
 
 @Injectable()
 export class UtilService {
@@ -14,8 +15,23 @@ export class UtilService {
       );
   }
 
-  yesterday() {
-    return dayjs().subtract(1, 'day').startOf('day').format(DATE_FORMAT);
+  yesterdayDayjs() {
+    return dayjs().subtract(1, 'day').startOf('day');
+  }
+
+  thisWeekDayjsRange() {
+    return [dayjs().startOf('isoWeek'), dayjs().endOf('isoWeek')];
+  }
+
+  todayDayjsRange() {
+    return [dayjs().startOf('day'), dayjs().endOf('day')];
+  }
+
+  monthDayjsRange() {
+    return [
+      dayjs().startOf('month').startOf('date'),
+      dayjs().endOf('month').endOf('date').toDate(),
+    ];
   }
 
   getRandomNumber(length: number) {

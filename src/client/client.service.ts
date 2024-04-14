@@ -7,7 +7,6 @@ import { UtilService } from 'src/common/services/util.service';
 import { ColumnOption } from './types';
 import * as ExcelJS from 'exceljs';
 import { SaleService } from 'src/sale/sale.service';
-import { TopClientInput } from './dtos/top-client.input';
 
 @Injectable()
 export class ClientService {
@@ -68,7 +67,7 @@ export class ClientService {
     await this.clientRepository.bulkWrite(documents);
   }
 
-  topClientList({ limit }: TopClientInput) {
-    return this.saleService.topSaleBy({ limit, groupId: 'mallId' });
+  topClientList() {
+    return this.saleService.topSaleBy('mallId');
   }
 }

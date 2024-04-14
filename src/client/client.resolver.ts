@@ -4,7 +4,6 @@ import { Client } from './entities/client.entity';
 import { CreateClientInput } from './dtos/create-client.input';
 import { UpdateClientInput } from './dtos/update-client.input';
 import { TopClientOutput } from './dtos/top-client.output';
-import { TopClientInput } from './dtos/top-client.input';
 
 @Resolver(() => Client)
 export class ClientResolver {
@@ -40,7 +39,7 @@ export class ClientResolver {
   }
 
   @Query(() => [TopClientOutput])
-  topClients(@Args('topClientInput') topClientInput: TopClientInput) {
-    return this.clientService.topClientList(topClientInput);
+  topClients() {
+    return this.clientService.topClientList();
   }
 }

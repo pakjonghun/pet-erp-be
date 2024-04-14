@@ -7,7 +7,8 @@ import { parseStringPromise } from 'xml2js';
 import axios from 'axios';
 import { SaleRepository } from './sale.repository';
 import { Cron } from '@nestjs/schedule';
-import { DATE_FORMAT } from 'src/common/constants';
+import { DATE_FORMAT, FULL_DATE_FORMAT } from 'src/common/constants';
+
 import * as https from 'https';
 import * as crypto from 'crypto';
 import * as dayjs from 'dayjs';
@@ -22,9 +23,10 @@ export class SabandService {
     private readonly saleRepository: SaleRepository,
   ) {}
 
-  @Cron('0 10 21 * * *')
+  @Cron('0 59 19 * * *')
   async run() {
-    const startDate = this.utilService.yesterday();
+    const startDate = this.utilService.yesterdayDayjs().format(DATE_FORMAT);
+    // const startDate = dayjs().subtract(1, 'year').format(DATE_FORMAT);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
     const xmlBuffer = await this.createXmlBuffer({ startDate, endDate });
     const params = {
@@ -67,6 +69,11 @@ export class SabandService {
     const list = result?.SABANG_ORDER_LIST?.DATA ?? [];
     const newList = (list as any[]).map((item) => {
       const document = this.saleRepository.emptyDocument;
+      const saleAt = item['ORDER_DATE']?.[0] //
+        ? dayjs(item['ORDER_DATE']?.[0], { format: FULL_DATE_FORMAT }).toDate()
+        : null;
+
+      console.log(item['ORDER_DATE']?.[0], saleAt);
 
       document['code'] = item.IDX.join('_');
       document['shoppingMall'] = item.ORDER_ID?.[0];
@@ -83,7 +90,7 @@ export class SabandService {
       document['originOrderNumber'] = item['copy_idx']?.[0];
       document['orderNumber'] = item.IDX?.[0];
       document['productCode'] = item['PRODUCT_ID']?.[0];
-      document['saleAt'] = item['ORDER_DATE']?.[0];
+      document['saleAt'] = saleAt;
       document['payCost'] = item['PAY_COST']?.[0];
       document['orderStatus'] = item['ORDER_STATUS']?.[0];
       document['mallId'] = item['MALL_ID']?.[0];
