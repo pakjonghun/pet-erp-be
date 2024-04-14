@@ -43,6 +43,7 @@ export class ProductResolver {
   async productSales(
     @Args('productSaleInput') productSaleInput: ProductSaleInput,
   ) {
-    return this.productService.salesByProduct(productSaleInput);
+    const result = await this.productService.salesByProduct(productSaleInput);
+    return result;
   }
 }

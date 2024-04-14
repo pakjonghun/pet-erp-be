@@ -108,8 +108,7 @@ export class ProductService {
       const clients = saleList.clients.filter(
         (client) => client._id.productCode === product.code,
       );
-
-      return { ...product, todaySale, thisWeekSale, clients };
+      return { ...product, today: todaySale, thisWeek: thisWeekSale, clients };
     });
 
     return { totalCount: productList.totalCount, data: newProductList };

@@ -1,4 +1,4 @@
-import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, Int, ObjectType, OmitType } from '@nestjs/graphql';
 import { Product } from '../entities/product.entity';
 
 @ObjectType()
@@ -38,11 +38,11 @@ export class SaleInfo {
 }
 
 @ObjectType()
-export class ProductSaleData extends Product {
-  @Field(() => SaleInfo)
+export class ProductSaleData extends OmitType(Product, ['wonPrice']) {
+  @Field(() => SaleInfo, { nullable: true })
   today: SaleInfo;
 
-  @Field(() => SaleInfo)
+  @Field(() => SaleInfo, { nullable: true })
   thisWeek: SaleInfo;
 
   @Field(() => [ClientInfo])
