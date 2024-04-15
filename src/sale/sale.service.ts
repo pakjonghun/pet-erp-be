@@ -5,6 +5,7 @@ import { FilterQuery, PipelineStage } from 'mongoose';
 import { TopClientOutput } from 'src/client/dtos/top-client.output';
 import { Sale } from './entities/sale.entity';
 import { SaleInfoList } from 'src/product/dtos/product-sale.output';
+import { TopClientInput } from 'src/client/dtos/top-client.input';
 
 @Injectable()
 export class SaleService {
@@ -14,7 +15,7 @@ export class SaleService {
     private readonly saleRepository: SaleRepository,
   ) {}
 
-  async topSaleBy(groupId: string) {
+  async topSaleBy(groupId: string, { skip, limit }: TopClientInput) {
     const pipeLine: PipelineStage[] = [
       {
         $match: {
@@ -26,30 +27,57 @@ export class SaleService {
         },
       },
       {
-        $group: {
-          _id: `$${groupId}`,
-          accPayCost: { $sum: '$payCost' },
-          accCount: { $sum: '$count' },
-          accWonCost: { $sum: '$wonCost' },
+        $facet: {
+          totalCount: [
+            {
+              $group: {
+                _id: `$${groupId}`,
+              },
+            },
+            {
+              $count: 'totalCount',
+            },
+          ],
+          data: [
+            {
+              $group: {
+                _id: `$${groupId}`,
+                accPayCost: { $sum: '$payCost' },
+                accCount: { $sum: '$count' },
+                accWonCost: { $sum: '$wonCost' },
+              },
+            },
+            {
+              $sort: {
+                accPayCost: -1,
+              },
+            },
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $addFields: {
+                name: '$_id',
+                accProfit: { $subtract: ['$accPayCost', '$accWonCost'] },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                accWonCost: 0,
+              },
+            },
+          ],
         },
       },
-      { $limit: 15 },
       {
-        $sort: {
-          accPayCost: -1,
-        },
-      },
-
-      {
-        $addFields: {
-          name: '$_id',
-          accProfit: { $subtract: ['$accPayCost', '$accWonCost'] },
-        },
+        $unwind: '$totalCount',
       },
       {
-        $project: {
-          _id: 0,
-          accWonCost: 0,
+        $replaceRoot: {
+          newRoot: {
+            totalCount: '$totalCount.totalCount',
+            data: '$data',
+          },
         },
       },
     ];

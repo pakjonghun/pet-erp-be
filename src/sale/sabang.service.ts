@@ -73,8 +73,6 @@ export class SabandService {
         ? dayjs(item['ORDER_DATE']?.[0], { format: FULL_DATE_FORMAT }).toDate()
         : null;
 
-      console.log(item['ORDER_DATE']?.[0], saleAt);
-
       document['code'] = item.IDX.join('_');
       document['shoppingMall'] = item.ORDER_ID?.[0];
       document['consignee'] = item['RECEIVE_NAME'][0];

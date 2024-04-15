@@ -22,7 +22,6 @@ export class FileService {
         break;
 
       case 'client':
-        console.log('client');
         await this.clientService.upload(fistSheet);
         break;
 
