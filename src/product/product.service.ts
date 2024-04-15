@@ -99,16 +99,23 @@ export class ProductService {
     const saleList = (await this.saleService.saleBy(saleFilterQuery))[0];
 
     const newProductList = productList.data.map((product) => {
-      const todaySale = saleList.today.find(
+      const today = saleList.today.find((sale) => sale.name === product.code);
+      const thisWeek = saleList.thisWeek.find(
         (sale) => sale.name === product.code,
       );
-      const thisWeekSale = saleList.thisWeek.find(
+
+      const lastWeek = saleList.lastWeek.find(
         (sale) => sale.name === product.code,
       );
+
+      const thisMonth = saleList.thisMonth.find(
+        (sale) => sale.name === product.code,
+      );
+
       const clients = saleList.clients.filter(
         (client) => client._id.productCode === product.code,
       );
-      return { ...product, today: todaySale, thisWeek: thisWeekSale, clients };
+      return { ...product, today, thisWeek, lastWeek, thisMonth, clients };
     });
 
     return { totalCount: productList.totalCount, data: newProductList };

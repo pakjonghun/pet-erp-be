@@ -23,6 +23,15 @@ export class UtilService {
     return [dayjs().startOf('isoWeek'), dayjs().endOf('isoWeek')];
   }
 
+  lastWeekDayjsRange() {
+    const lastWeek = dayjs().subtract(1, 'week');
+    return [lastWeek.startOf('isoWeek'), lastWeek.endOf('isoWeek')];
+  }
+
+  thisMonthDayjsRange() {
+    return [dayjs().startOf('month'), dayjs().endOf('month')];
+  }
+
   todayDayjsRange() {
     return [dayjs().startOf('day'), dayjs().endOf('day')];
   }

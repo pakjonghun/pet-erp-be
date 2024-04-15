@@ -45,6 +45,12 @@ export class ProductSaleData extends OmitType(Product, ['wonPrice']) {
   @Field(() => SaleInfo, { nullable: true })
   thisWeek: SaleInfo;
 
+  @Field(() => SaleInfo, { nullable: true })
+  lastWeek: SaleInfo;
+
+  @Field(() => SaleInfo, { nullable: true })
+  thisMonth: SaleInfo;
+
   @Field(() => [ClientInfo])
   clients: ClientInfo[];
 }
@@ -71,4 +77,6 @@ export interface SaleInfoList {
   today: SaleInfo[];
   thisWeek: SaleInfo[];
   clients: ClientInfo[];
+  lastWeek: SaleInfo[];
+  thisMonth: SaleInfo[];
 }

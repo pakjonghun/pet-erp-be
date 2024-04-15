@@ -66,6 +66,13 @@ export class SaleService {
       saleAt: this.getDateRangeFilter('thisWeek'),
     };
 
+    const lastWeekFilter = {
+      saleAt: this.getDateRangeFilter('lastWeek'),
+    };
+
+    const thisMonthFilter = {
+      saleAt: this.getDateRangeFilter('thisMonth'),
+    };
     const pipeLine: PipelineStage[] = [
       {
         $match: {
@@ -81,6 +88,8 @@ export class SaleService {
         $facet: {
           today: this.saleInfoStage(todayFilter),
           thisWeek: this.saleInfoStage(thisWeekFilter),
+          lastWeek: this.saleInfoStage(lastWeekFilter),
+          thisMonth: this.saleInfoStage(thisMonthFilter),
           clients: this.clientInfoStage(),
         },
       },
@@ -184,7 +193,9 @@ export class SaleService {
     return pipeLine;
   }
 
-  private getDateRangeFilter(rangeOption: 'today' | 'thisWeek') {
+  private getDateRangeFilter(
+    rangeOption: 'today' | 'thisWeek' | 'lastWeek' | 'thisMonth',
+  ) {
     switch (rangeOption) {
       case 'today': {
         const [from, to] = this.utilService.todayDayjsRange();
@@ -195,6 +206,22 @@ export class SaleService {
       }
       case 'thisWeek': {
         const [from, to] = this.utilService.thisWeekDayjsRange();
+        return {
+          $gte: from.toDate(),
+          $lte: to.toDate(),
+        };
+      }
+
+      case 'lastWeek': {
+        const [from, to] = this.utilService.lastWeekDayjsRange();
+        return {
+          $gte: from.toDate(),
+          $lte: to.toDate(),
+        };
+      }
+
+      case 'thisMonth': {
+        const [from, to] = this.utilService.thisMonthDayjsRange();
         return {
           $gte: from.toDate(),
           $lte: to.toDate(),
