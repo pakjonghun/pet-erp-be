@@ -39,7 +39,7 @@ export class UtilService {
   monthDayjsRange() {
     return [
       dayjs().startOf('month').startOf('date'),
-      dayjs().endOf('month').endOf('date').toDate(),
+      dayjs().endOf('month').endOf('date'),
     ];
   }
 

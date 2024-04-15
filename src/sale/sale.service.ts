@@ -6,6 +6,7 @@ import { TopClientOutput } from 'src/client/dtos/top-client.output';
 import { Sale } from './entities/sale.entity';
 import { SaleInfoList } from 'src/product/dtos/product-sale.output';
 import { TopClientInput } from 'src/client/dtos/top-client.input';
+import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 
 @Injectable()
 export class SaleService {
@@ -14,6 +15,50 @@ export class SaleService {
     private readonly utilService: UtilService,
     private readonly saleRepository: SaleRepository,
   ) {}
+
+  async productSale(productCode: string) {
+    const [from, to] = this.utilService.monthDayjsRange();
+    const pipeLine: PipelineStage[] = [
+      {
+        $match: {
+          productCode,
+          count: { $exists: true },
+          payCost: { $exists: true },
+          wonCost: { $exists: true },
+          saleAt: {
+            $gte: from.toDate(),
+            $lte: to.toDate(),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: '$saleAt',
+          accPayCost: { $sum: '$payCost' },
+          accWonCost: { $sum: '$wonCost' },
+        },
+      },
+      {
+        $addFields: {
+          accProfit: { $subtract: ['$accPayCost', '$accWonCost'] },
+        },
+      },
+      {
+        $project: {
+          accWonCost: 0,
+        },
+      },
+      {
+        $sort: { _id: 1 },
+      },
+    ];
+
+    const result =
+      await this.saleRepository.saleModel.aggregate<ProductSaleChartOutput>(
+        pipeLine,
+      );
+    return result;
+  }
 
   async topSaleBy(groupId: string, { skip, limit }: TopClientInput) {
     const pipeLine: PipelineStage[] = [

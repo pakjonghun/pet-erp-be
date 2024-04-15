@@ -5,6 +5,7 @@ import { CreateProductInput } from './dtos/create-product.input';
 import { UpdateProductInput } from './dtos/update-product.input';
 import { ProductSaleOutput } from './dtos/product-sale.output';
 import { ProductSaleInput } from './dtos/product-sale.input';
+import { ProductSaleChartOutput } from './dtos/product-sale-chart.output';
 
 @Resolver(() => Product)
 export class ProductResolver {
@@ -44,6 +45,13 @@ export class ProductResolver {
     @Args('productSaleInput') productSaleInput: ProductSaleInput,
   ) {
     const result = await this.productService.salesByProduct(productSaleInput);
+    return result;
+  }
+
+  @Query(() => [ProductSaleChartOutput], { nullable: true })
+  async productSale(@Args('productCode') productCode: string) {
+    const result = await this.productService.saleProduct(productCode);
+    console.log('result : ', result);
     return result;
   }
 }

@@ -88,6 +88,7 @@ export class ProductService {
     const productFilterQuery: FilterQuery<Product> = {
       [keywordTarget]: { $regex: keyword, $options: 'i' },
     };
+
     const productList = await this.productRepository.findMany({
       ...query,
       filterQuery: productFilterQuery,
@@ -119,5 +120,9 @@ export class ProductService {
     });
 
     return { totalCount: productList.totalCount, data: newProductList };
+  }
+
+  async saleProduct(productCode: string) {
+    return this.saleService.productSale(productCode);
   }
 }
