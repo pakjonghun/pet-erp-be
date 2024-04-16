@@ -19,6 +19,7 @@ import { FileService } from './common/services/file.service';
 import { UtilService } from './common/services/util.service';
 import { SaleModule } from './sale/sale.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CategoryModule } from './category/category.module';
 import * as Joi from 'joi';
 
 @Module({
@@ -89,6 +90,7 @@ import * as Joi from 'joi';
     ProductModule,
     ClientModule,
     SaleModule,
+    CategoryModule,
   ],
   exports: [AppService, UtilService],
   controllers: [AppController],

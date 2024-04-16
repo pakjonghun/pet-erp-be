@@ -33,7 +33,13 @@ export class SaleService {
       },
       {
         $group: {
-          _id: '$saleAt',
+          _id: {
+            $dateTrunc: {
+              date: '$saleAt',
+              unit: 'week',
+              startOfWeek: 'monday',
+            },
+          },
           accPayCost: { $sum: '$payCost' },
           accWonCost: { $sum: '$wonCost' },
         },
