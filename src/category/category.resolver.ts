@@ -3,7 +3,8 @@ import { CategoryService } from './category.service';
 import { Category } from './entities/category.entity';
 import { CreateCategoryInput } from './dto/create-category.input';
 import { UpdateCategoryInput } from './dto/update-category.input';
-import { FindCategoryInput } from './dto/find-category.input';
+import { FindManyCategoryInput } from './dto/find-category.input';
+import { FindManyCategoryOutput } from './dto/find-category.output';
 
 @Resolver(() => Category)
 export class CategoryResolver {
@@ -16,8 +17,10 @@ export class CategoryResolver {
     return this.categoryService.create(createCategoryInput);
   }
 
-  @Query(() => [Category], { name: 'category' })
-  findAll(@Args('findCategoryInput') findCategoryInput: FindCategoryInput) {
+  @Query(() => FindManyCategoryOutput)
+  findManyCategory(
+    @Args('findManyCategoryInput') findCategoryInput: FindManyCategoryInput,
+  ) {
     return this.categoryService.findMany(findCategoryInput);
   }
 

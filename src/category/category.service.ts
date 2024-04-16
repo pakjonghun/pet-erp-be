@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateCategoryInput } from './dto/create-category.input';
 import { UpdateCategoryInput } from './dto/update-category.input';
 import { CategoryRepository } from './category.repository';
-import { FindCategoryInput } from './dto/find-category.input';
+import { FindManyCategoryInput } from './dto/find-category.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 
 @Injectable()
@@ -13,12 +13,11 @@ export class CategoryService {
     return this.categoryRepository.create(createCategoryInput);
   }
 
-  findMany({ keyword, skip, limit }: FindCategoryInput) {
+  findMany({ keyword, skip, limit }: FindManyCategoryInput) {
     return this.categoryRepository.findMany({
       skip,
       limit,
       order: OrderEnum.DESC,
-      sort: 'createdAt',
       filterQuery: { name: { $regex: keyword, $options: 'i' } },
     });
   }
