@@ -10,6 +10,7 @@ export interface ProductInterface {
   salePrice: number;
   leadTime?: number;
   maintainDate?: number;
+  category?: string;
 }
 
 @Schema({ versionKey: false, timestamps: true })
@@ -57,6 +58,10 @@ export class Product extends AbstractEntity implements ProductInterface {
   @Field(() => Int, { nullable: true })
   @Prop({ type: Number })
   maintainDate?: number;
+
+  @Field(() => String, { nullable: true })
+  @Prop({ type: String })
+  category?: string;
 }
 
 export const productSchema = SchemaFactory.createForClass(Product);

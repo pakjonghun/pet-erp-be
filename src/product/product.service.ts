@@ -11,6 +11,7 @@ import { FilterQuery } from 'mongoose';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { ProductSaleInput } from './dtos/product-sale.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
+import { ProductsInput } from './dtos/products-input';
 
 @Injectable()
 export class ProductService {
@@ -32,8 +33,13 @@ export class ProductService {
     return this.productRepository.create(createProductInput);
   }
 
-  findAll() {
-    return this.productRepository.findAll({});
+  findMany({ keyword, skip, limit }: ProductsInput) {
+    return this.productRepository.findMany({
+      skip,
+      limit,
+      order: OrderEnum.DESC,
+      filterQuery: { name: { $regex: keyword, $options: 'i' } },
+    });
   }
 
   async findOne(_id: string) {

@@ -67,6 +67,7 @@ import * as Joi from 'joi';
       driver: ApolloDriver,
       context: ({ req, res }) => ({ req, res }),
       formatError: (error) => {
+        console.log(error);
         const originalError = error.extensions?.originalError as object;
         const statusCode =
           typeof originalError == 'object' &&

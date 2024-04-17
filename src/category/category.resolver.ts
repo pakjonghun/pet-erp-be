@@ -17,7 +17,7 @@ export class CategoryResolver {
     return this.categoryService.create(createCategoryInput);
   }
 
-  @Query(() => FindManyCategoryOutput)
+  @Query(() => FindManyCategoryOutput, { name: 'categories' })
   findManyCategory(
     @Args('findManyCategoryInput') findCategoryInput: FindManyCategoryInput,
   ) {

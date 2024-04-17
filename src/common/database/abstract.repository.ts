@@ -1,10 +1,17 @@
 import * as ExcelJS from 'exceljs';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { AbstractEntity } from './abstract.entity';
-import { FilterQuery, Model, UpdateQuery, HydratedDocument } from 'mongoose';
+import {
+  FilterQuery,
+  Model,
+  UpdateQuery,
+  HydratedDocument,
+  Types,
+} from 'mongoose';
 import { ColumnOption } from 'src/client/types';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { FindManyInput } from './types';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export abstract class AbstractRepository<T extends AbstractEntity> {
@@ -13,7 +20,10 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
   constructor(public readonly model: Model<T>) {}
 
   async create(body: Omit<T, '_id' | 'createdAt' | 'updatedAt'>): Promise<T> {
-    const newDocument = new this.model(body);
+    const newDocument = new this.model({
+      _id: new Types.ObjectId(),
+      ...body,
+    });
 
     const result = (await newDocument.save()).toJSON() as unknown as T;
     return result;

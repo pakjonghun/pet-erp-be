@@ -6,6 +6,8 @@ import { UpdateProductInput } from './dtos/update-product.input';
 import { ProductSaleOutput } from './dtos/product-sale.output';
 import { ProductSaleInput } from './dtos/product-sale.input';
 import { ProductSaleChartOutput } from './dtos/product-sale-chart.output';
+import { ProductsInput } from './dtos/products-input';
+import { ProductsOutput } from './dtos/products.output';
 
 @Resolver(() => Product)
 export class ProductResolver {
@@ -18,9 +20,9 @@ export class ProductResolver {
     return this.productService.create(createProductInput);
   }
 
-  @Query(() => [Product], { name: 'product' })
-  findAll() {
-    return this.productService.findAll();
+  @Query(() => ProductsOutput, { name: 'products' })
+  findMany(@Args('productsInput') productsInput: ProductsInput) {
+    return this.productService.findMany(productsInput);
   }
 
   @Query(() => Product, { name: 'product' })
@@ -36,22 +38,21 @@ export class ProductResolver {
   }
 
   @Mutation(() => Product)
-  removeProduct(@Args('id', { type: () => String }) _id: string) {
+  removeProduct(@Args('_id', { type: () => String }) _id: string) {
     return this.productService.remove(_id);
   }
 
   @Query(() => ProductSaleOutput)
   async productSales(
-    @Args('productSaleInput') productSaleInput: ProductSaleInput,
+    @Args('productSalesInput') productSalesInput: ProductSaleInput,
   ) {
-    const result = await this.productService.salesByProduct(productSaleInput);
+    const result = await this.productService.salesByProduct(productSalesInput);
     return result;
   }
 
   @Query(() => [ProductSaleChartOutput], { nullable: true })
   async productSale(@Args('productCode') productCode: string) {
     const result = await this.productService.saleProduct(productCode);
-    console.log('result : ', result);
     return result;
   }
 }
