@@ -1,3 +1,4 @@
+import * as ExcelJS from 'exceljs';
 import {
   ConflictException,
   Inject,
@@ -11,13 +12,16 @@ import { CategoriesInput } from './dto/find-category.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { ProductService } from 'src/product/product.service';
 import { FilterQuery } from 'mongoose';
-import { Category } from './entities/category.entity';
+import { Category, CategoryInterface } from './entities/category.entity';
+import { ColumnOption } from 'src/client/types';
+import { UtilService } from 'src/common/services/util.service';
 
 @Injectable()
 export class CategoryService {
   constructor(
     @Inject(forwardRef(() => ProductService))
     private readonly productService: ProductService,
+    private readonly utilService: UtilService,
     private readonly categoryRepository: CategoryRepository,
   ) {}
 
@@ -52,5 +56,20 @@ export class CategoryService {
     }
 
     return this.categoryRepository.remove({ _id });
+  }
+
+  async upload(worksheet: ExcelJS.Worksheet) {
+    const colToField: Record<number, ColumnOption<CategoryInterface>> = {
+      1: { fieldName: 'name' },
+    };
+
+    const documents = await this.categoryRepository.excelToDocuments(
+      worksheet,
+      colToField,
+      1,
+    );
+    this.utilService.checkDuplicatedField(documents, 'name');
+    await this.categoryRepository.checkUnique(documents, 'name');
+    await this.categoryRepository.bulkWrite(documents);
   }
 }

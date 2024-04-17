@@ -13,7 +13,11 @@ export interface CategoryInterface {
 })
 export class Category extends AbstractEntity implements CategoryInterface {
   @Field(() => String)
-  @Prop({ type: String, required: [true, '제품 분류를 입력하세요.'] })
+  @Prop({
+    type: String,
+    required: [true, '제품 분류를 입력하세요.'],
+    unique: true,
+  })
   name: string;
 }
 

@@ -4,10 +4,12 @@ import { ProductService } from 'src/product/product.service';
 import * as ExcelJS from 'exceljs';
 import * as fs from 'fs';
 import { ClientService } from 'src/client/client.service';
+import { CategoryService } from 'src/category/category.service';
 
 @Injectable()
 export class FileService {
   constructor(
+    private readonly categoryService: CategoryService,
     private readonly productService: ProductService,
     private readonly clientService: ClientService,
   ) {}
@@ -23,6 +25,10 @@ export class FileService {
 
       case 'client':
         await this.clientService.upload(fistSheet);
+        break;
+
+      case 'category':
+        await this.categoryService.upload(fistSheet);
         break;
 
       default:

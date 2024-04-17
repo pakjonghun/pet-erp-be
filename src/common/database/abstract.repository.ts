@@ -130,9 +130,12 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
 
   async checkUnique(documents: HydratedDocument<T>[], fieldName: string) {
     const fieldList = documents.map((d) => d[fieldName]);
-    const duplicatedItem = await this.findOne({
-      code: { $in: fieldList },
-    });
+
+    const query: FilterQuery<T> = {
+      [fieldName as any]: { $in: fieldList },
+    };
+
+    const duplicatedItem = await this.findOne(query);
     if (duplicatedItem) {
       throw new BadRequestException(
         `${fieldName}로 입력된 ${duplicatedItem[fieldName]}는 이미 저장된 데이터 입니다.`,
