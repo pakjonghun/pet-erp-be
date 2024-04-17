@@ -1,6 +1,6 @@
 import * as ExcelJS from 'exceljs';
 import {
-  ConflictException,
+  BadRequestException,
   Inject,
   Injectable,
   forwardRef,
@@ -25,7 +25,8 @@ export class CategoryService {
     private readonly categoryRepository: CategoryRepository,
   ) {}
 
-  create(createCategoryInput: CreateCategoryInput) {
+  async create(createCategoryInput: CreateCategoryInput) {
+    await this.duplicateCheck(createCategoryInput.name);
     return this.categoryRepository.create(createCategoryInput);
   }
 
@@ -42,19 +43,22 @@ export class CategoryService {
     return this.categoryRepository.findAll(query);
   }
 
-  update({ _id, ...body }: UpdateCategoryInput) {
+  async duplicateCheck(name: string) {
+    const isExistCategory = await this.categoryRepository.findOne({
+      name,
+    });
+
+    if (isExistCategory) {
+      throw new BadRequestException(`${name}은 이미 사용중인 제품분류 입니다.`);
+    }
+  }
+
+  async update({ _id, ...body }: UpdateCategoryInput) {
+    await this.duplicateCheck(body.name);
     return this.categoryRepository.update({ _id }, body);
   }
 
   async remove(_id: string) {
-    const isExistingCategory = await this.productService.findOne({
-      category: _id,
-    });
-
-    if (isExistingCategory) {
-      throw new ConflictException('이미 제품분류를 사용중인 제품이 있습니다.');
-    }
-
     return this.categoryRepository.remove({ _id });
   }
 
