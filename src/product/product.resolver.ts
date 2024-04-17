@@ -21,13 +21,13 @@ export class ProductResolver {
   }
 
   @Query(() => ProductsOutput, { name: 'products' })
-  findMany(@Args('productsInput') productsInput: ProductsInput) {
+  async findMany(@Args('productsInput') productsInput: ProductsInput) {
     return this.productService.findMany(productsInput);
   }
 
   @Query(() => Product, { name: 'product' })
   findOne(@Args('_id', { type: () => String }) _id: string) {
-    return this.productService.findOne(_id);
+    return this.productService.findOne({ _id });
   }
 
   @Mutation(() => Product)

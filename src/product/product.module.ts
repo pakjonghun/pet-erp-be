@@ -6,12 +6,14 @@ import { Product, productSchema } from './entities/product.entity';
 import { ProductRepository } from './entities/product.repository';
 import { AppModule } from 'src/app.module';
 import { SaleModule } from 'src/sale/sale.module';
+import { CategoryModule } from 'src/category/category.module';
 
 @Module({
   exports: [ProductService],
   imports: [
     SaleModule,
     forwardRef(() => AppModule),
+    forwardRef(() => CategoryModule),
     DatabaseModule.forFeature([{ name: Product.name, schema: productSchema }]),
   ],
   providers: [ProductResolver, ProductService, ProductRepository],

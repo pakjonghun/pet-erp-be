@@ -3,8 +3,8 @@ import { CategoryService } from './category.service';
 import { Category } from './entities/category.entity';
 import { CreateCategoryInput } from './dto/create-category.input';
 import { UpdateCategoryInput } from './dto/update-category.input';
-import { FindManyCategoryInput } from './dto/find-category.input';
-import { FindManyCategoryOutput } from './dto/find-category.output';
+import { CategoriesInput } from './dto/find-category.input';
+import { CategoriesOutput } from './dto/find-category.output';
 
 @Resolver(() => Category)
 export class CategoryResolver {
@@ -17,11 +17,10 @@ export class CategoryResolver {
     return this.categoryService.create(createCategoryInput);
   }
 
-  @Query(() => FindManyCategoryOutput, { name: 'categories' })
-  findManyCategory(
-    @Args('findManyCategoryInput') findCategoryInput: FindManyCategoryInput,
-  ) {
-    return this.categoryService.findMany(findCategoryInput);
+  @Query(() => CategoriesOutput, { name: 'categories' })
+  async categories(@Args('categoriesInput') categoriesInput: CategoriesInput) {
+    const result = await this.categoryService.findMany(categoriesInput);
+    return result;
   }
 
   @Mutation(() => Category)
@@ -32,7 +31,8 @@ export class CategoryResolver {
   }
 
   @Mutation(() => Category)
-  removeCategory(@Args('_id', { type: () => String }) _id: string) {
-    return this.categoryService.remove(_id);
+  async removeCategory(@Args('_id', { type: () => String }) _id: string) {
+    const result = await this.categoryService.remove(_id);
+    return result;
   }
 }

@@ -27,7 +27,10 @@ interface SaleInterface {
 }
 
 @ObjectType()
-@Schema({ versionKey: false, timestamps: { createdAt: true } })
+@Schema({
+  versionKey: false,
+  timestamps: { updatedAt: false },
+})
 export class Sale extends AbstractEntity implements SaleInterface {
   @Prop({ type: String, unique: true })
   @Field(() => String)

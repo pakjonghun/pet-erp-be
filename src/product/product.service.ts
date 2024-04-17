@@ -1,5 +1,10 @@
 import * as ExcelJS from 'exceljs';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  forwardRef,
+} from '@nestjs/common';
 import { CreateProductInput } from './dtos/create-product.input';
 import { UpdateProductInput } from './dtos/update-product.input';
 import { ProductRepository } from './entities/product.repository';
@@ -12,10 +17,13 @@ import { Sale } from 'src/sale/entities/sale.entity';
 import { ProductSaleInput } from './dtos/product-sale.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { ProductsInput } from './dtos/products-input';
+import { CategoryService } from 'src/category/category.service';
 
 @Injectable()
 export class ProductService {
   constructor(
+    @Inject(forwardRef(() => CategoryService))
+    private readonly categoryService: CategoryService,
     private readonly saleService: SaleService,
     private readonly utilService: UtilService,
     private readonly productRepository: ProductRepository,
@@ -33,20 +41,46 @@ export class ProductService {
     return this.productRepository.create(createProductInput);
   }
 
-  findMany({ keyword, skip, limit }: ProductsInput) {
-    return this.productRepository.findMany({
+  async findMany({ keyword, skip, limit }: ProductsInput) {
+    const products = await this.productRepository.findMany({
       skip,
       limit,
       order: OrderEnum.DESC,
       filterQuery: { name: { $regex: keyword, $options: 'i' } },
     });
+
+    const categoryIds = products.data
+      .map((product) => product.category)
+      .filter((item) => !!item);
+
+    const categories = await this.categoryService.findAll({
+      _id: { $in: categoryIds },
+    });
+
+    const newProducts = products.data.map((product) => {
+      const targetCategory = categories.find(
+        (item) => item._id.toHexString() == product.category,
+      );
+      return targetCategory //
+        ? {
+            ...product,
+            category: targetCategory.name,
+          }
+        : product;
+    });
+    return {
+      totalCount: products.totalCount,
+      data: newProducts,
+    };
   }
 
-  async findOne(_id: string) {
-    const result = await this.productRepository.findOne({ _id });
+  async findOne(query: FilterQuery<Product>) {
+    const result = await this.productRepository.findOne(query);
     if (!result) {
       throw new NotFoundException('검색된 제품이 없습니다.');
     }
+
+    return result;
   }
 
   update({ _id, ...body }: UpdateProductInput) {

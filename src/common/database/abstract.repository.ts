@@ -11,7 +11,6 @@ import {
 import { ColumnOption } from 'src/client/types';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { FindManyInput } from './types';
-import { ObjectId } from 'mongodb';
 
 @Injectable()
 export abstract class AbstractRepository<T extends AbstractEntity> {
