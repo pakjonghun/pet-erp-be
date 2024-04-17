@@ -95,8 +95,10 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
           `${rowIndex}번째 줄에 데이터가 모두 입력되어 있지 않습니다. 필수 데이터를 입력해주세요.`,
         );
       }
+      console.log(colToField);
       row.eachCell((cell, index) => {
-        const fieldName = colToField[index].fieldName as string;
+        console.log(index);
+        const fieldName = colToField[index]?.fieldName as string;
         if (fieldName) {
           let value = cell.value;
           if (typeof value === 'string') {

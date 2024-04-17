@@ -92,6 +92,7 @@ export class ProductService {
   }
 
   async upload(worksheet: ExcelJS.Worksheet) {
+    console.log('upload');
     const colToField: Record<number, ColumnOption<ProductInterface>> = {
       1: {
         fieldName: 'name',
