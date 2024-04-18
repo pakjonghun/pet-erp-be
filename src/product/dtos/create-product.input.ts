@@ -1,6 +1,7 @@
 import { InputType, Int, Field } from '@nestjs/graphql';
 import { ProductInterface } from '../entities/product.entity';
 import { IsOptional, IsString, Min } from 'class-validator';
+import { IsObjectId } from 'src/common/validations/id.validation';
 
 @InputType()
 export class CreateProductInput implements ProductInterface {
@@ -38,5 +39,6 @@ export class CreateProductInput implements ProductInterface {
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString({ message: '상품 카테고리는 문자열 타입을 입력해주세요.' })
+  @IsObjectId({ message: '상품 카테고리는 올바른 objectId를 입력하세요.' })
   category?: string;
 }

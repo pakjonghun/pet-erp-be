@@ -1,5 +1,7 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import mongoose from 'mongoose';
+import { Category } from 'src/category/entities/category.entity';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 
 export interface ProductInterface {
@@ -60,7 +62,7 @@ export class Product extends AbstractEntity implements ProductInterface {
   maintainDate?: number;
 
   @Field(() => String, { nullable: true })
-  @Prop({ type: String })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Category.name })
   category?: string;
 }
 

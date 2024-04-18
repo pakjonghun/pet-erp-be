@@ -31,7 +31,7 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
   async findAll(query: FilterQuery<T>): Promise<T[]> {
     const result = await this.model
       .find(query)
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1, _id: 1 })
       .lean<T[]>();
     return result;
   }
@@ -95,9 +95,7 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
           `${rowIndex}번째 줄에 데이터가 모두 입력되어 있지 않습니다. 필수 데이터를 입력해주세요.`,
         );
       }
-      console.log(colToField);
       row.eachCell((cell, index) => {
-        console.log(index);
         const fieldName = colToField[index]?.fieldName as string;
         if (fieldName) {
           let value = cell.value;
@@ -156,7 +154,7 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
     const totalCount = await this.model.countDocuments(filterQuery);
     const data = await this.model
       .find(filterQuery)
-      .sort({ [sort]: orderNumber })
+      .sort({ [sort]: orderNumber, _id: 1 })
       .skip(skip)
       .limit(limit)
       .lean<T[]>();

@@ -37,8 +37,9 @@ export class ProductService {
     });
   }
 
-  create(createProductInput: CreateProductInput) {
-    return this.productRepository.create(createProductInput);
+  async create(createProductInput: CreateProductInput) {
+    const result = await this.productRepository.create(createProductInput);
+    return this.findOne({ _id: result._id });
   }
 
   async findMany({ keyword, skip, limit }: ProductsInput) {
@@ -64,7 +65,7 @@ export class ProductService {
       return targetCategory //
         ? {
             ...product,
-            category: targetCategory.name,
+            category: targetCategory ?? null,
           }
         : product;
     });
@@ -75,7 +76,7 @@ export class ProductService {
   }
 
   async findOne(query: FilterQuery<Product>) {
-    const result = await this.productRepository.findOne(query);
+    const result = await this.productRepository.findFullOneProduct(query);
     if (!result) {
       throw new NotFoundException('검색된 제품이 없습니다.');
     }
@@ -83,8 +84,9 @@ export class ProductService {
     return result;
   }
 
-  update({ _id, ...body }: UpdateProductInput) {
-    return this.productRepository.update({ _id }, body);
+  async update({ _id, ...body }: UpdateProductInput) {
+    await this.productRepository.update({ _id }, body);
+    return this.findOne({ _id });
   }
 
   remove(_id: string) {
@@ -92,7 +94,6 @@ export class ProductService {
   }
 
   async upload(worksheet: ExcelJS.Worksheet) {
-    console.log('upload');
     const colToField: Record<number, ColumnOption<ProductInterface>> = {
       1: {
         fieldName: 'name',
@@ -165,5 +166,9 @@ export class ProductService {
 
   async saleProduct(productCode: string) {
     return this.saleService.productSale(productCode);
+  }
+
+  async isExist(query: FilterQuery<ProductService>) {
+    return this.productRepository.exists(query);
   }
 }

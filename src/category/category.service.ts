@@ -1,6 +1,7 @@
 import * as ExcelJS from 'exceljs';
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   forwardRef,
@@ -59,6 +60,10 @@ export class CategoryService {
   }
 
   async remove(_id: string) {
+    const usingCategory = await this.productService.isExist({ category: _id });
+    if (usingCategory) {
+      throw new ConflictException('사용중인 제품분류는 삭제할 수 없습니다.');
+    }
     return this.categoryRepository.remove({ _id });
   }
 
