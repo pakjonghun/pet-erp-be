@@ -53,6 +53,7 @@ export class ProductService {
       ...createProductInput,
       category,
     });
+
     return this.findOne({ _id: result._id });
   }
 
@@ -98,14 +99,33 @@ export class ProductService {
       14: {
         fieldName: 'salePrice',
       },
+      19: {
+        fieldName: 'category',
+      },
     };
 
-    const documents = await this.productRepository.excelToDocuments(
-      worksheet,
-      colToField,
-      4,
-    );
+    const objectList = this.utilService.excelToObject(worksheet, colToField, 4);
 
+    for await (const object of objectList) {
+      const categoryName = object.category as string;
+      if (categoryName) {
+        const targetCategory = await this.categoryService.findOne({
+          name: categoryName,
+        });
+        if (!targetCategory) {
+          throw new NotFoundException(
+            `${categoryName}의 제품분류는 존재하지 않습니다.`,
+          );
+        }
+        object.category = {
+          _id: targetCategory._id,
+          name: targetCategory.name,
+        };
+      }
+    }
+
+    const documents =
+      await this.productRepository.objectToDocuments(objectList);
     this.utilService.checkDuplicatedField(documents, 'code');
     await this.productRepository.checkUnique(documents, 'code');
     await this.productRepository.bulkWrite(documents);

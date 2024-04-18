@@ -110,8 +110,8 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
           }
 
           document[fieldName] = value;
-
-          const isValid = document.$isValid(fieldName);
+          const isRef = document.schema.path(fieldName)?.options?.ref;
+          const isValid = isRef ? true : document.$isValid(fieldName);
           if (!isValid) {
             throw new BadRequestException(
               `${cell.$col$row}에 ${fieldName}으로 입력된 ${cell.value ?? '입력안됨'}는 잘못된 값입니다.`,
@@ -125,6 +125,17 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
       await document.validate();
     }
 
+    return documents;
+  }
+
+  async objectToDocuments(objectList: any[]) {
+    const documents: HydratedDocument<T>[] = [];
+
+    for await (const object of objectList) {
+      const document = new this.model(object);
+      await document.validate();
+      documents.push(document);
+    }
     return documents;
   }
 
