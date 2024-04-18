@@ -38,41 +38,26 @@ export class ProductService {
   }
 
   async create(createProductInput: CreateProductInput) {
-    const result = await this.productRepository.create(createProductInput);
+    const categoryId = createProductInput.category;
+    let category;
+    if (categoryId) {
+      category = await this.categoryService.findOne({ _id: categoryId });
+      if (!category) {
+        throw new NotFoundException(
+          '해당 제품분류는 존재하지 않는 데이터 입니다.',
+        );
+      }
+    }
+
+    const result = await this.productRepository.create({
+      ...createProductInput,
+      category,
+    });
     return this.findOne({ _id: result._id });
   }
 
-  async findMany({ keyword, skip, limit }: ProductsInput) {
-    const products = await this.productRepository.findMany({
-      skip,
-      limit,
-      order: OrderEnum.DESC,
-      filterQuery: { name: { $regex: keyword, $options: 'i' } },
-    });
-
-    const categoryIds = products.data
-      .map((product) => product.category)
-      .filter((item) => !!item);
-
-    const categories = await this.categoryService.findAll({
-      _id: { $in: categoryIds },
-    });
-
-    const newProducts = products.data.map((product) => {
-      const targetCategory = categories.find(
-        (item) => item._id.toHexString() == product.category,
-      );
-      return targetCategory //
-        ? {
-            ...product,
-            category: targetCategory ?? null,
-          }
-        : product;
-    });
-    return {
-      totalCount: products.totalCount,
-      data: newProducts,
-    };
+  async findMany(query: ProductsInput) {
+    return this.productRepository.findFullManyProducts(query);
   }
 
   async findOne(query: FilterQuery<Product>) {

@@ -7,13 +7,13 @@ import { ProductSaleOutput } from './dtos/product-sale.output';
 import { ProductSaleInput } from './dtos/product-sale.input';
 import { ProductSaleChartOutput } from './dtos/product-sale-chart.output';
 import { ProductsInput } from './dtos/products-input';
-import { ProductOutput, ProductsOutput } from './dtos/products.output';
+import { ProductsOutput } from './dtos/products.output';
 
 @Resolver(() => Product)
 export class ProductResolver {
   constructor(private readonly productService: ProductService) {}
 
-  @Mutation(() => ProductOutput)
+  @Mutation(() => Product)
   async createProduct(
     @Args('createProductInput') createProductInput: CreateProductInput,
   ) {

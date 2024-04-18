@@ -12,7 +12,7 @@ export interface ProductInterface {
   salePrice: number;
   leadTime?: number;
   maintainDate?: number;
-  category?: string;
+  category?: Category;
 }
 
 @Schema({ versionKey: false, timestamps: true })
@@ -61,9 +61,9 @@ export class Product extends AbstractEntity implements ProductInterface {
   @Prop({ type: Number })
   maintainDate?: number;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => Category, { nullable: true })
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Category.name })
-  category?: string;
+  category?: Category;
 }
 
 export const productSchema = SchemaFactory.createForClass(Product);

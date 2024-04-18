@@ -81,4 +81,8 @@ export class CategoryService {
     await this.categoryRepository.checkUnique(documents, 'name');
     await this.categoryRepository.bulkWrite(documents);
   }
+
+  async findOne(filterQuery: FilterQuery<Category>) {
+    return this.categoryRepository.findOne(filterQuery);
+  }
 }
