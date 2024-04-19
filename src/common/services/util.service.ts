@@ -86,4 +86,8 @@ export class UtilService {
   getRandomNumber(length: number) {
     return Math.floor(Math.random() * Math.pow(10, length));
   }
+
+  getNowDate() {
+    return dayjs().format('YYYYMMDDHHmmSS');
+  }
 }

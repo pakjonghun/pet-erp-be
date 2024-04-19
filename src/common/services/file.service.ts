@@ -40,6 +40,24 @@ export class FileService {
     await this.unlinkExcelFile(file.path);
   }
 
+  async download(service: string) {
+    switch (service) {
+      case 'product':
+        return this.productService.downloadExcel();
+
+      case 'client':
+        return this.clientService.downloadExcel();
+
+      case 'category':
+        return this.categoryService.downloadExcel();
+
+      default:
+        throw new BadRequestException(
+          `${service}는 올바른 서비스 이름이 아닙니다.`,
+        );
+    }
+  }
+
   async unlinkExcelFile(filePath: string) {
     const unLinkAsync = promisify(fs.unlink);
     await unLinkAsync(filePath);

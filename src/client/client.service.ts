@@ -71,4 +71,37 @@ export class ClientService {
   topClientList(topClientInput: TopClientInput) {
     return this.saleService.topSaleBy('mallId', topClientInput);
   }
+
+  async downloadExcel() {
+    const allData = this.clientRepository.model
+      .find()
+      .select('-_id -createdAt -updatedAt')
+      .cursor();
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Data');
+
+    worksheet.columns = [
+      { header: 'code', key: 'code', width: 40 },
+      { header: 'name', key: 'name', width: 40 },
+      { header: 'feeRate', key: 'feeRate', width: 40 },
+      { header: 'clientType', key: 'clientType', width: 40 },
+      { header: 'businessName', key: 'businessName', width: 70 },
+      { header: 'businessNumber', key: 'businessNumber', width: 50 },
+      { header: 'payDate', key: 'payDate', width: 40 },
+      { header: 'manager', key: 'manager', width: 40 },
+      { header: 'managerTel', key: 'managerTel', width: 40 },
+      { header: 'inActive', key: 'inActive', width: 40 },
+    ];
+
+    for await (const doc of allData) {
+      const object = doc.toObject();
+      worksheet.addRow(object);
+    }
+
+    await allData.close();
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer;
+  }
 }

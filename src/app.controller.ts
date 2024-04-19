@@ -59,4 +59,9 @@ export class AppController {
   ) {
     await this.fileService.upload(file, service);
   }
+
+  @Get('/download/:service')
+  async download(@Param('service') service: string) {
+    return this.fileService.download(service);
+  }
 }

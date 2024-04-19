@@ -21,6 +21,7 @@ import { SaleModule } from './sale/sale.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CategoryModule } from './category/category.module';
 import * as Joi from 'joi';
+import { FileInspector } from './common/interceptors/file.interceptor';
 
 @Module({
   imports: [
@@ -102,6 +103,10 @@ import * as Joi from 'joi';
     {
       provide: APP_INTERCEPTOR,
       useClass: LogInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: FileInspector,
     },
     UtilService,
     DateScalar,

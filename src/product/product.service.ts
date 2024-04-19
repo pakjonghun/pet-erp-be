@@ -176,4 +176,39 @@ export class ProductService {
   async isExist(query: FilterQuery<ProductService>) {
     return this.productRepository.exists(query);
   }
+
+  async downloadExcel() {
+    const allData = this.productRepository.model
+      .find()
+      .select('-_id -createdAt -updatedAt')
+      .cursor();
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Data');
+
+    worksheet.columns = [
+      { header: '코드', key: 'code', width: 40 },
+      { header: '바코드', key: 'barCode', width: 40 },
+      { header: '이름', key: 'name', width: 70 },
+      { header: '원가', key: 'wonPrice', width: 40 },
+      { header: '판매가', key: 'salePrice', width: 40 },
+      { header: '리드타임', key: 'leadTime', width: 40 },
+      { header: '유지시간', key: 'maintainDate', width: 40 },
+      { header: 'category', key: 'category', width: 40 },
+    ];
+
+    for await (const doc of allData) {
+      const object = doc.toObject();
+      const newObject = {
+        ...object,
+        category: object?.category?.name ?? '',
+      };
+      worksheet.addRow(newObject);
+    }
+
+    await allData.close();
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer;
+  }
 }

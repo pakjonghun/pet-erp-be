@@ -85,4 +85,25 @@ export class CategoryService {
   async findOne(filterQuery: FilterQuery<Category>) {
     return this.categoryRepository.findOne(filterQuery);
   }
+
+  async downloadExcel() {
+    const allData = this.categoryRepository.model
+      .find()
+      .select('-_id -createdAt')
+      .cursor();
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Data');
+
+    worksheet.columns = [{ header: '이름', key: 'name', width: 40 }];
+
+    for await (const doc of allData) {
+      worksheet.addRow(doc.toObject());
+    }
+
+    await allData.close();
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer;
+  }
 }
