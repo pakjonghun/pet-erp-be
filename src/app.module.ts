@@ -66,6 +66,7 @@ import { FileInspector } from './common/interceptors/file.interceptor';
     GraphQLModule.forRoot<ApolloDriverConfig>({
       autoSchemaFile: true,
       driver: ApolloDriver,
+      path: '/api/graphql',
       context: ({ req, res }) => ({ req, res }),
       formatError: (error) => {
         const originalError = error.extensions?.originalError as object;
