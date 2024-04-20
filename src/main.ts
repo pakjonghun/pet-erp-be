@@ -18,6 +18,8 @@ async function bootstrap() {
     origin,
   });
   app.use(cookieParser());
+
+  app.setGlobalPrefix('/api');
   const fileService = app.get(FileService);
   app.useGlobalFilters(
     new AllErrorExceptionFilter(fileService),
