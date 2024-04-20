@@ -5,6 +5,8 @@ import { CreateClientInput } from './dtos/create-client.input';
 import { UpdateClientInput } from './dtos/update-client.input';
 import { TopClientOutput } from './dtos/top-client.output';
 import { TopClientInput } from './dtos/top-client.input';
+import { ClientsOutput } from './dtos/clients.output';
+import { ClientsInput } from './dtos/clients.input';
 
 @Resolver(() => Client)
 export class ClientResolver {
@@ -22,6 +24,11 @@ export class ClientResolver {
     return this.clientService.findAll();
   }
 
+  @Query(() => ClientsOutput)
+  clients(@Args('clientsInput') clientsInput: ClientsInput) {
+    return this.clientService.findMany(clientsInput);
+  }
+
   @Query(() => Client, { name: 'client' })
   findOne(@Args('_id') _id: string) {
     return this.clientService.findOne(_id);
@@ -35,8 +42,8 @@ export class ClientResolver {
   }
 
   @Mutation(() => Client)
-  removeClient(@Args('id') id: string) {
-    return this.clientService.remove(id);
+  removeClient(@Args('_id') _id: string) {
+    return this.clientService.remove(_id);
   }
 
   @Query(() => TopClientOutput)

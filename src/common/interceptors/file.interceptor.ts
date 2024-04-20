@@ -23,10 +23,6 @@ export class FileInspector implements NestInterceptor {
             'Content-Type',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           );
-          // res.setHeader(
-          //   'Content-Disposition',
-          //   `attachment; filename=${this.utilService.getNowDate()}.xlsx`,
-          // );
 
           return new StreamableFile(data);
         }

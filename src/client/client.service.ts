@@ -5,9 +5,11 @@ import { ClientInterface, ClientType } from './entities/client.entity';
 import { ClientRepository } from './client.repository';
 import { UtilService } from 'src/common/services/util.service';
 import { ColumnOption } from './types';
-import * as ExcelJS from 'exceljs';
 import { SaleService } from 'src/sale/sale.service';
 import { TopClientInput } from './dtos/top-client.input';
+import { ClientsInput } from './dtos/clients.input';
+import { OrderEnum } from 'src/common/dtos/find-many.input';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class ClientService {
@@ -23,6 +25,17 @@ export class ClientService {
 
   findAll() {
     return this.clientRepository.findAll({});
+  }
+
+  findMany(query: ClientsInput) {
+    return this.clientRepository.findMany({
+      filterQuery: {
+        name: { $regex: query.keyword, $options: 'i' },
+      },
+      skip: query.skip,
+      limit: query.limit,
+      order: OrderEnum.DESC,
+    });
   }
 
   findOne(_id: string) {
@@ -82,16 +95,16 @@ export class ClientService {
     const worksheet = workbook.addWorksheet('Data');
 
     worksheet.columns = [
-      { header: 'code', key: 'code', width: 40 },
-      { header: 'name', key: 'name', width: 40 },
-      { header: 'feeRate', key: 'feeRate', width: 40 },
-      { header: 'clientType', key: 'clientType', width: 40 },
-      { header: 'businessName', key: 'businessName', width: 70 },
-      { header: 'businessNumber', key: 'businessNumber', width: 50 },
-      { header: 'payDate', key: 'payDate', width: 40 },
-      { header: 'manager', key: 'manager', width: 40 },
-      { header: 'managerTel', key: 'managerTel', width: 40 },
-      { header: 'inActive', key: 'inActive', width: 40 },
+      { header: '코드', key: 'code', width: 40 },
+      { header: '이름', key: 'name', width: 40 },
+      { header: '수수료비율', key: 'feeRate', width: 40 },
+      { header: '거래처 분류', key: 'clientType', width: 40 },
+      { header: '거래처 상호', key: 'businessName', width: 70 },
+      { header: '거래처 사업자번호', key: 'businessNumber', width: 50 },
+      { header: '결제일', key: 'payDate', width: 40 },
+      { header: '관리자', key: 'manager', width: 40 },
+      { header: '연락처', key: 'managerTel', width: 40 },
+      { header: '거래여부', key: 'inActive', width: 40 },
     ];
 
     for await (const doc of allData) {
