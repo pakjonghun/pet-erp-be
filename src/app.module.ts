@@ -67,7 +67,10 @@ import { FileInspector } from './common/interceptors/file.interceptor';
       autoSchemaFile: true,
       driver: ApolloDriver,
       path: '/api/graphql',
-      context: ({ req, res }) => ({ req, res }),
+      context: ({ req, res }) => {
+        res.setHeader('Cache-Control', 'public, max-age=300');
+        return { req, res };
+      },
       formatError: (error) => {
         const originalError = error.extensions?.originalError as object;
         const statusCode =

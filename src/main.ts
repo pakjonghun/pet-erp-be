@@ -3,11 +3,12 @@ import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
-import * as cookieParser from 'cookie-parser';
 import { HttpExceptionFilter } from './common/filter/http-exception';
 import { FileService } from './common/services/file.service';
 import { ErrorExceptionFilter } from './common/filter/error-exception';
 import { AllErrorExceptionFilter } from './common/filter/all-exception';
+import * as cookieParser from 'cookie-parser';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
@@ -16,7 +17,6 @@ async function bootstrap() {
   app.enableCors({
     credentials: true,
     origin,
-    methods: ['POST', 'PUT', 'GET', 'DELETE', 'PATCH'],
   });
   app.use(cookieParser());
 
