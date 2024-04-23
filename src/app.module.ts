@@ -68,7 +68,6 @@ import { FileInspector } from './common/interceptors/file.interceptor';
       driver: ApolloDriver,
       path: '/api/graphql',
       context: ({ req, res }) => {
-        res.setHeader('Cache-Control', 'max-age=300');
         return { req, res };
       },
       formatError: (error) => {
