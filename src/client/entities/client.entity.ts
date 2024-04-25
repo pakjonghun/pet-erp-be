@@ -20,13 +20,39 @@ export enum ClientType {
   proMall = 'proMall',
 }
 
+export const HangleToClientType = {
+  도매몰: 'wholeSale',
+  도매: 'wholeSale',
+  플렛폼: 'platform',
+  cs: 'cs',
+  리워드: 'reward',
+  마케팅: 'marketing',
+  벤더: 'bender',
+  밴더: 'bender',
+  오프라인: 'offline',
+  오픈마켓: 'openMarket',
+  전문몰: 'proMall',
+};
+
+export const ClientTypeToHangle = {
+  wholeSale: '도매몰',
+  platform: '플렛폼',
+  cs: 'cs',
+  reward: '리워드',
+  marketing: '마케팅',
+  bender: '밴더',
+  offline: '오프라인',
+  openMarket: '오픈마켓',
+  proMall: '전문몰',
+};
+
 registerEnumType(ClientType, { name: 'clientType' });
 
 export interface ClientInterface {
   code: string;
   name: string;
-  feeRate?: number;
   clientType: ClientType;
+  feeRate?: number;
   businessName?: string;
   businessNumber?: string;
   payDate?: number;
@@ -48,9 +74,8 @@ export class Client extends AbstractEntity implements ClientInterface {
 
   @Prop({
     type: Number,
-    default: 0,
     min: [0, '수수료 비율은 0 이상의 값을 입력하세요.'],
-    max: [1, '수수료 비율은 1이하의 값을 입력하세요.'],
+    max: [100, '수수료 비율은 100이하의 값을 입력하세요.'],
   })
   @Field(() => Float, { nullable: true })
   feeRate?: number;
@@ -61,7 +86,10 @@ export class Client extends AbstractEntity implements ClientInterface {
 
   @Prop({
     type: String,
-    enum: ClientType,
+    enum: {
+      values: Object.values(ClientType),
+      message: '{VALUE}는 올바른 거래처 타입이 아닙니다.',
+    },
     required: [true, '거래처의 타입을 입력하세요.'],
   })
   @Field(() => ClientType)

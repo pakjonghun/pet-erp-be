@@ -1,5 +1,6 @@
 import * as ExcelJS from 'exceljs';
 import {
+  BadRequestException,
   Inject,
   Injectable,
   NotFoundException,
@@ -47,6 +48,16 @@ export class ProductService {
           '해당 제품분류는 존재하지 않는 데이터 입니다.',
         );
       }
+    }
+
+    const isCodeExist = await this.productRepository.exists({
+      code: createProductInput.code,
+    });
+
+    if (isCodeExist) {
+      throw new BadRequestException(
+        `${createProductInput.code}는 이미 사용중인 코드 입니다.`,
+      );
     }
 
     const result = await this.productRepository.create({
@@ -101,6 +112,9 @@ export class ProductService {
       },
       19: {
         fieldName: 'category',
+      },
+      20: {
+        fieldName: 'maintainDate',
       },
     };
 
@@ -180,6 +194,10 @@ export class ProductService {
   async downloadExcel() {
     const allData = this.productRepository.model
       .find()
+      .populate({
+        path: 'category',
+        select: ['name'],
+      })
       .select('-_id -createdAt -updatedAt')
       .cursor();
 
@@ -187,14 +205,26 @@ export class ProductService {
     const worksheet = workbook.addWorksheet('Data');
 
     worksheet.columns = [
+      { header: '이름', key: 'name', width: 70 },
       { header: '코드', key: 'code', width: 40 },
       { header: '바코드', key: 'barCode', width: 40 },
-      { header: '이름', key: 'name', width: 70 },
       { header: '원가', key: 'wonPrice', width: 40 },
-      { header: '판매가', key: 'salePrice', width: 40 },
+      { header: '', key: '', width: 10 },
+      { header: '', key: '', width: 10 },
+      { header: '', key: '', width: 10 },
+      { header: '', key: '', width: 10 },
+      { header: '', key: '', width: 10 },
+      { header: '', key: '', width: 10 },
+      { header: '', key: '', width: 10 },
       { header: '리드타임', key: 'leadTime', width: 40 },
+      { header: '판매가', key: 'salePrice', width: 40 },
+      { header: '', key: '', width: 10 },
+      { header: '', key: '', width: 10 },
+      { header: '', key: '', width: 10 },
+      { header: '', key: '', width: 10 },
+      { header: '', key: '', width: 10 },
+      { header: '분류', key: 'category', width: 40 },
       { header: '유지시간', key: 'maintainDate', width: 40 },
-      { header: 'category', key: 'category', width: 40 },
     ];
 
     for await (const doc of allData) {
@@ -203,6 +233,7 @@ export class ProductService {
         ...object,
         category: object?.category?.name ?? '',
       };
+
       worksheet.addRow(newObject);
     }
 

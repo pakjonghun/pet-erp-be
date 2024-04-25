@@ -42,8 +42,9 @@ export class ClientResolver {
   }
 
   @Mutation(() => Client)
-  removeClient(@Args('_id') _id: string) {
-    return this.clientService.remove(_id);
+  async removeClient(@Args('_id') _id: string) {
+    const result = await this.clientService.remove(_id);
+    return result;
   }
 
   @Query(() => TopClientOutput)

@@ -1,7 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateClientInput } from './dtos/create-client.input';
 import { UpdateClientInput } from './dtos/update-client.input';
-import { ClientInterface, ClientType } from './entities/client.entity';
+import {
+  ClientInterface,
+  ClientType,
+  ClientTypeToHangle,
+  HangleToClientType,
+} from './entities/client.entity';
 import { ClientRepository } from './client.repository';
 import { UtilService } from 'src/common/services/util.service';
 import { ColumnOption } from './types';
@@ -19,8 +24,19 @@ export class ClientService {
     private readonly saleService: SaleService,
   ) {}
 
-  create(createClientInput: CreateClientInput) {
-    return this.clientRepository.create(createClientInput);
+  async create(createClientInput: CreateClientInput) {
+    const isCodeExist = await this.clientRepository.exists({
+      code: createClientInput.code,
+    });
+
+    if (isCodeExist) {
+      throw new BadRequestException(
+        `${createClientInput.code}는 이미 사용중인 코드 입니다.`,
+      );
+    }
+
+    const result = await this.clientRepository.create(createClientInput);
+    return result;
   }
 
   findAll() {
@@ -46,8 +62,9 @@ export class ClientService {
     return this.clientRepository.update({ _id }, body);
   }
 
-  remove(_id: string) {
-    return this.clientRepository.remove({ _id });
+  async remove(_id: string) {
+    const result = await this.clientRepository.remove({ _id });
+    return result;
   }
 
   async upload(worksheet: ExcelJS.Worksheet) {
@@ -59,15 +76,42 @@ export class ClientService {
       5: { fieldName: 'feeRate' },
       6: {
         fieldName: 'clientType',
-        transform: (value) =>
-          value == '도매몰' ? ClientType.wholeSale : ClientType.platform,
+        transform: (value) => {
+          if (typeof value === 'string') {
+            const lowerKey =
+              value.toLowerCase() as keyof typeof HangleToClientType;
+            const clientType = HangleToClientType[lowerKey];
+            if (!clientType) {
+              throw new BadRequestException(
+                `${value}는 올바른 거래처 타입이 아닙니다.`,
+              );
+            }
+
+            return clientType;
+          }
+        },
       },
       7: { fieldName: 'payDate' },
       8: { fieldName: 'manager' },
       9: { fieldName: 'managerTel' },
       10: {
         fieldName: 'inActive',
-        transform: (value) => value === '거래중',
+        transform: (value) => {
+          const valueType = typeof value;
+          if (valueType === 'string') {
+            if (value === '거래중') return true;
+            if (value === '거래종료') return false;
+
+            throw new BadRequestException(
+              `${value} 는 올바른 거래여부가 아닙니다.`,
+            );
+          }
+
+          if (valueType == 'boolean') {
+            return value;
+          }
+          return true;
+        },
       },
     };
 
@@ -95,20 +139,26 @@ export class ClientService {
     const worksheet = workbook.addWorksheet('Data');
 
     worksheet.columns = [
-      { header: '코드', key: 'code', width: 40 },
       { header: '이름', key: 'name', width: 40 },
-      { header: '수수료비율', key: 'feeRate', width: 40 },
-      { header: '거래처 분류', key: 'clientType', width: 40 },
-      { header: '거래처 상호', key: 'businessName', width: 70 },
+      { header: '상호(사업자등록증)', key: 'businessName', width: 70 },
       { header: '거래처 사업자번호', key: 'businessNumber', width: 50 },
+      { header: '코드', key: 'code', width: 40 },
+      { header: '수수료율', key: 'feeRate', width: 40 },
+      { header: '분류', key: 'clientType', width: 40 },
       { header: '결제일', key: 'payDate', width: 40 },
-      { header: '관리자', key: 'manager', width: 40 },
+      { header: '담당자', key: 'manager', width: 40 },
       { header: '연락처', key: 'managerTel', width: 40 },
       { header: '거래여부', key: 'inActive', width: 40 },
     ];
 
     for await (const doc of allData) {
       const object = doc.toObject();
+      const handleClientType = ClientTypeToHangle[
+        object.clientType
+      ] as ClientType;
+
+      object.clientType = handleClientType;
+
       worksheet.addRow(object);
     }
 

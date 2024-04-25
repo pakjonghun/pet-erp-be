@@ -20,8 +20,8 @@ import { UtilService } from './common/services/util.service';
 import { SaleModule } from './sale/sale.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CategoryModule } from './category/category.module';
-import * as Joi from 'joi';
 import { FileInspector } from './common/interceptors/file.interceptor';
+import * as Joi from 'joi';
 
 @Module({
   imports: [

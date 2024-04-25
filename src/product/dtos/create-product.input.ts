@@ -19,11 +19,13 @@ export class CreateProductInput implements Omit<ProductInterface, 'category'> {
   @IsString({ message: '상품이름은 문자열 타입을 입력해주세요.' })
   name: string;
 
-  @Field(() => Int)
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
   @Min(0, { message: '상품원가는 0이상의 값을 입력해주세요.' })
   wonPrice: number;
 
-  @Field(() => Int)
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
   @Min(0, { message: '상품판매가는 0이상의 값을 입력해주세요.' })
   salePrice: number;
 

@@ -12,7 +12,7 @@ export class CreateClientInput implements ClientInterface {
   @Field(() => Float, { nullable: true })
   @IsOptional()
   @Min(0, { message: '수수료 비율로 0 이상의 값을 입력하세요.' })
-  @Max(0, { message: '수수료 비율로 100 이하의 값을 입력하세요.' })
+  @Max(100, { message: '수수료 비율로 100 이하의 값을 입력하세요.' })
   feeRate?: number;
 
   @Field(() => String, { nullable: true })
@@ -20,7 +20,7 @@ export class CreateClientInput implements ClientInterface {
   clientType: ClientType;
 
   @Field(() => String, { nullable: true })
-  @IsNotEmpty({ message: '거래처 상호를 입력하세요.' })
+  @IsOptional()
   businessName: string;
 
   @Field(() => String, { nullable: true })

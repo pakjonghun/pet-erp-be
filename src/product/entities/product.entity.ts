@@ -8,8 +8,8 @@ export interface ProductInterface {
   code: string;
   barCode?: string;
   name: string;
-  wonPrice: number;
-  salePrice: number;
+  wonPrice?: number;
+  salePrice?: number;
   leadTime?: number;
   maintainDate?: number;
   category?: Category;
@@ -37,21 +37,19 @@ export class Product extends AbstractEntity implements ProductInterface {
   })
   name: string;
 
-  @Field(() => Int)
+  @Field(() => Int, { nullable: true })
   @Prop({
     type: Number,
-    default: 0,
     min: [0, '상품 가격은 0이상의 값을 입력해주세요.'],
   })
-  wonPrice: number;
+  wonPrice?: number;
 
-  @Field(() => Int)
+  @Field(() => Int, { nullable: true })
   @Prop({
     type: Number,
-    default: 0,
     min: [0, '상품 가격은 0이상의 값을 입력해주세요.'],
   })
-  salePrice: number;
+  salePrice?: number;
 
   @Field(() => Int, { nullable: true })
   @Prop({ type: Number })
