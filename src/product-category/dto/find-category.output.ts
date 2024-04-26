@@ -1,11 +1,11 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
-import { Category } from '../entities/category.entity';
+import { ProductCategory } from '../entities/product-category.entity';
 
 @ObjectType()
 export class CategoriesOutput {
   @Field(() => Int)
   totalCount: number;
 
-  @Field(() => [Category])
-  data: Category[];
+  @Field(() => [ProductCategory])
+  data: ProductCategory[];
 }

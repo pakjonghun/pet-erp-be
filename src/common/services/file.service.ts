@@ -4,12 +4,12 @@ import { ProductService } from 'src/product/product.service';
 import * as ExcelJS from 'exceljs';
 import * as fs from 'fs';
 import { ClientService } from 'src/client/client.service';
-import { CategoryService } from 'src/category/category.service';
+import { ProductCategoryService } from 'src/product-category/product-category.service';
 
 @Injectable()
 export class FileService {
   constructor(
-    private readonly categoryService: CategoryService,
+    private readonly categoryService: ProductCategoryService,
     private readonly productService: ProductService,
     private readonly clientService: ClientService,
   ) {}

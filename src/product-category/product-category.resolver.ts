@@ -1,16 +1,16 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { CategoryService } from './category.service';
-import { Category } from './entities/category.entity';
+import { ProductCategoryService } from './product-category.service';
+import { ProductCategory } from './entities/product-category.entity';
 import { CreateCategoryInput } from './dto/create-category.input';
 import { UpdateCategoryInput } from './dto/update-category.input';
 import { CategoriesInput } from './dto/find-category.input';
 import { CategoriesOutput } from './dto/find-category.output';
 
-@Resolver(() => Category)
-export class CategoryResolver {
-  constructor(private readonly categoryService: CategoryService) {}
+@Resolver(() => ProductCategory)
+export class ProductCategoryResolver {
+  constructor(private readonly categoryService: ProductCategoryService) {}
 
-  @Mutation(() => Category)
+  @Mutation(() => ProductCategory)
   createCategory(
     @Args('createCategoryInput') createCategoryInput: CreateCategoryInput,
   ) {
@@ -23,14 +23,14 @@ export class CategoryResolver {
     return result;
   }
 
-  @Mutation(() => Category)
+  @Mutation(() => ProductCategory)
   updateCategory(
     @Args('updateCategoryInput') updateCategoryInput: UpdateCategoryInput,
   ) {
     return this.categoryService.update(updateCategoryInput);
   }
 
-  @Mutation(() => Category)
+  @Mutation(() => ProductCategory)
   async removeCategory(@Args('_id', { type: () => String }) _id: string) {
     const result = await this.categoryService.remove(_id);
     return result;

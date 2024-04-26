@@ -3,7 +3,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 import { SchemaTypes, Types } from 'mongoose';
 
-export interface CategoryInterface {
+export interface ProductCategoryInterface {
   name: string;
 }
 
@@ -12,7 +12,7 @@ export interface CategoryInterface {
   versionKey: false,
   timestamps: { updatedAt: false },
 })
-export class Category extends AbstractEntity {
+export class ProductCategory extends AbstractEntity {
   @Field(() => ID, { nullable: true })
   @Prop({ type: SchemaTypes.ObjectId })
   _id: Types.ObjectId;
@@ -26,4 +26,5 @@ export class Category extends AbstractEntity {
   name: string;
 }
 
-export const categorySchema = SchemaFactory.createForClass(Category);
+export const productCategorySchema =
+  SchemaFactory.createForClass(ProductCategory);

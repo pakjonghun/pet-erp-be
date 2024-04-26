@@ -23,11 +23,6 @@ export class SubsidiaryResolver {
     return this.subsidiaryService.findMany(subsidiariesInput);
   }
 
-  @Query(() => Subsidiary, { name: 'subsidiary' })
-  findOne(@Args('id', { type: () => Int }) id: number) {
-    return this.subsidiaryService.findOne(id);
-  }
-
   @Mutation(() => Subsidiary)
   updateSubsidiary(
     @Args('updateSubsidiaryInput') updateSubsidiaryInput: UpdateSubsidiaryInput,

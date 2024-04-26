@@ -18,13 +18,13 @@ import { Sale } from 'src/sale/entities/sale.entity';
 import { ProductSaleInput } from './dtos/product-sale.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { ProductsInput } from './dtos/products-input';
-import { CategoryService } from 'src/category/category.service';
+import { ProductCategoryService } from 'src/product-category/product-category.service';
 
 @Injectable()
 export class ProductService {
   constructor(
-    @Inject(forwardRef(() => CategoryService))
-    private readonly categoryService: CategoryService,
+    @Inject(forwardRef(() => ProductCategoryService))
+    private readonly categoryService: ProductCategoryService,
     private readonly saleService: SaleService,
     private readonly utilService: UtilService,
     private readonly productRepository: ProductRepository,

@@ -8,22 +8,25 @@ import {
 } from '@nestjs/common';
 import { CreateCategoryInput } from './dto/create-category.input';
 import { UpdateCategoryInput } from './dto/update-category.input';
-import { CategoryRepository } from './category.repository';
+import { ProductCategoryRepository } from './product-category.repository';
 import { CategoriesInput } from './dto/find-category.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { ProductService } from 'src/product/product.service';
 import { FilterQuery } from 'mongoose';
-import { Category, CategoryInterface } from './entities/category.entity';
+import {
+  ProductCategory,
+  ProductCategoryInterface,
+} from './entities/product-category.entity';
 import { ColumnOption } from 'src/client/types';
 import { UtilService } from 'src/common/services/util.service';
 
 @Injectable()
-export class CategoryService {
+export class ProductCategoryService {
   constructor(
     @Inject(forwardRef(() => ProductService))
     private readonly productService: ProductService,
     private readonly utilService: UtilService,
-    private readonly categoryRepository: CategoryRepository,
+    private readonly categoryRepository: ProductCategoryRepository,
   ) {}
 
   async create(createCategoryInput: CreateCategoryInput) {
@@ -40,7 +43,7 @@ export class CategoryService {
     });
   }
 
-  findAll(query: FilterQuery<Category>) {
+  findAll(query: FilterQuery<ProductCategory>) {
     return this.categoryRepository.findAll(query);
   }
 
@@ -68,7 +71,7 @@ export class CategoryService {
   }
 
   async upload(worksheet: ExcelJS.Worksheet) {
-    const colToField: Record<number, ColumnOption<CategoryInterface>> = {
+    const colToField: Record<number, ColumnOption<ProductCategoryInterface>> = {
       1: { fieldName: 'name' },
     };
 
@@ -82,7 +85,7 @@ export class CategoryService {
     await this.categoryRepository.bulkWrite(documents);
   }
 
-  async findOne(filterQuery: FilterQuery<Category>) {
+  async findOne(filterQuery: FilterQuery<ProductCategory>) {
     return this.categoryRepository.findOne(filterQuery);
   }
 

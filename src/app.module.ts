@@ -19,7 +19,7 @@ import { FileService } from './common/services/file.service';
 import { UtilService } from './common/services/util.service';
 import { SaleModule } from './sale/sale.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { CategoryModule } from './category/category.module';
+import { ProductCategoryModule } from './product-category/product-category.module';
 import { FileInspector } from './common/interceptors/file.interceptor';
 import { SubsidiaryModule } from './subsidiary/subsidiary.module';
 import * as Joi from 'joi';
@@ -95,7 +95,7 @@ import * as Joi from 'joi';
     ProductModule,
     ClientModule,
     SaleModule,
-    CategoryModule,
+    ProductCategoryModule,
     SubsidiaryModule,
   ],
   exports: [AppService, UtilService],

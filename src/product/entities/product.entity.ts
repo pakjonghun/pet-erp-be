@@ -1,7 +1,7 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
-import { Category } from 'src/category/entities/category.entity';
+import { ProductCategory } from 'src/product-category/entities/product-category.entity';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 
 export interface ProductInterface {
@@ -12,7 +12,7 @@ export interface ProductInterface {
   salePrice?: number;
   leadTime?: number;
   maintainDate?: number;
-  category?: Category;
+  category?: ProductCategory;
 }
 
 @Schema({ versionKey: false, timestamps: true })
@@ -59,9 +59,9 @@ export class Product extends AbstractEntity implements ProductInterface {
   @Prop({ type: Number })
   maintainDate?: number;
 
-  @Field(() => Category, { nullable: true })
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Category.name })
-  category?: Category;
+  @Field(() => ProductCategory, { nullable: true })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: ProductCategory.name })
+  category?: ProductCategory;
 }
 
 export const productSchema = SchemaFactory.createForClass(Product);
