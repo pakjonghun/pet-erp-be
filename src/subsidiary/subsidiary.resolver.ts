@@ -9,7 +9,9 @@ export class SubsidiaryResolver {
   constructor(private readonly subsidiaryService: SubsidiaryService) {}
 
   @Mutation(() => Subsidiary)
-  createSubsidiary(@Args('createSubsidiaryInput') createSubsidiaryInput: CreateSubsidiaryInput) {
+  createSubsidiary(
+    @Args('createSubsidiaryInput') createSubsidiaryInput: CreateSubsidiaryInput,
+  ) {
     return this.subsidiaryService.create(createSubsidiaryInput);
   }
 
@@ -24,8 +26,13 @@ export class SubsidiaryResolver {
   }
 
   @Mutation(() => Subsidiary)
-  updateSubsidiary(@Args('updateSubsidiaryInput') updateSubsidiaryInput: UpdateSubsidiaryInput) {
-    return this.subsidiaryService.update(updateSubsidiaryInput.id, updateSubsidiaryInput);
+  updateSubsidiary(
+    @Args('updateSubsidiaryInput') updateSubsidiaryInput: UpdateSubsidiaryInput,
+  ) {
+    return this.subsidiaryService.update(
+      updateSubsidiaryInput.id,
+      updateSubsidiaryInput,
+    );
   }
 
   @Mutation(() => Subsidiary)

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateSubsidiaryInput } from './dto/create-subsidiary.input';
 import { UpdateSubsidiaryInput } from './dto/update-subsidiary.input';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class SubsidiaryService {
@@ -16,7 +17,7 @@ export class SubsidiaryService {
     return `This action returns a #${id} subsidiary`;
   }
 
-  update(id: number, updateSubsidiaryInput: UpdateSubsidiaryInput) {
+  update(id: ObjectId, updateSubsidiaryInput: UpdateSubsidiaryInput) {
     return `This action updates a #${id} subsidiary`;
   }
 

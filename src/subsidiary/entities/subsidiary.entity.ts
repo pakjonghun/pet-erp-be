@@ -2,10 +2,10 @@ import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { SubsidiaryCategory } from './subsidiary-category.entity';
 import { Product } from 'src/product/entities/product.entity';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
 
-interface SubsidiaryInterface {
+export interface SubsidiaryInterface {
   code: string;
   name: string;
   category?: SubsidiaryCategory;
@@ -54,3 +54,5 @@ export class Subsidiary extends AbstractEntity implements SubsidiaryInterface {
   @Field(() => Int, { nullable: true })
   leadTime?: number;
 }
+
+export const SubsidiarySchema = SchemaFactory.createForClass(Subsidiary);
