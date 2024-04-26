@@ -3,13 +3,13 @@ import { CreateSubsidiaryInput } from './dto/create-subsidiary.input';
 import { UpdateSubsidiaryInput } from './dto/update-subsidiary.input';
 import { ObjectId } from 'mongodb';
 import { SubsidiaryRepository } from './subsidiary.repository';
-import { SubsidiaryCategoryRepository } from './subsidiary-category.repository';
 import { ProductService } from 'src/product/product.service';
 import { ColumnOption } from 'src/client/types';
 import { SubsidiaryInterface } from './entities/subsidiary.entity';
 import { UtilService } from 'src/common/services/util.service';
 import { SubsidiariesInput } from './dto/subsidiaries.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
+import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-category.service';
 import * as ExcelJS from 'exceljs';
 
 @Injectable()
@@ -17,8 +17,8 @@ export class SubsidiaryService {
   constructor(
     private readonly utilService: UtilService,
     private readonly productService: ProductService,
+    private readonly subsidiaryCategoryService: SubsidiaryCategoryService,
     private readonly subsidiaryRepository: SubsidiaryRepository,
-    private readonly subsidiaryCategoryRepository: SubsidiaryCategoryRepository,
   ) {}
 
   async create(createSubsidiaryInput: CreateSubsidiaryInput) {
@@ -157,7 +157,7 @@ export class SubsidiaryService {
     }
 
     if (categoryId) {
-      category = await this.subsidiaryCategoryRepository.findOne({
+      category = await this.subsidiaryCategoryService.findOne({
         _id: categoryId,
       });
 

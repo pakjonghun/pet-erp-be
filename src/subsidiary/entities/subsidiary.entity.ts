@@ -1,9 +1,9 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
-import { SubsidiaryCategory } from './subsidiary-category.entity';
 import { Product } from 'src/product/entities/product.entity';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
+import { SubsidiaryCategory } from 'src/subsidiary-category/entities/subsidiary-category.entity';
 
 export interface SubsidiaryInterface {
   code: string;
