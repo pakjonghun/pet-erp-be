@@ -68,6 +68,10 @@ export class ProductService {
     return this.findOne({ _id: result._id });
   }
 
+  async findAll(query: FilterQuery<Product>) {
+    return this.productRepository.findAll(query);
+  }
+
   async findMany(query: ProductsInput) {
     return this.productRepository.findFullManyProducts(query);
   }

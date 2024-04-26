@@ -3,6 +3,7 @@ import { SubsidiaryService } from './subsidiary.service';
 import { Subsidiary } from './entities/subsidiary.entity';
 import { CreateSubsidiaryInput } from './dto/create-subsidiary.input';
 import { UpdateSubsidiaryInput } from './dto/update-subsidiary.input';
+import { SubsidiariesInput } from './dto/subsidiaries.input';
 
 @Resolver(() => Subsidiary)
 export class SubsidiaryResolver {
@@ -15,9 +16,11 @@ export class SubsidiaryResolver {
     return this.subsidiaryService.create(createSubsidiaryInput);
   }
 
-  @Query(() => [Subsidiary], { name: 'subsidiary' })
-  findAll() {
-    return this.subsidiaryService.findAll();
+  @Query(() => [Subsidiary], { name: 'subsidiaries' })
+  subsidiaries(
+    @Args('subsidiariesInput') subsidiariesInput: SubsidiariesInput,
+  ) {
+    return this.subsidiaryService.findMany(subsidiariesInput);
   }
 
   @Query(() => Subsidiary, { name: 'subsidiary' })
@@ -30,7 +33,7 @@ export class SubsidiaryResolver {
     @Args('updateSubsidiaryInput') updateSubsidiaryInput: UpdateSubsidiaryInput,
   ) {
     return this.subsidiaryService.update(
-      updateSubsidiaryInput.id,
+      updateSubsidiaryInput._id,
       updateSubsidiaryInput,
     );
   }

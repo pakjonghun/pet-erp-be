@@ -8,8 +8,8 @@ import mongoose from 'mongoose';
 export interface SubsidiaryInterface {
   code: string;
   name: string;
-  category?: SubsidiaryCategory;
   productList: Product[];
+  category?: SubsidiaryCategory;
   wonPrice?: number;
   leadTime?: number;
 }

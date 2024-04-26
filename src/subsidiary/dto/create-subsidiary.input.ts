@@ -1,5 +1,4 @@
 import { InputType, Int, Field } from '@nestjs/graphql';
-import { SubsidiaryCategory } from '../entities/subsidiary-category.entity';
 import { SubsidiaryInterface } from '../entities/subsidiary.entity';
 import {
   IsArray,
@@ -29,7 +28,7 @@ export class CreateSubsidiaryInput
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsObjectId({ message: '부자재의 카테고리에 올바른 objectId 를 입력하세요' })
-  category?: SubsidiaryCategory;
+  category?: Types.ObjectId;
 
   @Field(() => [String])
   @IsArray()

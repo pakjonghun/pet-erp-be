@@ -9,5 +9,5 @@ export class UpdateSubsidiaryInput extends PartialType(CreateSubsidiaryInput) {
   @IsObjectId({
     message: '업데이트 할 부자재의 아이디를 objectId 로 입력해주세요.',
   })
-  id: Types.ObjectId;
+  _id: Types.ObjectId;
 }
