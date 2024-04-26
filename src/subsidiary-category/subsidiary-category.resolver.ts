@@ -1,9 +1,10 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { SubsidiaryCategoryService } from './subsidiary-category.service';
 import { SubsidiaryCategory } from './entities/subsidiary-category.entity';
 import { CreateSubsidiaryCategoryInput } from './dto/create-subsidiary-category.input';
 import { UpdateSubsidiaryCategoryInput } from './dto/update-subsidiary-category.input';
 import { SubsidiaryCategoriesInput } from './dto/subsidiary-categories.input';
+import { SubsidiaryCategoriesOutput } from './dto/subsidiary-categories.output';
 
 @Resolver(() => SubsidiaryCategory)
 export class SubsidiaryCategoryResolver {
@@ -19,7 +20,7 @@ export class SubsidiaryCategoryResolver {
     return this.subsidiaryCategoryService.create(createSubsidiaryCategoryInput);
   }
 
-  @Query(() => [SubsidiaryCategory], { name: 'subsidiaryCategory' })
+  @Query(() => SubsidiaryCategoriesOutput, { name: 'subsidiaryCategories' })
   subsidiaryCategories(
     @Args('subsidiaryCategoriesInput')
     subsidiaryCategoriesInput: SubsidiaryCategoriesInput,
@@ -36,7 +37,7 @@ export class SubsidiaryCategoryResolver {
   }
 
   @Mutation(() => SubsidiaryCategory)
-  removeSubsidiaryCategory(@Args('id', { type: () => Int }) id: number) {
-    return this.subsidiaryCategoryService.remove(id);
+  removeSubsidiaryCategory(@Args('_id') _id: string) {
+    return this.subsidiaryCategoryService.remove(_id);
   }
 }

@@ -49,8 +49,8 @@ export class SubsidiaryCategoryService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} subsidiary`;
+  remove(_id: string) {
+    return this.subsidiaryCategoryRepository.remove({ _id });
   }
 
   async upload(worksheet: ExcelJS.Worksheet) {
@@ -63,7 +63,7 @@ export class SubsidiaryCategoryService {
       },
     };
 
-    const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
+    const objectList = this.utilService.excelToObject(worksheet, colToField, 1);
     const newObjectList = [];
 
     for await (const object of objectList) {
@@ -73,21 +73,12 @@ export class SubsidiaryCategoryService {
 
     const documents =
       await this.subsidiaryCategoryRepository.objectToDocuments(newObjectList);
-    this.utilService.checkDuplicatedField(documents, 'code');
     await this.subsidiaryCategoryRepository.bulkWrite(documents);
   }
 
   async downloadExcel() {
     const allData = this.subsidiaryCategoryRepository.model
       .find()
-      .populate({
-        path: 'category',
-        select: ['name'],
-      })
-      .populate({
-        path: 'productList',
-        select: ['name'],
-      })
       .select('-_id -createdAt -updatedAt')
       .cursor();
 

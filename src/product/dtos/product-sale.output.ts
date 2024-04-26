@@ -1,11 +1,9 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 import { Product } from '../entities/product.entity';
+import { FindManyOutput } from 'src/common/dtos/find-many.output';
 
 @ObjectType()
-export class ProductSaleOutput {
-  @Field(() => Int)
-  totalCount: number;
-
+export class ProductSaleOutput extends FindManyOutput {
   @Field(() => [ProductSaleData])
   data: ProductSaleData[];
 }

@@ -1,14 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { promisify } from 'util';
 import { ProductService } from 'src/product/product.service';
-import * as ExcelJS from 'exceljs';
-import * as fs from 'fs';
 import { ClientService } from 'src/client/client.service';
 import { ProductCategoryService } from 'src/product-category/product-category.service';
+import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-category.service';
+import * as fs from 'fs';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class FileService {
   constructor(
+    private readonly subsidiaryCategoryService: SubsidiaryCategoryService,
     private readonly categoryService: ProductCategoryService,
     private readonly productService: ProductService,
     private readonly clientService: ClientService,
@@ -27,8 +29,12 @@ export class FileService {
         await this.clientService.upload(fistSheet);
         break;
 
-      case 'category':
+      case 'product-category':
         await this.categoryService.upload(fistSheet);
+        break;
+
+      case 'subsidiary-category':
+        await this.subsidiaryCategoryService.upload(fistSheet);
         break;
 
       default:
@@ -48,8 +54,11 @@ export class FileService {
       case 'client':
         return this.clientService.downloadExcel();
 
-      case 'category':
+      case 'product-category':
         return this.categoryService.downloadExcel();
+
+      case 'subsidiary-category':
+        return this.subsidiaryCategoryService.downloadExcel();
 
       default:
         throw new BadRequestException(

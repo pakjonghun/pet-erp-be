@@ -6,10 +6,10 @@ import {
   Injectable,
   forwardRef,
 } from '@nestjs/common';
-import { CreateCategoryInput } from './dto/create-category.input';
-import { UpdateCategoryInput } from './dto/update-category.input';
+import { CreateCategoryInput } from './dtos/create-category.input';
+import { UpdateCategoryInput } from './dtos/update-category.input';
 import { ProductCategoryRepository } from './product-category.repository';
-import { CategoriesInput } from './dto/find-category.input';
+import { CategoriesInput } from './dtos/find-category.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { ProductService } from 'src/product/product.service';
 import { FilterQuery } from 'mongoose';
