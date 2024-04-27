@@ -33,7 +33,8 @@ export class Product extends AbstractEntity implements ProductInterface {
   @Field(() => String)
   @Prop({
     type: String,
-    required: [true, '상품 이름을 입력해주세요.'],
+    unique: true,
+    required: [true, '제품 이름을 입력해주세요.'],
   })
   name: string;
 

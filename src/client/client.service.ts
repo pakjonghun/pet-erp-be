@@ -121,7 +121,7 @@ export class ClientService {
       3,
     );
     this.utilService.checkDuplicatedField(documents, 'code');
-    await this.clientRepository.checkUnique(documents, 'code');
+    await this.clientRepository.docUniqueCheck(documents, 'code');
     await this.clientRepository.bulkWrite(documents);
   }
 

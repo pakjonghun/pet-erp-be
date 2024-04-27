@@ -32,16 +32,16 @@ export class UtilService {
           `${rowIndex}번째 줄에 데이터가 모두 입력되어 있지 않습니다. 필수 데이터를 입력해주세요.`,
         );
       }
-      row.eachCell((cell, index) => {
-        const fieldName = colToField[index]?.fieldName as string;
+      row.eachCell((cell, cellIndex) => {
+        const fieldName = colToField[cellIndex]?.fieldName as string;
         if (fieldName) {
           let value = cell.value;
           if (typeof value === 'string') {
             value = value.trim().replace(/[\b]/g, '');
           }
 
-          if (colToField[index]?.transform) {
-            value = colToField[index]?.transform(
+          if (colToField[cellIndex]?.transform) {
+            value = colToField[cellIndex]?.transform(
               cell.value,
             ) as ExcelJS.CellValue;
           }

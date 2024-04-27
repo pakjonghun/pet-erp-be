@@ -5,7 +5,7 @@ import { ObjectId } from 'mongodb';
 import { SubsidiaryRepository } from './subsidiary.repository';
 import { ProductService } from 'src/product/product.service';
 import { ColumnOption } from 'src/client/types';
-import { SubsidiaryInterface } from './entities/subsidiary.entity';
+import { Subsidiary, SubsidiaryInterface } from './entities/subsidiary.entity';
 import { UtilService } from 'src/common/services/util.service';
 import { SubsidiariesInput } from './dto/subsidiaries.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
@@ -46,8 +46,8 @@ export class SubsidiaryService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} subsidiary`;
+  remove(_id: string) {
+    return this.subsidiaryRepository.remove({ _id });
   }
 
   async upload(worksheet: ExcelJS.Worksheet) {
@@ -71,12 +71,11 @@ export class SubsidiaryService {
         fieldName: 'leadTime',
       },
     };
-
     const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
     const newObjectList = [];
 
     for await (const object of objectList) {
-      const createBody = await this.beforeCreateOrUpdate(object);
+      const createBody = await this.beforeUpload(object);
       newObjectList.push(createBody);
     }
 
@@ -150,7 +149,6 @@ export class SubsidiaryService {
     const productIdList = input.productList;
     let category;
     let productList = [];
-
     const isCodeExist = await this.subsidiaryRepository.exists({ code });
     if (isCodeExist) {
       throw new BadRequestException(`${code}는 이미 사용중인 코드 입니다.`);
@@ -175,6 +173,60 @@ export class SubsidiaryService {
 
       if (productIdList.length !== productList.length) {
         const notExistProductList = productIdList.filter(
+          (item) => !productList.find((product) => product._id !== item),
+        );
+        const notExistProductNameString = notExistProductList.join(',  ');
+
+        throw new BadRequestException(
+          `선택한 제품 중 존재하지 않는 제품이 ${notExistProductList.length}개 있습니다. 존재하지 않는 제품의 아이디는 : (${notExistProductNameString}) 입니다.`,
+        );
+      }
+    }
+
+    return {
+      ...input,
+      category,
+      productList,
+    };
+  }
+
+  private async beforeUpload(
+    input: Omit<Subsidiary, 'category' | 'productList'> & {
+      category: string;
+      productList: string;
+    },
+  ) {
+    const code = input.code;
+    const categoryName = input.category;
+    const productNameList = input.productList
+      .split(',')
+      .map((item) => item.trim());
+    let category;
+    let productList = [];
+    const isCodeExist = await this.subsidiaryRepository.exists({ code });
+    if (isCodeExist) {
+      throw new BadRequestException(`${code}는 이미 사용중인 코드 입니다.`);
+    }
+
+    if (categoryName) {
+      category = await this.subsidiaryCategoryService.findOne({
+        name: categoryName,
+      });
+
+      if (!category) {
+        throw new BadRequestException(
+          '선택한 부자재 분류는 존재하지 않는 분류 입니다.',
+        );
+      }
+    }
+
+    if (productNameList.length) {
+      productList = await this.productService.findAll({
+        name: { $in: productNameList },
+      });
+
+      if (productNameList.length !== productList.length) {
+        const notExistProductList = productNameList.filter(
           (item) => !productList.find((product) => product._id !== item),
         );
         const notExistProductNameString = notExistProductList.join(',  ');

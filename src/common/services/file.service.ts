@@ -1,3 +1,4 @@
+import { SubsidiaryService } from './../../subsidiary/subsidiary.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { promisify } from 'util';
 import { ProductService } from 'src/product/product.service';
@@ -10,6 +11,7 @@ import * as ExcelJS from 'exceljs';
 @Injectable()
 export class FileService {
   constructor(
+    private readonly subsidiaryService: SubsidiaryService,
     private readonly subsidiaryCategoryService: SubsidiaryCategoryService,
     private readonly categoryService: ProductCategoryService,
     private readonly productService: ProductService,
@@ -37,6 +39,10 @@ export class FileService {
         await this.subsidiaryCategoryService.upload(fistSheet);
         break;
 
+      case 'subsidiary':
+        await this.subsidiaryService.upload(fistSheet);
+        break;
+
       default:
         throw new BadRequestException(
           `${service}는 올바른 서비스 이름이 아닙니다.`,
@@ -59,6 +65,9 @@ export class FileService {
 
       case 'subsidiary-category':
         return this.subsidiaryCategoryService.downloadExcel();
+
+      case 'subsidiary':
+        return this.subsidiaryService.downloadExcel();
 
       default:
         throw new BadRequestException(

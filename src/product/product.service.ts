@@ -39,26 +39,19 @@ export class ProductService {
   }
 
   async create(createProductInput: CreateProductInput) {
-    const categoryId = createProductInput.category;
+    const categoryName = createProductInput.category;
     let category;
-    if (categoryId) {
-      category = await this.categoryService.findOne({ _id: categoryId });
-      if (!category) {
-        throw new NotFoundException(
-          '해당 제품분류는 존재하지 않는 데이터 입니다.',
-        );
-      }
+    if (categoryName) {
+      category = await this.categoryService.upsert({ name: categoryName });
     }
 
-    const isCodeExist = await this.productRepository.exists({
+    await this.productRepository.uniqueCheck({
       code: createProductInput.code,
     });
 
-    if (isCodeExist) {
-      throw new BadRequestException(
-        `${createProductInput.code}는 이미 사용중인 코드 입니다.`,
-      );
-    }
+    await this.productRepository.uniqueCheck({
+      name: createProductInput.name,
+    });
 
     const result = await this.productRepository.create({
       ...createProductInput,
@@ -125,27 +118,30 @@ export class ProductService {
     const objectList = this.utilService.excelToObject(worksheet, colToField, 4);
 
     for await (const object of objectList) {
-      const categoryName = object.category as string;
-      if (categoryName) {
-        const targetCategory = await this.categoryService.findOne({
-          name: categoryName,
-        });
-        if (!targetCategory) {
-          throw new NotFoundException(
-            `${categoryName}의 제품분류는 존재하지 않습니다.`,
+      if (object.name && typeof object.name == 'string') {
+        if (object.name.includes(',')) {
+          throw new BadRequestException(
+            '제품이름에는 , 를 포함할 수 없습니다.',
           );
         }
-        object.category = {
-          _id: targetCategory._id,
-          name: targetCategory.name,
-        };
+      }
+
+      const categoryName = object.category as string;
+      if (categoryName) {
+        const categoryDoc = await this.categoryService.upsert({
+          name: categoryName,
+        });
+
+        object.category = categoryDoc;
       }
     }
 
     const documents =
       await this.productRepository.objectToDocuments(objectList);
     this.utilService.checkDuplicatedField(documents, 'code');
-    await this.productRepository.checkUnique(documents, 'code');
+    this.utilService.checkDuplicatedField(documents, 'name');
+    await this.productRepository.docUniqueCheck(documents, 'code');
+    await this.productRepository.docUniqueCheck(documents, 'name');
     await this.productRepository.bulkWrite(documents);
   }
 

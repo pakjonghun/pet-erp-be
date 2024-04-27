@@ -1,8 +1,6 @@
 import { InputType, Int, Field } from '@nestjs/graphql';
 import { ProductInterface } from '../entities/product.entity';
-import { IsOptional, IsString, Min } from 'class-validator';
-import { IsObjectId } from 'src/common/validations/id.validation';
-import { Types } from 'mongoose';
+import { IsOptional, IsString, Min, NotContains } from 'class-validator';
 
 @InputType()
 export class CreateProductInput implements Omit<ProductInterface, 'category'> {
@@ -17,6 +15,7 @@ export class CreateProductInput implements Omit<ProductInterface, 'category'> {
 
   @Field(() => String)
   @IsString({ message: '상품이름은 문자열 타입을 입력해주세요.' })
+  @NotContains(',', { message: `',' 는 제품 이름에 포함될 수 없습니다.` })
   name: string;
 
   @Field(() => Int, { nullable: true })
@@ -41,6 +40,5 @@ export class CreateProductInput implements Omit<ProductInterface, 'category'> {
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @IsObjectId({ message: '올바른 objectId 를 입력하세요' })
-  category?: Types.ObjectId;
+  category?: string;
 }

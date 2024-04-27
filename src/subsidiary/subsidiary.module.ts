@@ -9,6 +9,7 @@ import { AppModule } from 'src/app.module';
 import { SubsidiaryCategoryModule } from 'src/subsidiary-category/subsidiary-category.module';
 
 @Module({
+  exports: [SubsidiaryService],
   imports: [
     DatabaseModule.forFeature([
       { name: Subsidiary.name, schema: SubsidiarySchema },

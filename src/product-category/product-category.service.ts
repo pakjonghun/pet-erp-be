@@ -29,6 +29,16 @@ export class ProductCategoryService {
     private readonly categoryRepository: ProductCategoryRepository,
   ) {}
 
+  async upsert(createCategoryInput: CreateCategoryInput) {
+    return this.categoryRepository.model.findOneAndUpdate(
+      createCategoryInput,
+      {
+        $set: createCategoryInput,
+      },
+      { upsert: true, new: true },
+    );
+  }
+
   async create(createCategoryInput: CreateCategoryInput) {
     await this.duplicateCheck(createCategoryInput.name);
     return this.categoryRepository.create(createCategoryInput);
@@ -81,7 +91,7 @@ export class ProductCategoryService {
       1,
     );
     this.utilService.checkDuplicatedField(documents, 'name');
-    await this.categoryRepository.checkUnique(documents, 'name');
+    await this.categoryRepository.docUniqueCheck(documents, 'name');
     await this.categoryRepository.bulkWrite(documents);
   }
 

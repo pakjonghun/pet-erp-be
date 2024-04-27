@@ -139,7 +139,7 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
     return documents;
   }
 
-  async checkUnique(documents: HydratedDocument<T>[], fieldName: string) {
+  async docUniqueCheck(documents: HydratedDocument<T>[], fieldName: string) {
     const fieldList = documents.map((d) => d[fieldName]);
 
     const query: FilterQuery<T> = {
@@ -171,5 +171,18 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
       .lean<T[]>();
 
     return { totalCount, data };
+  }
+
+  async uniqueCheck(filterQuery: FilterQuery<T>) {
+    const isExist = await this.exists(filterQuery);
+    console.log('existing product', isExist, filterQuery);
+    if (isExist) {
+      let errorMessage = '';
+      for (const [key, value] of Object.entries(filterQuery)) {
+        errorMessage += `${value} 는 이미 사용중인 ${key}입니다.`;
+      }
+
+      throw new BadRequestException(errorMessage);
+    }
   }
 }
