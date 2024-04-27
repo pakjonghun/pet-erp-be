@@ -9,7 +9,6 @@ import {
   Min,
   NotContains,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 @InputType()
 export class CreateSubsidiaryInput
@@ -31,13 +30,14 @@ export class CreateSubsidiaryInput
   @IsString({ message: '올바른 부자재 분류를 입력하세요.' })
   category?: string;
 
-  @Field(() => [String])
+  @Field(() => [String], { nullable: true })
+  @IsOptional()
   @IsArray()
   @IsString({
     each: true,
     message: '부자재에 매칭되는 제품이름의 타입을 문자입로 입력하세요.',
   })
-  productList: Types.ObjectId[];
+  productList: string[];
 
   @Field(() => Int, { nullable: true })
   @IsNumber()

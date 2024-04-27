@@ -14,6 +14,7 @@ import { SubsidiariesInput } from './dto/subsidiaries.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-category.service';
 import * as ExcelJS from 'exceljs';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class SubsidiaryService {
@@ -31,11 +32,15 @@ export class SubsidiaryService {
         '부자재 생성시 타입가드에 문제가 있습니다. 개발자에게 문의하세요.',
       );
     }
-    return this.subsidiaryRepository.create(createBody);
+    const createResult = await this.subsidiaryRepository.create(createBody);
+    const result = await this.subsidiaryRepository.findFullSubsidiary({
+      _id: createResult._id,
+    });
+    return result;
   }
 
-  findMany({ keyword, ...query }: SubsidiariesInput) {
-    return this.subsidiaryRepository.findMany({
+  async findMany({ keyword, ...query }: SubsidiariesInput) {
+    const result = await this.subsidiaryRepository.findFullManySubsidiary({
       ...query,
       order: OrderEnum.DESC,
       sort: 'createdAt',
@@ -43,6 +48,25 @@ export class SubsidiaryService {
         name: { $regex: keyword, $options: 'i' },
       },
     });
+
+    const newData = result.data.map((item) => {
+      if (!item.productList || item.productList?.length === 0) {
+        item.productList = [
+          {
+            _id: new ObjectId(),
+            name: '',
+            code: '',
+            createdAt: new Date(),
+          },
+        ];
+      }
+      return item;
+    });
+
+    return {
+      totalCount: result.totalCount,
+      data: newData,
+    };
   }
 
   async update(updateSubsidiaryInput: UpdateSubsidiaryInput) {
@@ -52,9 +76,11 @@ export class SubsidiaryService {
         '부자재 생성시 타입가드에 문제가 있습니다. 개발자에게 문의하세요.',
       );
     }
-
+    console.log('updateBody???? : ', updateBody);
     const { _id, ...body } = updateBody;
-    return this.subsidiaryRepository.update({ _id }, body);
+    await this.subsidiaryRepository.update({ _id }, body);
+    const result = await this.subsidiaryRepository.findFullSubsidiary({ _id });
+    return result;
   }
 
   remove(_id: string) {
@@ -127,8 +153,8 @@ export class SubsidiaryService {
         ...object,
         category: object?.category?.name ?? '',
         productList: object.productList
-          .map((product) => product.name)
-          .join(', '),
+          ? object.productList.map((product) => product.name).join(', ')
+          : '',
       };
 
       worksheet.addRow(newObject);
@@ -159,9 +185,12 @@ export class SubsidiaryService {
     const categoryName = input.category;
     const name = input.name;
     const productNameList = input.productList;
-    let category;
-    let productList = [];
-    await this.subsidiaryRepository.uniqueCheck({ code });
+    let category = null;
+    let productList = null;
+
+    if (code) {
+      await this.subsidiaryRepository.uniqueCheck({ code });
+    }
 
     if (categoryName) {
       category = await this.subsidiaryCategoryService.upsert({
@@ -170,12 +199,19 @@ export class SubsidiaryService {
     }
 
     if (name) {
-      await this.subsidiaryRepository.uniqueCheck({ name });
+      if (this.isUpdateInput(input)) {
+        await this.subsidiaryRepository.uniqueCheck({
+          name,
+          _id: { $ne: input._id },
+        });
+      } else {
+        await this.subsidiaryRepository.uniqueCheck({ name });
+      }
     }
 
-    if (productNameList.length) {
+    if (productNameList && productNameList.length) {
       productList = await this.productService.findAll({
-        _id: { $in: productNameList },
+        name: { $in: productNameList },
       });
 
       if (productNameList.length !== productList.length) {
@@ -189,7 +225,6 @@ export class SubsidiaryService {
         );
       }
     }
-
     return {
       ...input,
       category,
@@ -245,7 +280,6 @@ export class SubsidiaryService {
         );
       }
     }
-
     return {
       ...input,
       category,

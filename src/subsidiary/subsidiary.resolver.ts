@@ -18,10 +18,11 @@ export class SubsidiaryResolver {
   }
 
   @Query(() => SubsidiariesOutput, { name: 'subsidiaries' })
-  subsidiaries(
+  async subsidiaries(
     @Args('subsidiariesInput') subsidiariesInput: SubsidiariesInput,
   ) {
-    return this.subsidiaryService.findMany(subsidiariesInput);
+    const result = await this.subsidiaryService.findMany(subsidiariesInput);
+    return result;
   }
 
   @Mutation(() => Subsidiary)

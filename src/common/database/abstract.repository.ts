@@ -47,6 +47,7 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
   }
 
   async update(query: FilterQuery<T>, body: UpdateQuery<T>): Promise<T> {
+    console.log('real update', query, body);
     const result = await this.model
       .findOneAndUpdate(query, body, {
         new: true,
@@ -175,7 +176,7 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
 
   async uniqueCheck(filterQuery: FilterQuery<T>) {
     const isExist = await this.exists(filterQuery);
-    console.log('existing product', isExist, filterQuery);
+    console.log('query', filterQuery, isExist);
     if (isExist) {
       let errorMessage = '';
       for (const [key, value] of Object.entries(filterQuery)) {
