@@ -7,9 +7,9 @@ import {
   IsOptional,
   IsString,
   Min,
+  NotContains,
 } from 'class-validator';
 import { Types } from 'mongoose';
-import { IsObjectId } from 'src/common/validations/id.validation';
 
 @InputType()
 export class CreateSubsidiaryInput
@@ -23,18 +23,19 @@ export class CreateSubsidiaryInput
   @Field(() => String)
   @IsString()
   @IsNotEmpty({ message: '부자재 이름을 입력하세요.' })
+  @NotContains(',', { message: `',' 는 부자재 이름에 포함될 수 없습니다.` })
   name: string;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @IsObjectId({ message: '부자재의 카테고리에 올바른 objectId 를 입력하세요' })
-  category?: Types.ObjectId;
+  @IsString({ message: '올바른 부자재 분류를 입력하세요.' })
+  category?: string;
 
   @Field(() => [String])
   @IsArray()
-  @IsObjectId({
+  @IsString({
     each: true,
-    message: '부자재 제품 목록에 올바른 objectId 를 입력하세요.',
+    message: '부자재에 매칭되는 제품이름의 타입을 문자입로 입력하세요.',
   })
   productList: Types.ObjectId[];
 

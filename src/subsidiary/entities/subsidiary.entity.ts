@@ -27,6 +27,7 @@ export class Subsidiary extends AbstractEntity implements SubsidiaryInterface {
 
   @Prop({
     type: String,
+    unique: true,
     required: [true, '부자재 이름를 입력하세요.'],
   })
   @Field(() => String)
@@ -41,9 +42,8 @@ export class Subsidiary extends AbstractEntity implements SubsidiaryInterface {
 
   @Prop({
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: Product.name }],
-    default: [],
   })
-  @Field(() => [Product])
+  @Field(() => [Product], { nullable: true })
   productList: Product[];
 
   @Prop({ type: Number, min: [0, '원가는 0 이상의 값을 입력하세요.'] })

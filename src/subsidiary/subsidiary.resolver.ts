@@ -28,10 +28,7 @@ export class SubsidiaryResolver {
   updateSubsidiary(
     @Args('updateSubsidiaryInput') updateSubsidiaryInput: UpdateSubsidiaryInput,
   ) {
-    return this.subsidiaryService.update(
-      updateSubsidiaryInput._id,
-      updateSubsidiaryInput,
-    );
+    return this.subsidiaryService.update(updateSubsidiaryInput);
   }
 
   @Mutation(() => Subsidiary)

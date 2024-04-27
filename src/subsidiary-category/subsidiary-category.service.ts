@@ -123,4 +123,8 @@ export class SubsidiaryCategoryService {
 
     return input;
   }
+
+  async upsert(createSubsidiaryCategory: CreateSubsidiaryCategoryInput) {
+    return this.subsidiaryCategoryRepository.upsert(createSubsidiaryCategory);
+  }
 }

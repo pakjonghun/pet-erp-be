@@ -1,7 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { CreateSubsidiaryInput } from './dto/create-subsidiary.input';
 import { UpdateSubsidiaryInput } from './dto/update-subsidiary.input';
-import { ObjectId } from 'mongodb';
 import { SubsidiaryRepository } from './subsidiary.repository';
 import { ProductService } from 'src/product/product.service';
 import { ColumnOption } from 'src/client/types';
@@ -23,7 +26,11 @@ export class SubsidiaryService {
 
   async create(createSubsidiaryInput: CreateSubsidiaryInput) {
     const createBody = await this.beforeCreateOrUpdate(createSubsidiaryInput);
-    if (!this.isCreateInput(createBody)) return;
+    if (!this.isCreateInput(createBody)) {
+      throw new InternalServerErrorException(
+        '부자재 생성시 타입가드에 문제가 있습니다. 개발자에게 문의하세요.',
+      );
+    }
     return this.subsidiaryRepository.create(createBody);
   }
 
@@ -38,12 +45,16 @@ export class SubsidiaryService {
     });
   }
 
-  async update(id: ObjectId, updateSubsidiaryInput: UpdateSubsidiaryInput) {
+  async update(updateSubsidiaryInput: UpdateSubsidiaryInput) {
     const updateBody = await this.beforeCreateOrUpdate(updateSubsidiaryInput);
-    if (this.isUpdateInput(updateBody)) {
-      const { _id, ...body } = updateBody;
-      return this.subsidiaryRepository.update({ _id }, body);
+    if (!this.isUpdateInput(updateBody)) {
+      throw new InternalServerErrorException(
+        '부자재 생성시 타입가드에 문제가 있습니다. 개발자에게 문의하세요.',
+      );
     }
+
+    const { _id, ...body } = updateBody;
+    return this.subsidiaryRepository.update({ _id }, body);
   }
 
   remove(_id: string) {
@@ -145,40 +156,36 @@ export class SubsidiaryService {
     input: CreateSubsidiaryInput | UpdateSubsidiaryInput,
   ) {
     const code = input.code;
-    const categoryId = input.category;
-    const productIdList = input.productList;
+    const categoryName = input.category;
+    const name = input.name;
+    const productNameList = input.productList;
     let category;
     let productList = [];
-    const isCodeExist = await this.subsidiaryRepository.exists({ code });
-    if (isCodeExist) {
-      throw new BadRequestException(`${code}는 이미 사용중인 코드 입니다.`);
-    }
+    await this.subsidiaryRepository.uniqueCheck({ code });
 
-    if (categoryId) {
-      category = await this.subsidiaryCategoryService.findOne({
-        _id: categoryId,
+    if (categoryName) {
+      category = await this.subsidiaryCategoryService.upsert({
+        name: categoryName,
       });
-
-      if (!category) {
-        throw new BadRequestException(
-          '선택한 부자재 분류는 존재하지 않는 분류 입니다.',
-        );
-      }
     }
 
-    if (productIdList.length) {
+    if (name) {
+      await this.subsidiaryRepository.uniqueCheck({ name });
+    }
+
+    if (productNameList.length) {
       productList = await this.productService.findAll({
-        _id: { $in: productIdList },
+        _id: { $in: productNameList },
       });
 
-      if (productIdList.length !== productList.length) {
-        const notExistProductList = productIdList.filter(
-          (item) => !productList.find((product) => product._id !== item),
+      if (productNameList.length !== productList.length) {
+        const notExistProductList = productNameList.filter(
+          (item) => !productList.find((product) => product.name !== item),
         );
         const notExistProductNameString = notExistProductList.join(',  ');
 
         throw new BadRequestException(
-          `선택한 제품 중 존재하지 않는 제품이 ${notExistProductList.length}개 있습니다. 존재하지 않는 제품의 아이디는 : (${notExistProductNameString}) 입니다.`,
+          `선택한 제품 중 존재하지 않는 제품이 ${notExistProductList.length}개 있습니다. 존재하지 않는 제품의 이름은 : (${notExistProductNameString}) 입니다.`,
         );
       }
     }
@@ -197,27 +204,29 @@ export class SubsidiaryService {
     },
   ) {
     const code = input.code;
+    const name = input.name;
     const categoryName = input.category;
     const productNameList = input.productList
       .split(',')
       .map((item) => item.trim());
-    let category;
-    let productList = [];
-    const isCodeExist = await this.subsidiaryRepository.exists({ code });
-    if (isCodeExist) {
-      throw new BadRequestException(`${code}는 이미 사용중인 코드 입니다.`);
+
+    const hasCommaName = productNameList.some((item) => item.includes(','));
+    if (hasCommaName) {
+      throw new BadRequestException(
+        `','{는 부자재 이름에 포함될 수 없습니다.}`,
+      );
     }
 
+    let category;
+    let productList = [];
+
+    await this.subsidiaryRepository.uniqueCheck({ code });
+    await this.subsidiaryRepository.uniqueCheck({ name });
+
     if (categoryName) {
-      category = await this.subsidiaryCategoryService.findOne({
+      category = await this.subsidiaryCategoryService.upsert({
         name: categoryName,
       });
-
-      if (!category) {
-        throw new BadRequestException(
-          '선택한 부자재 분류는 존재하지 않는 분류 입니다.',
-        );
-      }
     }
 
     if (productNameList.length) {
@@ -227,7 +236,7 @@ export class SubsidiaryService {
 
       if (productNameList.length !== productList.length) {
         const notExistProductList = productNameList.filter(
-          (item) => !productList.find((product) => product._id !== item),
+          (item) => !productList.find((product) => product.name !== item),
         );
         const notExistProductNameString = notExistProductList.join(',  ');
 
