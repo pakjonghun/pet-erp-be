@@ -44,7 +44,7 @@ export class ProductResolver {
     return this.productService.remove(_id);
   }
 
-  @Query(() => ProductSaleOutput)
+  @Query(() => ProductSaleOutput, { nullable: true })
   async productSales(
     @Args('productSalesInput') productSalesInput: ProductSaleInput,
   ) {

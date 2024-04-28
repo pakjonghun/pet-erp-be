@@ -47,7 +47,7 @@ export class ClientResolver {
     return result;
   }
 
-  @Query(() => TopClientOutput)
+  @Query(() => TopClientOutput, { nullable: true })
   async topClients(@Args('topClientInput') topClientInput: TopClientInput) {
     const result = await this.clientService.topClientList(topClientInput);
     return result[0];

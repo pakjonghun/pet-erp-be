@@ -66,7 +66,7 @@ export class SaleService {
     return result;
   }
 
-  async topSaleBy(groupId: string, { skip, limit }: TopClientInput) {
+  async topSaleBy(groupId: string, { skip, limit, from, to }: TopClientInput) {
     const pipeLine: PipelineStage[] = [
       {
         $match: {
@@ -75,6 +75,7 @@ export class SaleService {
           count: { $exists: true },
           payCost: { $exists: true },
           wonCost: { $exists: true },
+          saleAt: { $exists: true, $gt: from, $lt: to },
         },
       },
       {

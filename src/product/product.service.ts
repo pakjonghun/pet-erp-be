@@ -15,7 +15,6 @@ import { SaleService } from 'src/sale/sale.service';
 import { FilterQuery } from 'mongoose';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { ProductSaleInput } from './dtos/product-sale.input';
-import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { ProductsInput } from './dtos/products-input';
 import { ProductCategoryService } from 'src/product-category/product-category.service';
 import { UtilService } from 'src/common/services/util.service';
@@ -30,15 +29,7 @@ export class ProductService {
     private readonly utilService: UtilService,
     private readonly productRepository: ProductRepository,
     private readonly productSubsidiaryRepository: ProductSubsidiaryRepository,
-  ) {
-    this.salesByProduct({
-      keyword: '',
-      limit: 10,
-      keywordTarget: 'code',
-      order: OrderEnum.DESC,
-      skip: 0,
-    });
-  }
+  ) {}
 
   async create(createProductInput: CreateProductInput) {
     const categoryName = createProductInput.category;

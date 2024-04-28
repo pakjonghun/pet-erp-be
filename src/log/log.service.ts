@@ -4,7 +4,6 @@ import { Injectable } from '@nestjs/common';
 import { FindLogsDTO } from './dtos/find-log.input';
 import { FilterQuery } from 'mongoose';
 import { Log } from './entities/log.entity';
-import * as dayjs from 'dayjs';
 
 @Injectable()
 export class LogService {
@@ -14,13 +13,7 @@ export class LogService {
     return this.logRepository.create(createLogInput);
   }
 
-  findMany({
-    keyword,
-    keywordTarget,
-    from = dayjs().startOf('month').startOf('date').toDate(),
-    to = dayjs().startOf('month').endOf('date').toDate(),
-    ...query
-  }: FindLogsDTO) {
+  findMany({ keyword, keywordTarget, from, to, ...query }: FindLogsDTO) {
     const filterQuery: FilterQuery<Log> = {
       [keywordTarget]: {
         $regex: keyword,
