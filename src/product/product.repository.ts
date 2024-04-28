@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { AbstractRepository } from 'src/common/database/abstract.repository';
-import { Product } from './product.entity';
+import { Product } from './entities/product.entity';
 import { FilterQuery, Model } from 'mongoose';
-import { ProductsInput } from '../dtos/products-input';
+import { ProductsInput } from './dtos/products-input';
 
 @Injectable()
 export class ProductRepository extends AbstractRepository<Product> {

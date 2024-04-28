@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { CreateProductInput } from './dtos/create-product.input';
 import { UpdateProductInput } from './dtos/update-product.input';
-import { ProductRepository } from './entities/product.repository';
+import { ProductRepository } from './product.repository';
 import { Product, ProductInterface } from './entities/product.entity';
 import { ColumnOption } from 'src/client/types';
 import { SaleService } from 'src/sale/sale.service';
@@ -19,6 +19,7 @@ import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { ProductsInput } from './dtos/products-input';
 import { ProductCategoryService } from 'src/product-category/product-category.service';
 import { UtilService } from 'src/common/services/util.service';
+import { ProductSubsidiaryRepository } from './subsidiary.repository';
 
 @Injectable()
 export class ProductService {
@@ -28,6 +29,7 @@ export class ProductService {
     private readonly saleService: SaleService,
     private readonly utilService: UtilService,
     private readonly productRepository: ProductRepository,
+    private readonly productSubsidiaryRepository: ProductSubsidiaryRepository,
   ) {
     this.salesByProduct({
       keyword: '',
@@ -84,6 +86,16 @@ export class ProductService {
   }
 
   async remove(_id: string) {
+    const isUsedProduct = await this.productSubsidiaryRepository.exists({
+      productList: { $in: [_id] },
+    });
+
+    if (isUsedProduct) {
+      throw new BadRequestException(
+        `${_id} 제품은 사용중인 제품입니다 삭제 할 수 없습니다.`,
+      );
+    }
+
     return this.productRepository.remove({ _id });
   }
 

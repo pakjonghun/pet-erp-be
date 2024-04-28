@@ -14,7 +14,7 @@ import { SubsidiaryCategoryModule } from 'src/subsidiary-category/subsidiary-cat
     DatabaseModule.forFeature([
       { name: Subsidiary.name, schema: SubsidiarySchema },
     ]),
-    forwardRef(() => ProductModule),
+    ProductModule,
     forwardRef(() => SubsidiaryCategoryModule),
     forwardRef(() => AppModule),
   ],

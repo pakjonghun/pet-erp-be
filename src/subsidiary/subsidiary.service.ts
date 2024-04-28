@@ -1,9 +1,7 @@
 import {
   BadRequestException,
-  Inject,
   Injectable,
   InternalServerErrorException,
-  forwardRef,
 } from '@nestjs/common';
 import { CreateSubsidiaryInput } from './dto/create-subsidiary.input';
 import { UpdateSubsidiaryInput } from './dto/update-subsidiary.input';
@@ -22,7 +20,6 @@ import * as ExcelJS from 'exceljs';
 @Injectable()
 export class SubsidiaryService {
   constructor(
-    @Inject(forwardRef(() => ProductService))
     private readonly productService: ProductService,
     private readonly utilService: UtilService,
     private readonly subsidiaryCategoryService: SubsidiaryCategoryService,
@@ -80,7 +77,6 @@ export class SubsidiaryService {
         '부자재 생성시 타입가드에 문제가 있습니다. 개발자에게 문의하세요.',
       );
     }
-    console.log('updateBody???? : ', updateBody);
     const { _id, ...body } = updateBody;
     await this.subsidiaryRepository.update({ _id }, body);
     const result = await this.subsidiaryRepository.findFullSubsidiary({ _id });
