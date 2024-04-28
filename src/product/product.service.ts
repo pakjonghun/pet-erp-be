@@ -10,7 +10,6 @@ import { CreateProductInput } from './dtos/create-product.input';
 import { UpdateProductInput } from './dtos/update-product.input';
 import { ProductRepository } from './entities/product.repository';
 import { Product, ProductInterface } from './entities/product.entity';
-import { UtilService } from 'src/common/services/util.service';
 import { ColumnOption } from 'src/client/types';
 import { SaleService } from 'src/sale/sale.service';
 import { FilterQuery } from 'mongoose';
@@ -19,6 +18,7 @@ import { ProductSaleInput } from './dtos/product-sale.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { ProductsInput } from './dtos/products-input';
 import { ProductCategoryService } from 'src/product-category/product-category.service';
+import { UtilService } from 'src/common/services/util.service';
 
 @Injectable()
 export class ProductService {
@@ -83,7 +83,7 @@ export class ProductService {
     return this.findOne({ _id });
   }
 
-  remove(_id: string) {
+  async remove(_id: string) {
     return this.productRepository.remove({ _id });
   }
 

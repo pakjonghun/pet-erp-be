@@ -1,4 +1,4 @@
-import { SubsidiaryService } from './../../subsidiary/subsidiary.service';
+import { SubsidiaryService } from '../../subsidiary/subsidiary.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { promisify } from 'util';
 import { ProductService } from 'src/product/product.service';

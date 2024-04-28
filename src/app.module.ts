@@ -16,7 +16,6 @@ import { DateScalar } from './common/scalars/datetime.scalar';
 import { ProductModule } from './product/product.module';
 import { ClientModule } from './client/client.module';
 import { FileService } from './common/services/file.service';
-import { UtilService } from './common/services/util.service';
 import { SaleModule } from './sale/sale.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ProductCategoryModule } from './product-category/product-category.module';
@@ -24,6 +23,7 @@ import { FileInspector } from './common/interceptors/file.interceptor';
 import { SubsidiaryModule } from './subsidiary/subsidiary.module';
 import { SubsidiaryCategoryModule } from './subsidiary-category/subsidiary-category.module';
 import * as Joi from 'joi';
+import { UtilService } from './common/services/util.service';
 
 @Module({
   imports: [
@@ -100,7 +100,7 @@ import * as Joi from 'joi';
     SubsidiaryModule,
     SubsidiaryCategoryModule,
   ],
-  exports: [AppService, UtilService],
+  exports: [FileService, UtilService],
   controllers: [AppController],
   providers: [
     {
@@ -115,10 +115,10 @@ import * as Joi from 'joi';
       provide: APP_INTERCEPTOR,
       useClass: FileInspector,
     },
-    UtilService,
     DateScalar,
     AppService,
     FileService,
+    UtilService,
   ],
 })
 export class AppModule {}

@@ -1,7 +1,9 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
+  forwardRef,
 } from '@nestjs/common';
 import { CreateSubsidiaryInput } from './dto/create-subsidiary.input';
 import { UpdateSubsidiaryInput } from './dto/update-subsidiary.input';
@@ -13,14 +15,16 @@ import { UtilService } from 'src/common/services/util.service';
 import { SubsidiariesInput } from './dto/subsidiaries.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-category.service';
-import * as ExcelJS from 'exceljs';
 import { ObjectId } from 'mongodb';
+import { FilterQuery } from 'mongoose';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class SubsidiaryService {
   constructor(
-    private readonly utilService: UtilService,
+    @Inject(forwardRef(() => ProductService))
     private readonly productService: ProductService,
+    private readonly utilService: UtilService,
     private readonly subsidiaryCategoryService: SubsidiaryCategoryService,
     private readonly subsidiaryRepository: SubsidiaryRepository,
   ) {}
@@ -285,5 +289,9 @@ export class SubsidiaryService {
       category,
       productList,
     };
+  }
+
+  exists(filterQuery: FilterQuery<Subsidiary>) {
+    return this.subsidiaryRepository.exists(filterQuery);
   }
 }

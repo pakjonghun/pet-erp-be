@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  forwardRef,
+} from '@nestjs/common';
 import { ColumnOption } from 'src/client/types';
 import { UtilService } from 'src/common/services/util.service';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
@@ -12,12 +18,15 @@ import {
 } from './entities/subsidiary-category.entity';
 import { SubsidiaryCategoriesInput } from './dto/subsidiary-categories.input';
 import { FilterQuery } from 'mongoose';
+import { SubsidiaryService } from 'src/subsidiary/subsidiary.service';
 
 @Injectable()
 export class SubsidiaryCategoryService {
   constructor(
     private readonly utilService: UtilService,
     private readonly subsidiaryCategoryRepository: SubsidiaryCategoryRepository,
+    @Inject(forwardRef(() => SubsidiaryService))
+    private readonly subsidiaryService: SubsidiaryService,
   ) {}
 
   async findOne(filterQuery: FilterQuery<SubsidiaryCategory>) {
@@ -49,7 +58,14 @@ export class SubsidiaryCategoryService {
     }
   }
 
-  remove(_id: string) {
+  async remove(_id: string) {
+    const isUsedItem = await this.subsidiaryService.exists({ category: _id });
+    if (isUsedItem) {
+      throw new ConflictException(
+        `${_id}부자재 분류는 사용중인 부자재 분류 입니다 삭제할 수 없습니다.`,
+      );
+    }
+
     return this.subsidiaryCategoryRepository.remove({ _id });
   }
 

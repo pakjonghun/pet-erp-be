@@ -9,6 +9,7 @@ import {
   SubsidiaryCategorySchema,
 } from './entities/subsidiary-category.entity';
 import { SubsidiaryCategoryRepository } from './subsidiary-category.repository';
+import { SubsidiaryModule } from 'src/subsidiary/subsidiary.module';
 
 @Module({
   exports: [SubsidiaryCategoryService],
@@ -18,6 +19,7 @@ import { SubsidiaryCategoryRepository } from './subsidiary-category.repository';
     ]),
     ProductModule,
     forwardRef(() => AppModule),
+    forwardRef(() => SubsidiaryModule),
   ],
   providers: [
     SubsidiaryCategoryResolver,
