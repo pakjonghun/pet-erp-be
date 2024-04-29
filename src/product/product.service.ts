@@ -186,6 +186,43 @@ export class ProductService {
     return { totalCount: productList.totalCount, data: newProductList };
   }
 
+  async salesByProduct2({
+    keyword,
+    keywordTarget,
+    from,
+    to,
+    ...query
+  }: ProductSaleInput) {
+    const productFilterQuery: FilterQuery<Product> = {
+      [keywordTarget]: { $regex: keyword, $options: 'i' },
+    };
+
+    const productList = await this.productRepository.findMany({
+      ...query,
+      filterQuery: productFilterQuery,
+    });
+
+    const saleFilterQuery: FilterQuery<Sale> = {
+      productCode: { $in: productList.data.map((product) => product.code) },
+      saleAt: {
+        $exists: true,
+        $gte: from,
+        $lte: to,
+      },
+    };
+    const saleData = (await this.saleService.saleBy2(saleFilterQuery))[0];
+
+    const newProductList = productList.data.map((product) => {
+      const productCode = product.code;
+      const sales = saleData.sales.filter((sale) => sale.name === productCode);
+      const clients = saleData.clients.filter(
+        (client) => client._id.productCode === productCode,
+      );
+      return { ...product, sales, clients };
+    });
+    return { totalCount: productList.totalCount, data: newProductList };
+  }
+
   async saleProduct(productCode: string) {
     return this.saleService.productSale(productCode);
   }

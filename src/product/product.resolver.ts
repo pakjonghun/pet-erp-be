@@ -3,7 +3,10 @@ import { ProductService } from './product.service';
 import { Product } from './entities/product.entity';
 import { CreateProductInput } from './dtos/create-product.input';
 import { UpdateProductInput } from './dtos/update-product.input';
-import { ProductSaleOutput } from './dtos/product-sale.output';
+import {
+  ProductSaleOutput,
+  ProductSaleOutput2,
+} from './dtos/product-sale.output';
 import { ProductSaleInput } from './dtos/product-sale.input';
 import { ProductSaleChartOutput } from './dtos/product-sale-chart.output';
 import { ProductsInput } from './dtos/products-input';
@@ -44,11 +47,11 @@ export class ProductResolver {
     return this.productService.remove(_id);
   }
 
-  @Query(() => ProductSaleOutput, { nullable: true })
+  @Query(() => ProductSaleOutput2, { nullable: true })
   async productSales(
     @Args('productSalesInput') productSalesInput: ProductSaleInput,
   ) {
-    const result = await this.productService.salesByProduct(productSalesInput);
+    const result = await this.productService.salesByProduct2(productSalesInput);
     return result;
   }
 

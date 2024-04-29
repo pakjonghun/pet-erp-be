@@ -4,7 +4,10 @@ import { SaleRepository } from './sale.repository';
 import { FilterQuery, PipelineStage } from 'mongoose';
 import { TopClientOutput } from 'src/client/dtos/top-client.output';
 import { Sale } from './entities/sale.entity';
-import { SaleInfoList } from 'src/product/dtos/product-sale.output';
+import {
+  SaleInfoList,
+  SaleInfoList2,
+} from 'src/product/dtos/product-sale.output';
 import { TopClientInput } from 'src/client/dtos/top-client.input';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 
@@ -176,6 +179,30 @@ export class SaleService {
     ];
     const result =
       await this.saleRepository.saleModel.aggregate<SaleInfoList>(pipeLine);
+    return result;
+  }
+
+  async saleBy2(filterQuery: FilterQuery<Sale>) {
+    const pipeLine: PipelineStage[] = [
+      {
+        $match: {
+          productCode: { $exists: true },
+          mallId: { $exists: true },
+          count: { $exists: true },
+          payCost: { $exists: true },
+          wonCost: { $exists: true },
+          ...filterQuery,
+        },
+      },
+      {
+        $facet: {
+          sales: this.saleInfoStage({}),
+          clients: this.clientInfoStage(),
+        },
+      },
+    ];
+    const result =
+      await this.saleRepository.saleModel.aggregate<SaleInfoList2>(pipeLine);
     return result;
   }
 
