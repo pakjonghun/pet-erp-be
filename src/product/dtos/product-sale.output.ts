@@ -54,15 +54,6 @@ export class ProductSaleData extends Product {
 }
 
 @ObjectType()
-export class ProductSaleData2 extends Product {
-  @Field(() => SaleInfo, { nullable: true })
-  sales: SaleInfo;
-
-  @Field(() => [ClientInfo])
-  clients: ClientInfo[];
-}
-
-@ObjectType()
 export class ClientInfo {
   @Field(() => Int)
   accPayCost: number;
@@ -90,6 +81,15 @@ export interface SaleInfoList {
 
 export interface SaleInfoList2 {
   sales: SaleInfo[];
+  clients: ClientInfo[];
+}
+
+@ObjectType()
+export class ProductSaleData2 extends Product {
+  @Field(() => SaleInfo, { nullable: true })
+  sales: SaleInfo;
+
+  @Field(() => [ClientInfo])
   clients: ClientInfo[];
 }
 
