@@ -7,7 +7,8 @@ import { ProductSaleInput } from './dtos/product-sale.input';
 import { ProductSaleChartOutput } from './dtos/product-sale-chart.output';
 import { ProductsInput } from './dtos/products-input';
 import { ProductsOutput } from './dtos/products.output';
-import { ProductSaleOutput } from './dtos/product-sale.output';
+import { ProductSaleOutput, SaleInfo } from './dtos/product-sale.output';
+import { FindDateInput } from 'src/common/dtos/find-date.input';
 
 @Resolver(() => Product)
 export class ProductResolver {
@@ -55,6 +56,27 @@ export class ProductResolver {
   @Query(() => [ProductSaleChartOutput], { nullable: true })
   async productSale(@Args('productCode') productCode: string) {
     const result = await this.productService.saleProduct(productCode);
+    return result;
+  }
+
+  @Query(() => SaleInfo, { nullable: true })
+  async dashboardProduct(
+    @Args('dashboardProductInput', { nullable: true })
+    dashboardProductInput: FindDateInput,
+  ) {
+    const result = await this.productService.totalSaleBy(dashboardProductInput);
+    return result[0];
+  }
+
+  @Query(() => [SaleInfo], { nullable: true })
+  async dashboardProducts(
+    @Args('dashboardProductsInput', { nullable: true })
+    dashboardProductInputs: FindDateInput,
+  ) {
+    const result = await this.productService.totalSaleBy(
+      dashboardProductInputs,
+      'productCode',
+    );
     return result;
   }
 }

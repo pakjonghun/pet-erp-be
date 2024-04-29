@@ -19,6 +19,7 @@ import { ProductsInput } from './dtos/products-input';
 import { ProductCategoryService } from 'src/product-category/product-category.service';
 import { UtilService } from 'src/common/services/util.service';
 import { ProductSubsidiaryRepository } from './subsidiary.repository';
+import { FindDateInput } from 'src/common/dtos/find-date.input';
 
 @Injectable()
 export class ProductService {
@@ -30,6 +31,10 @@ export class ProductService {
     private readonly productRepository: ProductRepository,
     private readonly productSubsidiaryRepository: ProductSubsidiaryRepository,
   ) {}
+
+  async totalSaleBy(range: FindDateInput, groupId?: string) {
+    return this.saleService.totalSale(range, groupId);
+  }
 
   async create(createProductInput: CreateProductInput) {
     const categoryName = createProductInput.category;
