@@ -4,10 +4,7 @@ import { SaleRepository } from './sale.repository';
 import { FilterQuery, PipelineStage } from 'mongoose';
 import { TopClientOutput } from 'src/client/dtos/top-client.output';
 import { Sale } from './entities/sale.entity';
-import {
-  SaleInfoList,
-  SaleInfoList2,
-} from 'src/product/dtos/product-sale.output';
+import { SaleInfoList } from 'src/product/dtos/product-sale.output';
 import { TopClientInput } from 'src/client/dtos/top-client.input';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 
@@ -141,21 +138,6 @@ export class SaleService {
   }
 
   async saleBy(filterQuery: FilterQuery<Sale>) {
-    const todayFilter = {
-      saleAt: this.getDateRangeFilter('today'),
-    };
-
-    const thisWeekFilter = {
-      saleAt: this.getDateRangeFilter('thisWeek'),
-    };
-
-    const lastWeekFilter = {
-      saleAt: this.getDateRangeFilter('lastWeek'),
-    };
-
-    const thisMonthFilter = {
-      saleAt: this.getDateRangeFilter('thisMonth'),
-    };
     const pipeLine: PipelineStage[] = [
       {
         $match: {
@@ -169,10 +151,7 @@ export class SaleService {
       },
       {
         $facet: {
-          today: this.saleInfoStage(todayFilter),
-          thisWeek: this.saleInfoStage(thisWeekFilter),
-          lastWeek: this.saleInfoStage(lastWeekFilter),
-          thisMonth: this.saleInfoStage(thisMonthFilter),
+          sales: this.saleInfoStage(),
           clients: this.clientInfoStage(),
         },
       },
@@ -182,40 +161,8 @@ export class SaleService {
     return result;
   }
 
-  async saleBy2(filterQuery: FilterQuery<Sale>) {
-    const pipeLine: PipelineStage[] = [
-      {
-        $match: {
-          productCode: { $exists: true },
-          mallId: { $exists: true },
-          count: { $exists: true },
-          payCost: { $exists: true },
-          wonCost: { $exists: true },
-          ...filterQuery,
-        },
-      },
-      {
-        $facet: {
-          sales: this.saleInfoStage({}),
-          clients: this.clientInfoStage(),
-        },
-      },
-    ];
-    const result =
-      await this.saleRepository.saleModel.aggregate<SaleInfoList2>(pipeLine);
-    return result;
-  }
-
-  private saleInfoStage(
-    filterQuery: FilterQuery<Sale>,
-    groupId = 'productCode',
-  ) {
+  private saleInfoStage(groupId = 'productCode') {
     return [
-      {
-        $match: {
-          ...filterQuery,
-        },
-      },
       {
         $group: {
           _id: `$${groupId}`,

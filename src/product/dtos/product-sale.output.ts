@@ -1,12 +1,5 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 import { Product } from '../entities/product.entity';
-import { FindManyOutput } from 'src/common/dtos/find-many.output';
-
-@ObjectType()
-export class ProductSaleOutput extends FindManyOutput {
-  @Field(() => [ProductSaleData])
-  data: ProductSaleData[];
-}
 
 @ObjectType()
 export class ClientId {
@@ -19,73 +12,47 @@ export class ClientId {
 
 @ObjectType()
 export class SaleInfo {
-  @Field(() => Int)
+  @Field(() => Int, { nullable: true })
   accPayCost: number;
 
-  @Field(() => Int)
+  @Field(() => Int, { nullable: true })
   accCount: number;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
   name: string;
 
-  @Field(() => Float)
+  @Field(() => Float, { nullable: true })
   accProfit: number;
 
-  @Field(() => Float)
+  @Field(() => Float, { nullable: true })
   averagePayCost: number;
-}
-
-@ObjectType()
-export class ProductSaleData extends Product {
-  @Field(() => SaleInfo, { nullable: true })
-  today: SaleInfo;
-
-  @Field(() => SaleInfo, { nullable: true })
-  thisWeek: SaleInfo;
-
-  @Field(() => SaleInfo, { nullable: true })
-  lastWeek: SaleInfo;
-
-  @Field(() => SaleInfo, { nullable: true })
-  thisMonth: SaleInfo;
-
-  @Field(() => [ClientInfo])
-  clients: ClientInfo[];
 }
 
 @ObjectType()
 export class ClientInfo {
-  @Field(() => Int)
+  @Field(() => Int, { nullable: true })
   accPayCost: number;
 
-  @Field(() => Int)
+  @Field(() => Int, { nullable: true })
   accCount: number;
 
-  @Field(() => ClientId)
+  @Field(() => ClientId, { nullable: true })
   _id: ClientId;
 
-  @Field(() => Float)
+  @Field(() => Float, { nullable: true })
   accProfit: number;
 
-  @Field(() => Float)
+  @Field(() => Float, { nullable: true })
   averagePayCost: number;
 }
 
 export interface SaleInfoList {
-  today: SaleInfo[];
-  thisWeek: SaleInfo[];
   clients: ClientInfo[];
-  lastWeek: SaleInfo[];
-  thisMonth: SaleInfo[];
-}
-
-export interface SaleInfoList2 {
   sales: SaleInfo[];
-  clients: ClientInfo[];
 }
 
 @ObjectType()
-export class ProductSaleData2 extends Product {
+export class ProductSaleData extends Product {
   @Field(() => SaleInfo, { nullable: true })
   sales: SaleInfo;
 
@@ -94,10 +61,10 @@ export class ProductSaleData2 extends Product {
 }
 
 @ObjectType()
-export class ProductSaleOutput2 {
+export class ProductSaleOutput {
   @Field(() => Int)
   totalCount: number;
 
-  @Field(() => [ProductSaleData2])
-  data: ProductSaleData2[];
+  @Field(() => [ProductSaleData])
+  data: ProductSaleData[];
 }

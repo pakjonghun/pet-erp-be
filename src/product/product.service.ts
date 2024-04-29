@@ -148,45 +148,7 @@ export class ProductService {
     await this.productRepository.bulkWrite(documents);
   }
 
-  async salesByProduct({ keyword, keywordTarget, ...query }: ProductSaleInput) {
-    const productFilterQuery: FilterQuery<Product> = {
-      [keywordTarget]: { $regex: keyword, $options: 'i' },
-    };
-
-    const productList = await this.productRepository.findMany({
-      ...query,
-      filterQuery: productFilterQuery,
-    });
-
-    const saleFilterQuery: FilterQuery<Sale> = {
-      productCode: { $in: productList.data.map((product) => product.code) },
-    };
-    const saleList = (await this.saleService.saleBy(saleFilterQuery))[0];
-
-    const newProductList = productList.data.map((product) => {
-      const today = saleList.today.find((sale) => sale.name === product.code);
-      const thisWeek = saleList.thisWeek.find(
-        (sale) => sale.name === product.code,
-      );
-
-      const lastWeek = saleList.lastWeek.find(
-        (sale) => sale.name === product.code,
-      );
-
-      const thisMonth = saleList.thisMonth.find(
-        (sale) => sale.name === product.code,
-      );
-
-      const clients = saleList.clients.filter(
-        (client) => client._id.productCode === product.code,
-      );
-      return { ...product, today, thisWeek, lastWeek, thisMonth, clients };
-    });
-
-    return { totalCount: productList.totalCount, data: newProductList };
-  }
-
-  async salesByProduct2({
+  async salesByProduct({
     keyword,
     keywordTarget,
     from,
@@ -210,15 +172,18 @@ export class ProductService {
         $lte: to,
       },
     };
-    const saleData = (await this.saleService.saleBy2(saleFilterQuery))[0];
+    const saleData = (await this.saleService.saleBy(saleFilterQuery))[0];
 
     const newProductList = productList.data.map((product) => {
       const productCode = product.code;
-      const sales = saleData.sales.filter((sale) => sale.name === productCode);
+
+      const sales = saleData.sales.filter((sale) => {
+        return sale.name == productCode;
+      });
       const clients = saleData.clients.filter(
-        (client) => client._id.productCode === productCode,
+        (client) => client._id.productCode == productCode,
       );
-      return { ...product, sales, clients };
+      return { ...product, sales: sales[0], clients };
     });
     return { totalCount: productList.totalCount, data: newProductList };
   }
