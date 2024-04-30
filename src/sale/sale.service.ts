@@ -290,6 +290,7 @@ export class SaleService {
       {
         $group: {
           _id,
+          name: { $first: '$productName' },
           accPayCost: { $sum: '$payCost' },
           accCount: { $sum: '$count' },
           accWonCost: { $sum: '$wonCost' },
@@ -297,7 +298,6 @@ export class SaleService {
       },
       {
         $addFields: {
-          name: '$_id',
           accProfit: {
             $subtract: ['$accPayCost', '$accWonCost'],
           },
@@ -326,7 +326,6 @@ export class SaleService {
       },
       {
         $project: {
-          _id: 0,
           wonCost: 0,
         },
       },

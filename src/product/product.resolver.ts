@@ -85,7 +85,7 @@ export class ProductResolver {
     );
 
     return current.map((item) => {
-      const previousItem = previous.find((prev) => prev.name === item.name);
+      const previousItem = previous.find((prev) => prev._id === item._id);
       return {
         ...item,
         prevAccPayCost: previousItem.accPayCost,

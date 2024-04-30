@@ -26,6 +26,8 @@ export class SaleInfo {
 
   @Field(() => Float, { nullable: true })
   averagePayCost: number;
+
+  _id: string;
 }
 
 @ObjectType()
