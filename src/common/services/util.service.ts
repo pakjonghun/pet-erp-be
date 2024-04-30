@@ -93,8 +93,8 @@ export class UtilService {
 
   getBeforeDate({ from, to }: { from: Date; to: Date }) {
     const diff = dayjs(to).diff(from, 'hour');
-    const beforeFrom = dayjs(from).subtract(diff, 'hour').toISOString();
-    const beforeTo = dayjs(to).subtract(diff, 'hour').toISOString();
-    return { beforeFrom, beforeTo };
+    const prevFrom = dayjs(from).subtract(diff, 'hour').toDate();
+    const prevTo = dayjs(to).subtract(diff, 'hour').toDate();
+    return { from: prevFrom, to: prevTo };
   }
 }

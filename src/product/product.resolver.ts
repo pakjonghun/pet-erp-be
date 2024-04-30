@@ -7,7 +7,11 @@ import { ProductSaleInput } from './dtos/product-sale.input';
 import { ProductSaleChartOutput } from './dtos/product-sale-chart.output';
 import { ProductsInput } from './dtos/products-input';
 import { ProductsOutput } from './dtos/products.output';
-import { ProductSaleOutput, SaleInfo } from './dtos/product-sale.output';
+import {
+  ProductSaleOutput,
+  SaleInfos,
+  TotalSaleInfo,
+} from './dtos/product-sale.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 
 @Resolver(() => Product)
@@ -59,24 +63,36 @@ export class ProductResolver {
     return result;
   }
 
-  @Query(() => SaleInfo, { nullable: true })
+  @Query(() => TotalSaleInfo, { nullable: true })
   async dashboardProduct(
     @Args('dashboardProductInput', { nullable: true })
     dashboardProductInput: FindDateInput,
   ) {
-    const result = await this.productService.totalSaleBy(dashboardProductInput);
-    return result[0];
+    const { current, previous } = await this.productService.totalSaleBy(
+      dashboardProductInput,
+    );
+    return { current: current[0], previous: previous[0] };
   }
 
-  @Query(() => [SaleInfo], { nullable: true })
+  @Query(() => [SaleInfos], { nullable: true })
   async dashboardProducts(
     @Args('dashboardProductsInput', { nullable: true })
     dashboardProductInputs: FindDateInput,
   ) {
-    const result = await this.productService.totalSaleBy(
+    const { current, previous } = await this.productService.totalSaleBy(
       dashboardProductInputs,
       'productCode',
     );
-    return result;
+
+    return current.map((item) => {
+      const previousItem = previous.find((prev) => prev.name === item.name);
+      return {
+        ...item,
+        prevAccPayCost: previousItem.accPayCost,
+        prevAccCount: previousItem.accCount,
+        prevAccProfit: previousItem.accProfit,
+        prevAveragePayCost: previousItem.averagePayCost,
+      };
+    });
   }
 }

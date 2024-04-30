@@ -33,7 +33,12 @@ export class ProductService {
   ) {}
 
   async totalSaleBy(range: FindDateInput, groupId?: string) {
-    return this.saleService.totalSale(range, groupId);
+    const prevRange = this.utilService.getBeforeDate(range);
+
+    const current = await this.saleService.totalSale(range, groupId);
+    const previous = await this.saleService.totalSale(prevRange, groupId);
+
+    return { current, previous };
   }
 
   async create(createProductInput: CreateProductInput) {

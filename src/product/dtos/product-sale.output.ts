@@ -29,6 +29,45 @@ export class SaleInfo {
 }
 
 @ObjectType()
+export class TotalSaleInfo {
+  @Field(() => SaleInfo, { nullable: true })
+  current: SaleInfo;
+
+  @Field(() => SaleInfo, { nullable: true })
+  previous: SaleInfo;
+}
+
+@ObjectType()
+export class SaleInfos {
+  @Field(() => Int, { nullable: true })
+  accPayCost: number;
+
+  @Field(() => Int, { nullable: true })
+  accCount: number;
+
+  @Field(() => String, { nullable: true })
+  name: string;
+
+  @Field(() => Float, { nullable: true })
+  accProfit: number;
+
+  @Field(() => Float, { nullable: true })
+  averagePayCost: number;
+
+  @Field(() => Int, { nullable: true })
+  prevAccPayCost: number;
+
+  @Field(() => Int, { nullable: true })
+  prevAccCount: number;
+
+  @Field(() => Float, { nullable: true })
+  prevAccProfit: number;
+
+  @Field(() => Float, { nullable: true })
+  prevAveragePayCost: number;
+}
+
+@ObjectType()
 export class ClientInfo {
   @Field(() => Int, { nullable: true })
   accPayCost: number;

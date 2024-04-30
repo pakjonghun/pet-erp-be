@@ -4,11 +4,10 @@ import { SaleRepository } from './sale.repository';
 import { FilterQuery, PipelineStage } from 'mongoose';
 import { TopClientOutput } from 'src/client/dtos/top-client.output';
 import { Sale } from './entities/sale.entity';
-import { SaleInfoList } from 'src/product/dtos/product-sale.output';
+import { SaleInfo, SaleInfoList } from 'src/product/dtos/product-sale.output';
 import { TopClientInput } from 'src/client/dtos/top-client.input';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
-import * as dayjs from 'dayjs';
 
 @Injectable()
 export class SaleService {
@@ -69,11 +68,6 @@ export class SaleService {
   }
 
   async topSaleBy(groupId: string, { skip, limit, from, to }: TopClientInput) {
-    const { beforeFrom, beforeTo } = this.utilService.getBeforeDate({
-      from,
-      to,
-    });
-
     const pipeLine: PipelineStage[] = [
       {
         $match: {
@@ -141,72 +135,22 @@ export class SaleService {
       },
     ];
 
-    return this.saleRepository.saleModel.aggregate<TopClientOutput[]>(pipeLine);
+    const currentData =
+      await this.saleRepository.saleModel.aggregate<TopClientOutput[]>(
+        pipeLine,
+      );
+    return currentData;
   }
 
   async totalSale({ from, to }: FindDateInput, groupId?: string) {
     const _id = groupId ? `$${groupId}` : null;
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          productCode: { $exists: true },
-          mallId: { $exists: true },
-          count: { $exists: true },
-          payCost: { $exists: true },
-          wonCost: { $exists: true },
-          saleAt: {
-            $exists: true,
-            $gte: from,
-            $lte: to,
-          },
-        },
-      },
-      {
-        $group: {
-          _id,
-          accPayCost: { $sum: '$payCost' },
-          accCount: { $sum: '$count' },
-          accWonCost: { $sum: '$wonCost' },
-        },
-      },
-      {
-        $addFields: {
-          name: '$_id',
-          accProfit: {
-            $subtract: ['$accPayCost', '$accWonCost'],
-          },
-          averagePayCost: {
-            $round: [
-              {
-                $cond: {
-                  if: { $ne: ['$accCount', 0] },
-                  then: { $divide: ['$accPayCost', '$accCount'] },
-                  else: 0,
-                },
-              },
-              2,
-            ],
-          },
-        },
-      },
-      {
-        $sort: {
-          accPayCost: -1,
-          accCount: -1,
-        },
-      },
-      {
-        $limit: 10,
-      },
-      {
-        $project: {
-          _id: 0,
-          wonCost: 0,
-        },
-      },
-    ];
+    const pipeline = this.getTotalSalePipeline({
+      from,
+      to,
+      _id,
+    });
 
-    return this.saleRepository.saleModel.aggregate(pipeline);
+    return this.saleRepository.saleModel.aggregate<SaleInfo>(pipeline);
   }
 
   async saleBy(filterQuery: FilterQuery<Sale>) {
@@ -319,43 +263,73 @@ export class SaleService {
     return pipeLine;
   }
 
-  private getDateRangeFilter(
-    rangeOption: 'today' | 'thisWeek' | 'lastWeek' | 'thisMonth',
-  ) {
-    switch (rangeOption) {
-      case 'today': {
-        const [from, to] = this.utilService.todayDayjsRange();
-        return {
-          $gte: from.toDate(),
-          $lte: to.toDate(),
-        };
-      }
-      case 'thisWeek': {
-        const [from, to] = this.utilService.thisWeekDayjsRange();
-        return {
-          $gte: from.toDate(),
-          $lte: to.toDate(),
-        };
-      }
-
-      case 'lastWeek': {
-        const [from, to] = this.utilService.lastWeekDayjsRange();
-        return {
-          $gte: from.toDate(),
-          $lte: to.toDate(),
-        };
-      }
-
-      case 'thisMonth': {
-        const [from, to] = this.utilService.thisMonthDayjsRange();
-        return {
-          $gte: from.toDate(),
-          $lte: to.toDate(),
-        };
-      }
-
-      default:
-        return {};
-    }
+  private getTotalSalePipeline({
+    from,
+    to,
+    _id,
+  }: {
+    from: Date;
+    to: Date;
+    _id: string;
+  }): PipelineStage[] {
+    return [
+      {
+        $match: {
+          productCode: { $exists: true },
+          mallId: { $exists: true },
+          count: { $exists: true },
+          payCost: { $exists: true },
+          wonCost: { $exists: true },
+          saleAt: {
+            $exists: true,
+            $gte: from,
+            $lte: to,
+          },
+        },
+      },
+      {
+        $group: {
+          _id,
+          accPayCost: { $sum: '$payCost' },
+          accCount: { $sum: '$count' },
+          accWonCost: { $sum: '$wonCost' },
+        },
+      },
+      {
+        $addFields: {
+          name: '$_id',
+          accProfit: {
+            $subtract: ['$accPayCost', '$accWonCost'],
+          },
+          averagePayCost: {
+            $round: [
+              {
+                $cond: {
+                  if: { $ne: ['$accCount', 0] },
+                  then: { $divide: ['$accPayCost', '$accCount'] },
+                  else: 0,
+                },
+              },
+              2,
+            ],
+          },
+        },
+      },
+      {
+        $sort: {
+          accPayCost: -1,
+          accCount: -1,
+        },
+      },
+      {
+        $limit: 10,
+      },
+      {
+        $project: {
+          _id: 0,
+          wonCost: 0,
+        },
+      },
+    ];
   }
 }
