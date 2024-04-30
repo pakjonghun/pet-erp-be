@@ -90,4 +90,11 @@ export class UtilService {
   getStringDate(date: dayjs.Dayjs) {
     return date.format('YYYYMMDDHHmmss');
   }
+
+  getBeforeDate({ from, to }: { from: Date; to: Date }) {
+    const diff = dayjs(to).diff(from, 'hour');
+    const beforeFrom = dayjs(from).subtract(diff, 'hour').toISOString();
+    const beforeTo = dayjs(to).subtract(diff, 'hour').toISOString();
+    return { beforeFrom, beforeTo };
+  }
 }

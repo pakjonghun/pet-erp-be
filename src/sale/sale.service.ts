@@ -8,6 +8,7 @@ import { SaleInfoList } from 'src/product/dtos/product-sale.output';
 import { TopClientInput } from 'src/client/dtos/top-client.input';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class SaleService {
@@ -68,6 +69,11 @@ export class SaleService {
   }
 
   async topSaleBy(groupId: string, { skip, limit, from, to }: TopClientInput) {
+    const { beforeFrom, beforeTo } = this.utilService.getBeforeDate({
+      from,
+      to,
+    });
+
     const pipeLine: PipelineStage[] = [
       {
         $match: {
