@@ -280,7 +280,6 @@ export class SaleService {
     _id: string;
     name: string;
   }): PipelineStage[] {
-    console.log('name : ', name);
     return [
       {
         $match: {

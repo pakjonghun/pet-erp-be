@@ -94,8 +94,8 @@ export interface SaleInfoList {
 
 @ObjectType()
 export class ProductSaleData extends Product {
-  @Field(() => SaleInfo, { nullable: true })
-  sales: SaleInfo;
+  @Field(() => SaleInfos, { nullable: true })
+  sales: SaleInfos;
 
   @Field(() => [ClientInfo])
   clients: ClientInfo[];

@@ -158,6 +158,25 @@ export class ProductService {
     await this.productRepository.bulkWrite(documents);
   }
 
+  private getSaleQueryByDate({
+    productCodeList,
+    from,
+    to,
+  }: {
+    productCodeList: string[];
+    from: Date;
+    to: Date;
+  }): FilterQuery<Sale> {
+    return {
+      productCode: { $in: productCodeList },
+      saleAt: {
+        $exists: true,
+        $gte: from,
+        $lte: to,
+      },
+    };
+  }
+
   async salesByProduct({
     keyword,
     keywordTarget,
@@ -174,26 +193,53 @@ export class ProductService {
       filterQuery: productFilterQuery,
     });
 
-    const saleFilterQuery: FilterQuery<Sale> = {
-      productCode: { $in: productList.data.map((product) => product.code) },
-      saleAt: {
-        $exists: true,
-        $gte: from,
-        $lte: to,
-      },
-    };
-    const saleData = (await this.saleService.saleBy(saleFilterQuery))[0];
+    const productCodeList = productList.data.map((product) => product.code);
+
+    const currentSaleFilterQuery = this.getSaleQueryByDate({
+      productCodeList,
+      from,
+      to,
+    });
+    const current = (await this.saleService.saleBy(currentSaleFilterQuery))[0];
+
+    const beforeRange = this.utilService.getBeforeDate({ from, to });
+    const previousSaleFilterQuery = this.getSaleQueryByDate({
+      productCodeList,
+      ...beforeRange,
+    });
+    const previous = (
+      await this.saleService.saleBy(previousSaleFilterQuery)
+    )[0];
 
     const newProductList = productList.data.map((product) => {
       const productCode = product.code;
 
-      const sales = saleData.sales.filter((sale) => {
+      const prevSales = previous.sales.filter((sale) => {
         return sale.name == productCode;
       });
-      const clients = saleData.clients.filter(
+
+      const sales = current.sales.filter((sale) => {
+        return sale.name == productCode;
+      });
+
+      const newSales = sales.map((sale) => {
+        const previousItem = prevSales.find(
+          (prevSale) => prevSale._id === sale._id,
+        );
+
+        return {
+          ...sale,
+          prevAccPayCost: previousItem?.accPayCost,
+          prevAccCount: previousItem?.accCount,
+          prevAccProfit: previousItem?.accProfit,
+          prevAveragePayCost: previousItem?.averagePayCost,
+        };
+      });
+
+      const clients = current.clients.filter(
         (client) => client._id.productCode == productCode,
       );
-      return { ...product, sales: sales[0], clients };
+      return { ...product, sales: newSales[0], clients };
     });
     return { totalCount: productList.totalCount, data: newProductList };
   }
