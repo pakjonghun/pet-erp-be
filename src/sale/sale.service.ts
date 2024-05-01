@@ -142,12 +142,18 @@ export class SaleService {
     return currentData;
   }
 
-  async totalSale({ from, to }: FindDateInput, groupId?: string) {
+  async totalSale(
+    { from, to }: FindDateInput,
+    groupId?: string,
+    originName: string = 'productName',
+  ) {
     const _id = groupId ? `$${groupId}` : null;
+    const name = `$${originName}`;
     const pipeline = this.getTotalSalePipeline({
       from,
       to,
       _id,
+      name,
     });
 
     return this.saleRepository.saleModel.aggregate<SaleInfo>(pipeline);
@@ -267,11 +273,14 @@ export class SaleService {
     from,
     to,
     _id,
+    name,
   }: {
     from: Date;
     to: Date;
     _id: string;
+    name: string;
   }): PipelineStage[] {
+    console.log('name : ', name);
     return [
       {
         $match: {
@@ -290,7 +299,7 @@ export class SaleService {
       {
         $group: {
           _id,
-          name: { $first: '$productName' },
+          name: { $first: name },
           accPayCost: { $sum: '$payCost' },
           accCount: { $sum: '$count' },
           accWonCost: { $sum: '$wonCost' },

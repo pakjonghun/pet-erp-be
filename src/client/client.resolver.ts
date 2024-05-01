@@ -7,6 +7,8 @@ import { TopClientOutput } from './dtos/top-client.output';
 import { TopClientInput } from './dtos/top-client.input';
 import { ClientsOutput } from './dtos/clients.output';
 import { ClientsInput } from './dtos/clients.input';
+import { SaleInfos, TotalSaleInfo } from 'src/product/dtos/product-sale.output';
+import { FindDateInput } from 'src/common/dtos/find-date.input';
 
 @Resolver(() => Client)
 export class ClientResolver {
@@ -51,5 +53,37 @@ export class ClientResolver {
   async topClients(@Args('topClientInput') topClientInput: TopClientInput) {
     const result = await this.clientService.topClientList(topClientInput);
     return result[0];
+  }
+
+  @Query(() => TotalSaleInfo, { nullable: true })
+  async dashboardClient(
+    @Args('dashboardClientInput', { nullable: true })
+    dashboardClientInput: FindDateInput,
+  ) {
+    const { current, previous } =
+      await this.clientService.totalSaleBy(dashboardClientInput);
+    return { current: current[0], previous: previous[0] };
+  }
+
+  @Query(() => [SaleInfos], { nullable: true })
+  async dashboardClients(
+    @Args('dashboardClientsInput', { nullable: true })
+    dashboardClientsInput: FindDateInput,
+  ) {
+    const { current, previous } = await this.clientService.totalSaleBy(
+      dashboardClientsInput,
+      'mallId',
+    );
+
+    return current.map((item) => {
+      const previousItem = previous.find((prev) => prev._id === item._id);
+      return {
+        ...item,
+        prevAccPayCost: previousItem?.accPayCost,
+        prevAccCount: previousItem?.accCount,
+        prevAccProfit: previousItem?.accProfit,
+        prevAveragePayCost: previousItem?.averagePayCost,
+      };
+    });
   }
 }

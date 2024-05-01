@@ -15,6 +15,7 @@ import { TopClientInput } from './dtos/top-client.input';
 import { ClientsInput } from './dtos/clients.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import * as ExcelJS from 'exceljs';
+import { FindDateInput } from 'src/common/dtos/find-date.input';
 
 @Injectable()
 export class ClientService {
@@ -166,5 +167,18 @@ export class ClientService {
 
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;
+  }
+
+  async totalSaleBy(range: FindDateInput, groupId?: string) {
+    const prevRange = this.utilService.getBeforeDate(range);
+
+    const current = await this.saleService.totalSale(range, groupId, 'mallId');
+    const previous = await this.saleService.totalSale(
+      prevRange,
+      groupId,
+      'mallId',
+    );
+
+    return { current, previous };
   }
 }
