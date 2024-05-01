@@ -88,10 +88,10 @@ export class ProductResolver {
       const previousItem = previous.find((prev) => prev._id === item._id);
       return {
         ...item,
-        prevAccPayCost: previousItem.accPayCost,
-        prevAccCount: previousItem.accCount,
-        prevAccProfit: previousItem.accProfit,
-        prevAveragePayCost: previousItem.averagePayCost,
+        prevAccPayCost: previousItem?.accPayCost,
+        prevAccCount: previousItem?.accCount,
+        prevAccProfit: previousItem?.accProfit,
+        prevAveragePayCost: previousItem?.averagePayCost,
       };
     });
   }
