@@ -7,42 +7,12 @@ export class CreateWholeSale implements Omit<SaleInterface, 'code'> {
   @IsOptional()
   @IsString()
   @Field(() => String, { nullable: true })
-  shoppingMall?: string;
-
-  @IsOptional()
-  @IsString()
-  @Field(() => String, { nullable: true })
-  count?: number;
-
-  @IsOptional()
-  @IsString()
-  @Field(() => String, { nullable: true })
-  consignee?: string;
-
-  @IsOptional()
-  @IsString()
-  @Field(() => String, { nullable: true })
   address1?: string;
 
   @IsOptional()
   @IsString()
   @Field(() => String, { nullable: true })
-  postalCode?: string;
-
-  @IsOptional()
-  @IsString()
-  @Field(() => String, { nullable: true })
   telephoneNumber1?: string;
-
-  @IsOptional()
-  @IsString()
-  @Field(() => String, { nullable: true })
-  productName?: string;
-
-  @IsOptional()
-  @IsString()
-  @Field(() => String, { nullable: true })
-  productCode?: string;
 
   @IsOptional()
   @IsString()
@@ -73,6 +43,21 @@ export class CreateWholeSale implements Omit<SaleInterface, 'code'> {
   @IsBoolean()
   @Field(() => Boolean, { nullable: true })
   isWholeSale?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Field(() => String, { nullable: true })
+  count?: number;
+
+  @IsOptional()
+  @IsString()
+  @Field(() => String, { nullable: true })
+  productName?: string;
+
+  @IsOptional()
+  @IsString()
+  @Field(() => String, { nullable: true })
+  productCode?: string;
 }
 
 @InputType()
