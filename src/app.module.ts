@@ -24,6 +24,7 @@ import { SubsidiaryModule } from './subsidiary/subsidiary.module';
 import { SubsidiaryCategoryModule } from './subsidiary-category/subsidiary-category.module';
 import * as Joi from 'joi';
 import { UtilService } from './common/services/util.service';
+import { WholeSaleModule } from './whole-sale/whole-sale.module';
 
 @Module({
   imports: [
@@ -99,6 +100,7 @@ import { UtilService } from './common/services/util.service';
     ProductCategoryModule,
     SubsidiaryModule,
     SubsidiaryCategoryModule,
+    WholeSaleModule,
   ],
   exports: [FileService, UtilService],
   controllers: [AppController],

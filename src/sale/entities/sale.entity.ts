@@ -2,7 +2,7 @@ import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 
-interface SaleInterface {
+export interface SaleInterface {
   code: string;
   shoppingMall?: string;
   count?: number;
@@ -115,6 +115,10 @@ export class Sale extends AbstractEntity implements SaleInterface {
   @Prop({ default: 0 })
   @Field(() => String, { nullable: true })
   deliveryCost?: number;
+
+  @Prop({ type: Boolean })
+  @Field(() => Boolean, { nullable: true })
+  isWholeSale: boolean;
 }
 
 export const saleSchema = SchemaFactory.createForClass(Sale);
