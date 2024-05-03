@@ -25,6 +25,11 @@ import { SubsidiaryCategoryModule } from './subsidiary-category/subsidiary-categ
 import * as Joi from 'joi';
 import { UtilService } from './common/services/util.service';
 import { WholeSaleModule } from './whole-sale/whole-sale.module';
+import { StockModule } from './stock/stock.module';
+import { FactoryModule } from './factory/factory.module';
+import { StorageModule } from './storage/storage.module';
+import { OrderModule } from './order/order.module';
+import { MoveModule } from './move/move.module';
 
 @Module({
   imports: [
@@ -101,6 +106,11 @@ import { WholeSaleModule } from './whole-sale/whole-sale.module';
     SubsidiaryModule,
     SubsidiaryCategoryModule,
     WholeSaleModule,
+    StockModule,
+    FactoryModule,
+    StorageModule,
+    OrderModule,
+    MoveModule,
   ],
   exports: [FileService, UtilService],
   controllers: [AppController],
