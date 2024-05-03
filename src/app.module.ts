@@ -28,7 +28,7 @@ import { WholeSaleModule } from './whole-sale/whole-sale.module';
 import { StockModule } from './stock/stock.module';
 import { FactoryModule } from './factory/factory.module';
 import { StorageModule } from './storage/storage.module';
-import { OrderModule } from './order/order.module';
+import { ProductOrderModule } from './product-order/product-order.module';
 import { MoveModule } from './move/move.module';
 
 @Module({
@@ -109,7 +109,7 @@ import { MoveModule } from './move/move.module';
     StockModule,
     FactoryModule,
     StorageModule,
-    OrderModule,
+    ProductOrderModule,
     MoveModule,
   ],
   exports: [FileService, UtilService],

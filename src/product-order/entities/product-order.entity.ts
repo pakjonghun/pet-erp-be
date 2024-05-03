@@ -1,10 +1,12 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { Prop, Schema } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
+import { AbstractEntity } from 'src/common/database/abstract.entity';
 import { Factory } from 'src/factory/entities/factory.entity';
 import { Product } from 'src/product/entities/product.entity';
+import { Storage } from 'src/storage/entities/storage.entity';
 
-interface OrderInterface {
+interface ProductOrderInterface {
   factory: Factory;
   storage: Storage;
   product: Product;
@@ -16,16 +18,19 @@ interface OrderInterface {
 
 @Schema({ timestamps: { createdAt: false }, versionKey: false })
 @ObjectType()
-export class Order implements OrderInterface {
-  @Prop({ type: mongoose.SchemaTypes.ObjectId, ref: Factory.name })
+export class ProductOrder
+  extends AbstractEntity
+  implements ProductOrderInterface
+{
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Factory.name })
   @Field(() => Factory)
   factory: Factory;
 
-  @Prop({ type: mongoose.SchemaTypes.ObjectId, ref: Storage.name })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Storage.name })
   @Field(() => Storage)
   storage: Storage;
 
-  @Prop({ type: mongoose.SchemaTypes.ObjectId, ref: Product.name })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Product.name })
   @Field(() => Product)
   product: Product;
 

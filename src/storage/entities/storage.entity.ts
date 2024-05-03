@@ -1,5 +1,6 @@
 import { ObjectType, Field } from '@nestjs/graphql';
 import { Prop, Schema } from '@nestjs/mongoose';
+import { AbstractEntity } from 'src/common/database/abstract.entity';
 
 interface StorageInterface {
   name: string;
@@ -10,7 +11,7 @@ interface StorageInterface {
 
 @Schema({ timestamps: { createdAt: false }, versionKey: false })
 @ObjectType()
-export class Storage implements StorageInterface {
+export class Storage extends AbstractEntity implements StorageInterface {
   @Prop({ type: String })
   @Field(() => String)
   name: string;

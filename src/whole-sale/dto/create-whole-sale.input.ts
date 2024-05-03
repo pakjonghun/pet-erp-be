@@ -62,5 +62,6 @@ export class CreateWholeSale implements Omit<SaleInterface, 'code'> {
 
 @InputType()
 export class CreateWholeSaleInput {
+  @Field(() => [CreateWholeSale])
   orders: CreateWholeSale[];
 }

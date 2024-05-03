@@ -1,6 +1,7 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
+import { AbstractEntity } from 'src/common/database/abstract.entity';
 import { Product } from 'src/product/entities/product.entity';
 import { Stock } from 'src/stock/entities/stock.entity';
 import { Subsidiary } from 'src/subsidiary/entities/subsidiary.entity';
@@ -17,20 +18,20 @@ interface MoveInterface {
 
 @Schema({ versionKey: false, timestamps: { createdAt: false } })
 @ObjectType()
-export class Move implements MoveInterface {
-  @Prop({ type: mongoose.SchemaTypes.ObjectId, name: Stock.name })
+export class Move extends AbstractEntity implements MoveInterface {
+  @Prop({ type: mongoose.Schema.Types.ObjectId, name: Stock.name })
   @Field(() => Stock)
   fromStock: Stock;
 
-  @Prop({ type: mongoose.SchemaTypes.ObjectId, name: Stock.name })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, name: Stock.name })
   @Field(() => Stock)
   toStock: Stock;
 
-  @Prop({ type: mongoose.SchemaTypes.ObjectId, name: Product.name })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, name: Product.name })
   @Field(() => Product)
   product: Product;
 
-  @Prop({ type: mongoose.SchemaTypes.ObjectId, name: Subsidiary.name })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, name: Subsidiary.name })
   @Field(() => Subsidiary)
   subsidiary: Subsidiary;
 
