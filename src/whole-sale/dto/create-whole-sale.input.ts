@@ -1,7 +1,6 @@
 import {
   ArrayNotEmpty,
   IsArray,
-  IsBoolean,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -70,11 +69,6 @@ export class CreateWholeSaleInput implements Omit<SaleInterface, 'code'> {
   @IsString()
   @Field(() => Int, { nullable: true })
   deliveryCost?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  @Field(() => Boolean, { nullable: true })
-  isWholeSale?: boolean;
 
   @IsArray()
   @ArrayNotEmpty({ message: '1개 이상의 제품을 입력해주세요.' })

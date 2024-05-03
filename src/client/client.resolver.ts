@@ -3,7 +3,6 @@ import { ClientService } from './client.service';
 import { Client } from './entities/client.entity';
 import { CreateClientInput } from './dtos/create-client.input';
 import { UpdateClientInput } from './dtos/update-client.input';
-import { TopClientInput } from './dtos/top-client.input';
 import { ClientsOutput } from './dtos/clients.output';
 import { ClientsInput } from './dtos/clients.input';
 import { SaleInfos, TotalSaleInfo } from 'src/product/dtos/product-sale.output';
