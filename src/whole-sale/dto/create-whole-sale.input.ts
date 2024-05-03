@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 import { SaleInterface } from './../../sale/entities/sale.entity';
 import { InputType, Field, Int } from '@nestjs/graphql';
+import { Storage } from 'src/storage/entities/storage.entity';
 
 @InputType()
 export class CreateWholeSaleProductList {
@@ -29,6 +30,9 @@ export class CreateWholeSaleProductList {
 
 @InputType()
 export class CreateWholeSaleInput implements Omit<SaleInterface, 'code'> {
+  @Field(() => Storage)
+  storage: Storage;
+
   @IsOptional()
   @IsString()
   @Field(() => String, { nullable: true })
@@ -71,6 +75,6 @@ export class CreateWholeSaleInput implements Omit<SaleInterface, 'code'> {
 
   @IsArray()
   @ArrayNotEmpty({ message: '1개 이상의 제품을 입력해주세요.' })
-  @Field(() => CreateWholeSaleProductList)
-  productList: CreateWholeSaleProductList;
+  @Field(() => [CreateWholeSaleProductList])
+  productList: CreateWholeSaleProductList[];
 }
