@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { SaleInterface } from './../../sale/entities/sale.entity';
 import { InputType, Field, Int } from '@nestjs/graphql';
-import { Storage } from 'src/storage/entities/storage.entity';
+import { IsObjectId } from 'src/common/validations/id.validation';
 
 @InputType()
 export class CreateWholeSaleProductList {
@@ -30,8 +30,11 @@ export class CreateWholeSaleProductList {
 
 @InputType()
 export class CreateWholeSaleInput implements Omit<SaleInterface, 'code'> {
-  @Field(() => Storage)
-  storage: Storage;
+  @IsString()
+  @IsNotEmpty({ message: '창고 아이디를 입력하세요.' })
+  @IsObjectId({ message: '올바른 창고 아이디를 입력하세요.' })
+  @Field(() => String)
+  storage: string;
 
   @IsOptional()
   @IsString()

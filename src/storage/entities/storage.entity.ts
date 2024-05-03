@@ -9,8 +9,8 @@ interface StorageInterface {
   note: string;
 }
 
-@Schema({ timestamps: { createdAt: false }, versionKey: false })
 @ObjectType()
+@Schema({ timestamps: { createdAt: false }, versionKey: false })
 export class Storage extends AbstractEntity implements StorageInterface {
   @Prop({ type: String })
   @Field(() => String)

@@ -9,7 +9,9 @@ export class StorageResolver {
   constructor(private readonly storageService: StorageService) {}
 
   @Mutation(() => Storage)
-  createStorage(@Args('createStorageInput') createStorageInput: CreateStorageInput) {
+  createStorage(
+    @Args('createStorageInput') createStorageInput: CreateStorageInput,
+  ) {
     return this.storageService.create(createStorageInput);
   }
 
@@ -24,8 +26,13 @@ export class StorageResolver {
   }
 
   @Mutation(() => Storage)
-  updateStorage(@Args('updateStorageInput') updateStorageInput: UpdateStorageInput) {
-    return this.storageService.update(updateStorageInput.id, updateStorageInput);
+  updateStorage(
+    @Args('updateStorageInput') updateStorageInput: UpdateStorageInput,
+  ) {
+    return this.storageService.update(
+      updateStorageInput.id,
+      updateStorageInput,
+    );
   }
 
   @Mutation(() => Storage)
