@@ -1,9 +1,34 @@
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsBoolean,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { SaleInterface } from './../../sale/entities/sale.entity';
 import { InputType, Field, Int } from '@nestjs/graphql';
 
 @InputType()
-export class CreateWholeSale implements Omit<SaleInterface, 'code'> {
+export class CreateWholeSaleProductList {
+  @IsOptional()
+  @IsString()
+  @Field(() => String, { nullable: true })
+  count?: number;
+
+  @IsString()
+  @IsNotEmpty({ message: '제품 이름을 입력해주세요.' })
+  @Field(() => String)
+  productName: string;
+
+  @IsString()
+  @IsNotEmpty({ message: '제품 코드를 입력해주세요.' })
+  @Field(() => String)
+  productCode?: string;
+}
+
+@InputType()
+export class CreateWholeSaleInput implements Omit<SaleInterface, 'code'> {
   @IsOptional()
   @IsString()
   @Field(() => String, { nullable: true })
@@ -44,24 +69,8 @@ export class CreateWholeSale implements Omit<SaleInterface, 'code'> {
   @Field(() => Boolean, { nullable: true })
   isWholeSale?: boolean;
 
-  @IsOptional()
-  @IsString()
-  @Field(() => String, { nullable: true })
-  count?: number;
-
-  @IsOptional()
-  @IsString()
-  @Field(() => String, { nullable: true })
-  productName?: string;
-
-  @IsOptional()
-  @IsString()
-  @Field(() => String, { nullable: true })
-  productCode?: string;
-}
-
-@InputType()
-export class CreateWholeSaleInput {
-  @Field(() => [CreateWholeSale])
-  orders: CreateWholeSale[];
+  @IsArray()
+  @ArrayNotEmpty({ message: '1개 이상의 제품을 입력해주세요.' })
+  @Field(() => CreateWholeSaleProductList)
+  productList: CreateWholeSaleProductList;
 }
