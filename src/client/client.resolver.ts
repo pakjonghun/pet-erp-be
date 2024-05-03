@@ -3,7 +3,6 @@ import { ClientService } from './client.service';
 import { Client } from './entities/client.entity';
 import { CreateClientInput } from './dtos/create-client.input';
 import { UpdateClientInput } from './dtos/update-client.input';
-import { TopClientOutput } from './dtos/top-client.output';
 import { TopClientInput } from './dtos/top-client.input';
 import { ClientsOutput } from './dtos/clients.output';
 import { ClientsInput } from './dtos/clients.input';
@@ -47,12 +46,6 @@ export class ClientResolver {
   async removeClient(@Args('_id') _id: string) {
     const result = await this.clientService.remove(_id);
     return result;
-  }
-
-  @Query(() => TopClientOutput, { nullable: true })
-  async topClients(@Args('topClientInput') topClientInput: TopClientInput) {
-    const result = await this.clientService.topClientList(topClientInput);
-    return result[0];
   }
 
   @Query(() => TotalSaleInfo, { nullable: true })

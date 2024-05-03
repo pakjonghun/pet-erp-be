@@ -2,10 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { UtilService } from 'src/common/services/util.service';
 import { SaleRepository } from './sale.repository';
 import { FilterQuery, PipelineStage } from 'mongoose';
-import { TopClientOutput } from 'src/client/dtos/top-client.output';
 import { Sale } from './entities/sale.entity';
 import { SaleInfo, SaleInfoList } from 'src/product/dtos/product-sale.output';
-import { TopClientInput } from 'src/client/dtos/top-client.input';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 
@@ -65,81 +63,6 @@ export class SaleService {
         pipeLine,
       );
     return result;
-  }
-
-  async topSaleBy(groupId: string, { skip, limit, from, to }: TopClientInput) {
-    const pipeLine: PipelineStage[] = [
-      {
-        $match: {
-          productCode: { $exists: true },
-          mallId: { $exists: true },
-          count: { $exists: true },
-          payCost: { $exists: true },
-          wonCost: { $exists: true },
-          saleAt: { $exists: true, $gt: from, $lt: to },
-        },
-      },
-      {
-        $facet: {
-          totalCount: [
-            {
-              $group: {
-                _id: `$${groupId}`,
-              },
-            },
-            {
-              $count: 'totalCount',
-            },
-          ],
-          data: [
-            {
-              $group: {
-                _id: `$${groupId}`,
-                accPayCost: { $sum: '$payCost' },
-                accCount: { $sum: '$count' },
-                accWonCost: { $sum: '$wonCost' },
-              },
-            },
-            {
-              $sort: {
-                accPayCost: -1,
-              },
-            },
-            { $skip: skip },
-            { $limit: limit },
-            {
-              $addFields: {
-                name: '$_id',
-                accProfit: { $subtract: ['$accPayCost', '$accWonCost'] },
-              },
-            },
-            {
-              $project: {
-                _id: 0,
-                accWonCost: 0,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: '$totalCount',
-      },
-      {
-        $replaceRoot: {
-          newRoot: {
-            totalCount: '$totalCount.totalCount',
-            data: '$data',
-          },
-        },
-      },
-    ];
-
-    const currentData =
-      await this.saleRepository.saleModel.aggregate<TopClientOutput[]>(
-        pipeLine,
-      );
-    return currentData;
   }
 
   async totalSale(

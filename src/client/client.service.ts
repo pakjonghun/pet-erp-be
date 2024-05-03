@@ -11,7 +11,6 @@ import { ClientRepository } from './client.repository';
 import { UtilService } from 'src/common/services/util.service';
 import { ColumnOption } from './types';
 import { SaleService } from 'src/sale/sale.service';
-import { TopClientInput } from './dtos/top-client.input';
 import { ClientsInput } from './dtos/clients.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import * as ExcelJS from 'exceljs';
@@ -124,10 +123,6 @@ export class ClientService {
     this.utilService.checkDuplicatedField(documents, 'code');
     await this.clientRepository.docUniqueCheck(documents, 'code');
     await this.clientRepository.bulkWrite(documents);
-  }
-
-  topClientList(topClientInput: TopClientInput) {
-    return this.saleService.topSaleBy('mallId', topClientInput);
   }
 
   async downloadExcel() {
