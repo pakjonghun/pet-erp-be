@@ -30,7 +30,6 @@ import { FactoryModule } from './factory/factory.module';
 import { StorageModule } from './storage/storage.module';
 import { ProductOrderModule } from './product-order/product-order.module';
 import { MoveModule } from './move/move.module';
-import { WholesaleSupplierModule } from './wholesale-supplier/wholesale-supplier.module';
 
 @Module({
   imports: [
@@ -112,7 +111,6 @@ import { WholesaleSupplierModule } from './wholesale-supplier/wholesale-supplier
     StorageModule,
     ProductOrderModule,
     MoveModule,
-    WholesaleSupplierModule,
   ],
   exports: [FileService, UtilService],
   controllers: [AppController],

@@ -24,17 +24,34 @@ export class ClientService {
     private readonly saleService: SaleService,
   ) {}
 
-  async create(createClientInput: CreateClientInput) {
-    const isCodeExist = await this.clientRepository.exists({
-      code: createClientInput.code,
-    });
+  private async beforeCreate(input: CreateClientInput | UpdateClientInput) {
+    if (input.code) {
+      const isCodeExist = await this.clientRepository.exists({
+        code: input.code,
+      });
 
-    if (isCodeExist) {
-      throw new BadRequestException(
-        `${createClientInput.code}는 이미 사용중인 코드 입니다.`,
-      );
+      if (isCodeExist) {
+        throw new BadRequestException(
+          `${input.code}는 이미 사용중인 코드 입니다.`,
+        );
+      }
     }
 
+    if (input.name) {
+      const isNameExist = await this.clientRepository.exists({
+        code: input.name,
+      });
+
+      if (isNameExist) {
+        throw new BadRequestException(
+          `${input.name}는 이미 사용중인 이름 입니다.`,
+        );
+      }
+    }
+  }
+
+  async create(createClientInput: CreateClientInput) {
+    await this.beforeCreate(createClientInput);
     const result = await this.clientRepository.create(createClientInput);
     return result;
   }
@@ -58,7 +75,8 @@ export class ClientService {
     return this.clientRepository.findOne({ _id });
   }
 
-  update({ _id, ...body }: UpdateClientInput) {
+  async update({ _id, ...body }: UpdateClientInput) {
+    await this.beforeCreate({ ...body, _id });
     return this.clientRepository.update({ _id }, body);
   }
 
@@ -122,6 +140,8 @@ export class ClientService {
     );
     this.utilService.checkDuplicatedField(documents, 'code');
     await this.clientRepository.docUniqueCheck(documents, 'code');
+    this.utilService.checkDuplicatedField(documents, 'name');
+    await this.clientRepository.docUniqueCheck(documents, 'name');
     await this.clientRepository.bulkWrite(documents);
   }
 

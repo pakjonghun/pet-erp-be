@@ -80,7 +80,11 @@ export class Client extends AbstractEntity implements ClientInterface {
   @Field(() => Float, { nullable: true })
   feeRate?: number;
 
-  @Prop({ type: String, required: [true, '거래처 이름을 입력하세요.'] })
+  @Prop({
+    type: String,
+    unique: true,
+    required: [true, '거래처 이름을 입력하세요.'],
+  })
   @Field(() => String)
   name: string;
 

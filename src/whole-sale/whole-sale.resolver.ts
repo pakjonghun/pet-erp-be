@@ -3,6 +3,7 @@ import { WholeSaleService } from './whole-sale.service';
 import { CreateWholeSaleInput } from './dto/create-whole-sale.input';
 import { UpdateWholeSaleInput } from './dto/update-whole-sale.input';
 import { Sale } from 'src/sale/entities/sale.entity';
+import { WholeSaleOutput } from './dto/whole-sales.output';
 
 @Resolver(() => Sale)
 export class WholeSaleResolver {
@@ -25,7 +26,7 @@ export class WholeSaleResolver {
     return this.wholeSaleService.findOne(_id);
   }
 
-  @Mutation(() => Sale)
+  @Mutation(() => WholeSaleOutput)
   updateWholeSale(
     @Args('updateWholeSaleInput') updateWholeSaleInput: UpdateWholeSaleInput,
   ) {

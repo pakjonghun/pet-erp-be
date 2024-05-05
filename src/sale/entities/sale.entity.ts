@@ -113,7 +113,7 @@ export class Sale extends AbstractEntity implements SaleInterface {
   wonCost?: number;
 
   @Prop({ default: 0 })
-  @Field(() => String, { nullable: true })
+  @Field(() => Int, { nullable: true })
   deliveryCost?: number;
 
   @Prop({ type: Boolean })
