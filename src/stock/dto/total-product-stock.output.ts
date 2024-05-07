@@ -4,6 +4,9 @@ import { Storage } from 'src/storage/entities/storage.entity';
 
 @ObjectType()
 export class TotalProductStockOutput {
+  @Field(() => String)
+  _id: string;
+
   @Field(() => Product)
   product: Product;
 
