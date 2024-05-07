@@ -1,3 +1,4 @@
+import { forwardRef } from '@nestjs/common';
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
@@ -19,11 +20,17 @@ interface MoveInterface {
 @Schema({ versionKey: false, timestamps: { createdAt: false } })
 @ObjectType()
 export class Move extends AbstractEntity implements MoveInterface {
-  @Prop({ type: mongoose.Schema.Types.ObjectId, name: Stock.name })
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    name: forwardRef(() => Stock.name),
+  })
   @Field(() => Stock)
   fromStock: Stock;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, name: Stock.name })
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    name: forwardRef(() => Stock.name),
+  })
   @Field(() => Stock)
   toStock: Stock;
 
