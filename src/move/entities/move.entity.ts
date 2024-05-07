@@ -22,14 +22,14 @@ interface MoveInterface {
 export class Move extends AbstractEntity implements MoveInterface {
   @Prop({
     type: mongoose.Schema.Types.ObjectId,
-    name: forwardRef(() => Stock.name),
+    name: Stock.name,
   })
   @Field(() => Stock)
   fromStock: Stock;
 
   @Prop({
     type: mongoose.Schema.Types.ObjectId,
-    name: forwardRef(() => Stock.name),
+    name: Stock.name,
   })
   @Field(() => Stock)
   toStock: Stock;

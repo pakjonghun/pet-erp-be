@@ -3,6 +3,7 @@ import { StockService } from './stock.service';
 import { Stock } from './entities/stock.entity';
 import { CreateStockInput } from './dto/create-stock.input';
 import { UpdateStockInput } from './dto/update-stock.input';
+import { TotalProductStockOutput } from './dto/total-product-stock.output';
 
 @Resolver(() => Stock)
 export class StockResolver {
@@ -13,7 +14,7 @@ export class StockResolver {
     return this.stockService.create(createStockInput);
   }
 
-  @Query(() => [Stock], { name: 'stock' })
+  @Query(() => [TotalProductStockOutput], { name: 'stock' })
   findAll() {
     return this.stockService.findAll();
   }
