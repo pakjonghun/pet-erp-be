@@ -6,14 +6,28 @@ import { Factory } from 'src/factory/entities/factory.entity';
 import { Product } from 'src/product/entities/product.entity';
 import { Storage } from 'src/storage/entities/storage.entity';
 
+interface OrderProductInterface {
+  count: number;
+  product: Product;
+}
+
 interface ProductOrderInterface {
   factory: Factory;
   storage: Storage;
-  product: Product;
+  products: OrderProductInterface[];
   count: number;
   payCost: number;
   notPayCost: number;
   totalPayCost: number;
+}
+
+@ObjectType()
+export class OrderProduct implements OrderProductInterface {
+  @Field(() => Int)
+  count: number;
+
+  @Field(() => Product)
+  product: Product;
 }
 
 @Schema({ timestamps: { createdAt: false }, versionKey: false })
@@ -31,8 +45,8 @@ export class ProductOrder
   storage: Storage;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Product.name })
-  @Field(() => Product)
-  product: Product;
+  @Field(() => [OrderProduct])
+  products: OrderProduct[];
 
   @Prop({ type: Number })
   @Field(() => Int)
