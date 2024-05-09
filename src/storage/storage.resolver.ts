@@ -3,6 +3,7 @@ import { StorageService } from './storage.service';
 import { Storage } from './entities/storage.entity';
 import { CreateStorageInput } from './dto/create-storage.input';
 import { UpdateStorageInput } from './dto/update-storage.input';
+import { StockStorageOutput } from './dto/stock-storage.output';
 
 @Resolver(() => Storage)
 export class StorageResolver {
@@ -38,5 +39,10 @@ export class StorageResolver {
   @Mutation(() => Storage)
   removeStorage(@Args('id', { type: () => Int }) id: number) {
     return this.storageService.remove(id);
+  }
+
+  @Query(() => [StockStorageOutput])
+  stockStorages() {
+    return this.storageService.findAll();
   }
 }
