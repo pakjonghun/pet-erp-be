@@ -15,7 +15,6 @@ interface ProductOrderInterface {
   factory: Factory;
   storage: Storage;
   products: OrderProductInterface[];
-  count: number;
   payCost: number;
   notPayCost: number;
   totalPayCost: number;
@@ -47,10 +46,6 @@ export class ProductOrder
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Product.name })
   @Field(() => [OrderProduct])
   products: OrderProduct[];
-
-  @Prop({ type: Number })
-  @Field(() => Int)
-  count: number;
 
   @Prop({ type: Number })
   @Field(() => Int)
