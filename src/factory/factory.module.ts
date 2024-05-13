@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { FactoryService } from './factory.service';
 import { FactoryResolver } from './factory.resolver';
 import { FactoryRepository } from './factory.repository';
@@ -8,9 +8,11 @@ import {
   ProductOrder,
   ProductOrderSchema,
 } from 'src/product-order/entities/product-order.entity';
+import { AppModule } from 'src/app.module';
 
 @Module({
   imports: [
+    forwardRef(() => AppModule),
     DatabaseModule.forFeature([
       {
         name: Factory.name,
@@ -23,5 +25,6 @@ import {
     ]),
   ],
   providers: [FactoryResolver, FactoryService, FactoryRepository],
+  exports: [FactoryService],
 })
 export class FactoryModule {}

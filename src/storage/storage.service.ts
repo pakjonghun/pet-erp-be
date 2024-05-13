@@ -3,11 +3,17 @@ import { CreateStorageInput } from './dto/create-storage.input';
 import { UpdateStorageInput } from './dto/update-storage.input';
 import { FilterQuery } from 'mongoose';
 import { StorageRepository } from './storage.repository';
-import { Storage } from './entities/storage.entity';
+import { Storage, StorageInterface } from './entities/storage.entity';
+import { ColumnOption } from 'src/client/types';
+import { UtilService } from 'src/common/services/util.service';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class StorageService {
-  constructor(private readonly storageRepository: StorageRepository) {}
+  constructor(
+    private readonly storageRepository: StorageRepository,
+    private readonly utilService: UtilService,
+  ) {}
 
   async create(createStorageInput: CreateStorageInput) {
     await this.beforeCreateOrUpdate(createStorageInput.name);
@@ -37,5 +43,56 @@ export class StorageService {
     if (isNameExist) {
       throw new ConflictException(`${name} 은 이미 사용중인 창고 이름입니다.`);
     }
+  }
+
+  async upload(worksheet: ExcelJS.Worksheet) {
+    const colToField: Record<number, ColumnOption<StorageInterface>> = {
+      1: {
+        fieldName: 'name',
+      },
+      2: {
+        fieldName: 'phoneNumber',
+      },
+      3: {
+        fieldName: 'address',
+      },
+      4: {
+        fieldName: 'note',
+      },
+    };
+
+    const objectList = this.utilService.excelToObject(worksheet, colToField, 1);
+
+    const documents =
+      await this.storageRepository.objectToDocuments(objectList);
+    this.utilService.checkDuplicatedField(documents, 'name');
+    await this.storageRepository.docUniqueCheck(documents, 'name');
+    await this.storageRepository.bulkWrite(documents);
+  }
+
+  async downloadExcel() {
+    const allData = this.storageRepository.model
+      .find()
+      .populate({
+        path: 'category',
+        select: ['name'],
+      })
+      .select('-_id -createdAt -updatedAt')
+      .cursor();
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Data');
+
+    worksheet.columns = [
+      { header: '이름', key: 'name', width: 70 },
+      { header: '연락처', key: 'phoneNumber', width: 40 },
+      { header: '주소', key: 'address', width: 40 },
+      { header: '비고', key: 'note', width: 40 },
+    ];
+
+    await allData.close();
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer;
   }
 }

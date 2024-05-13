@@ -7,6 +7,8 @@ import { ProductCategoryService } from 'src/product-category/product-category.se
 import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-category.service';
 import * as fs from 'fs';
 import * as ExcelJS from 'exceljs';
+import { FactoryService } from 'src/factory/factory.service';
+import { StorageService } from 'src/storage/storage.service';
 
 @Injectable()
 export class FileService {
@@ -16,6 +18,8 @@ export class FileService {
     private readonly categoryService: ProductCategoryService,
     private readonly productService: ProductService,
     private readonly clientService: ClientService,
+    private readonly factoryService: FactoryService,
+    private readonly storageService: StorageService,
   ) {}
 
   async upload(file: Express.Multer.File, service: string) {
@@ -43,6 +47,14 @@ export class FileService {
         await this.subsidiaryService.upload(fistSheet);
         break;
 
+      case 'storage':
+        await this.storageService.upload(fistSheet);
+        break;
+
+      case 'factory':
+        await this.factoryService.upload(fistSheet);
+        break;
+
       default:
         throw new BadRequestException(
           `${service}는 올바른 서비스 이름이 아닙니다.`,
@@ -68,6 +80,12 @@ export class FileService {
 
       case 'subsidiary':
         return this.subsidiaryService.downloadExcel();
+
+      case 'storage':
+        return this.storageService.downloadExcel();
+
+      case 'factory':
+        return this.factoryService.downloadExcel();
 
       default:
         throw new BadRequestException(

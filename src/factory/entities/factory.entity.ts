@@ -1,5 +1,5 @@
 import { ObjectType, Field } from '@nestjs/graphql';
-import { Prop, SchemaFactory } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 
 export interface FactoryInterface {
@@ -9,6 +9,7 @@ export interface FactoryInterface {
   note: string;
 }
 
+@Schema({ versionKey: false, timestamps: { createdAt: false } })
 @ObjectType()
 export class Factory extends AbstractEntity implements FactoryInterface {
   @Prop({ type: String, unique: true })

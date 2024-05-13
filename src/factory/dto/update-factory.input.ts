@@ -1,6 +1,6 @@
 import { IsObjectId } from 'src/common/validations/id.validation';
 import { CreateFactoryInput } from './create-factory.input';
-import { InputType, Field, Int, PartialType } from '@nestjs/graphql';
+import { InputType, Field, PartialType } from '@nestjs/graphql';
 
 @InputType()
 export class UpdateFactoryInput extends PartialType(CreateFactoryInput) {

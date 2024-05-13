@@ -1,8 +1,10 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { FactoryService } from './factory.service';
 import { Factory } from './entities/factory.entity';
 import { CreateFactoryInput } from './dto/create-factory.input';
 import { UpdateFactoryInput } from './dto/update-factory.input';
+import { FactoriesInput } from './dto/factories.input';
+import { FactoriesOutput } from './dto/factories.output';
 
 @Resolver(() => Factory)
 export class FactoryResolver {
@@ -15,9 +17,10 @@ export class FactoryResolver {
     return this.factoryService.create(createFactoryInput);
   }
 
-  @Query(() => [Factory], { name: 'factories' })
-  factories(@Args('factoryName', { type: () => String }) factoryName: string) {
-    return this.factoryService.findAll(factoryName);
+  @Query(() => FactoriesOutput, { name: 'factories' })
+  async factories(@Args('factoriesInput') factoriesInput: FactoriesInput) {
+    const result = await this.factoryService.findMany(factoriesInput);
+    return result;
   }
 
   @Mutation(() => Factory)
@@ -28,7 +31,7 @@ export class FactoryResolver {
   }
 
   @Mutation(() => Factory)
-  removeFactory(@Args('id', { type: () => String }) id: string) {
-    return this.factoryService.remove(id);
+  removeFactory(@Args('_id', { type: () => String }) _id: string) {
+    return this.factoryService.remove(_id);
   }
 }

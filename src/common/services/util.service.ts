@@ -9,7 +9,9 @@ dayjs.extend(isoweek);
 @Injectable()
 export class UtilService {
   checkDuplicatedField(documents: HydratedDocument<any>, fieldName: string) {
-    const fieldList = documents.map((item) => item[fieldName]);
+    const fieldList = documents.map((item) => {
+      return item[fieldName];
+    });
     const isFieldDuplicated = fieldList.length !== new Set(fieldList).size;
     if (isFieldDuplicated)
       throw new BadRequestException(
@@ -45,7 +47,6 @@ export class UtilService {
               cell.value,
             ) as ExcelJS.CellValue;
           }
-
           object[fieldName] = value;
         }
       });
