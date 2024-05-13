@@ -29,7 +29,6 @@ import { StockModule } from './stock/stock.module';
 import { FactoryModule } from './factory/factory.module';
 import { StorageModule } from './storage/storage.module';
 import { ProductOrderModule } from './product-order/product-order.module';
-import { MoveModule } from './move/move.module';
 
 @Module({
   imports: [
@@ -110,7 +109,6 @@ import { MoveModule } from './move/move.module';
     FactoryModule,
     StorageModule,
     ProductOrderModule,
-    MoveModule,
   ],
   exports: [FileService, UtilService],
   controllers: [AppController],
