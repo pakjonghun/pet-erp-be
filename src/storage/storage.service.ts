@@ -2,11 +2,13 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { CreateStorageInput } from './dto/create-storage.input';
 import { UpdateStorageInput } from './dto/update-storage.input';
 import { FilterQuery } from 'mongoose';
+import { UtilService } from 'src/common/services/util.service';
+import { ColumnOption } from 'src/client/types';
+import { StoragesInput } from './dto/storages.input';
+import { OrderEnum } from 'src/common/dtos/find-many.input';
+import * as ExcelJS from 'exceljs';
 import { StorageRepository } from './storage.repository';
 import { Storage, StorageInterface } from './entities/storage.entity';
-import { ColumnOption } from 'src/client/types';
-import { UtilService } from 'src/common/services/util.service';
-import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class StorageService {
@@ -15,34 +17,55 @@ export class StorageService {
     private readonly utilService: UtilService,
   ) {}
 
-  async create(createStorageInput: CreateStorageInput) {
-    await this.beforeCreateOrUpdate(createStorageInput.name);
-    return this.storageRepository.create(createStorageInput);
+  async create(createFactoryInput: CreateStorageInput) {
+    await this.beforeCreate(createFactoryInput.name);
+    return this.storageRepository.create(createFactoryInput);
   }
 
-  findAll(filterQuery: FilterQuery<Storage>) {
-    return this.findAll(filterQuery);
+  findMany({ keyword, skip, limit }: StoragesInput) {
+    const filterQuery: FilterQuery<Storage> = {
+      name: { $regex: keyword, $options: 'i' },
+    };
+    return this.storageRepository.findMany({
+      filterQuery,
+      skip,
+      limit,
+      order: OrderEnum.DESC,
+    });
   }
 
-  async update({ _id, ...updateStorageInput }: UpdateStorageInput) {
-    if (updateStorageInput.name) {
-      await this.beforeCreateOrUpdate(updateStorageInput.name);
+  async update({ _id, ...body }: UpdateStorageInput) {
+    if (body.name) {
+      await this.beforeUpdate({ _id, name: body.name });
     }
 
-    return this.storageRepository.update({ _id }, updateStorageInput);
+    return this.storageRepository.update({ _id }, body);
   }
 
-  remove(_id: string) {
-    //fix: 조건을 보고 지워야함 무조건 지우는것 안됨! 재고가 있으면.. 지우면 안된다 이런식으로 재고 작업하면서 추가 작업 필요
-    return this.storageRepository.remove({ _id });
+  async remove(_id: string) {
+    //fixme:stock 확인 필요
+
+    const result = await this.storageRepository.remove({ _id });
+    return result;
   }
 
-  private async beforeCreateOrUpdate(name: string) {
-    const isNameExist = await this.storageRepository.exists({ name });
+  private async beforeCreate(name: string) {
+    const isNameExist = await this.storageRepository.exists({
+      name,
+    });
+    if (isNameExist) this.throwDuplicated(name);
+  }
 
-    if (isNameExist) {
-      throw new ConflictException(`${name} 은 이미 사용중인 창고 이름입니다.`);
-    }
+  private async beforeUpdate({ _id, name }: { _id: string; name: string }) {
+    const isNameExist = await this.storageRepository.exists({
+      _id: { $ne: _id },
+      name,
+    });
+    if (isNameExist) this.throwDuplicated(name);
+  }
+
+  private throwDuplicated(name: string) {
+    throw new ConflictException(`${name}은 이미 사용중인 공장 이름 입니다.`);
   }
 
   async upload(worksheet: ExcelJS.Worksheet) {
@@ -62,7 +85,6 @@ export class StorageService {
     };
 
     const objectList = this.utilService.excelToObject(worksheet, colToField, 1);
-
     const documents =
       await this.storageRepository.objectToDocuments(objectList);
     this.utilService.checkDuplicatedField(documents, 'name');
@@ -73,11 +95,7 @@ export class StorageService {
   async downloadExcel() {
     const allData = this.storageRepository.model
       .find()
-      .populate({
-        path: 'category',
-        select: ['name'],
-      })
-      .select('-_id -createdAt -updatedAt')
+      .select('-_id -createdAt')
       .cursor();
 
     const workbook = new ExcelJS.Workbook();
@@ -89,6 +107,10 @@ export class StorageService {
       { header: '주소', key: 'address', width: 40 },
       { header: '비고', key: 'note', width: 40 },
     ];
+
+    for await (const doc of allData) {
+      worksheet.addRow(doc.toObject());
+    }
 
     await allData.close();
 

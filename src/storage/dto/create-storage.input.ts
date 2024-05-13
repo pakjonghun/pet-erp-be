@@ -1,6 +1,6 @@
-import { InputType, Int, Field } from '@nestjs/graphql';
-import { StorageInterface } from '../entities/storage.entity';
 import { IsNotEmpty, IsString } from 'class-validator';
+import { InputType, Field } from '@nestjs/graphql';
+import { StorageInterface } from '../entities/storage.entity';
 
 @InputType()
 export class CreateStorageInput implements StorageInterface {

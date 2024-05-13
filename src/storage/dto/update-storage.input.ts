@@ -1,6 +1,6 @@
 import { IsObjectId } from 'src/common/validations/id.validation';
 import { CreateStorageInput } from './create-storage.input';
-import { InputType, Field, Int, PartialType } from '@nestjs/graphql';
+import { InputType, Field, PartialType } from '@nestjs/graphql';
 
 @InputType()
 export class UpdateStorageInput extends PartialType(CreateStorageInput) {
