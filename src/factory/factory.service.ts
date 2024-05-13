@@ -1,15 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { CreateFactoryInput } from './dto/create-factory.input';
 import { UpdateFactoryInput } from './dto/update-factory.input';
+import { FactoryRepository } from './factory.repository';
 
 @Injectable()
 export class FactoryService {
+  constructor(private readonly factoryRepository: FactoryRepository) {}
+
   create(createFactoryInput: CreateFactoryInput) {
     return 'This action adds a new factory';
   }
 
   findAll() {
-    return `This action returns all factory`;
+    return this.factoryRepository.findAll({});
   }
 
   findOne(id: number) {

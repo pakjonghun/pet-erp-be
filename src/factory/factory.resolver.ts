@@ -9,11 +9,13 @@ export class FactoryResolver {
   constructor(private readonly factoryService: FactoryService) {}
 
   @Mutation(() => Factory)
-  createFactory(@Args('createFactoryInput') createFactoryInput: CreateFactoryInput) {
+  createFactory(
+    @Args('createFactoryInput') createFactoryInput: CreateFactoryInput,
+  ) {
     return this.factoryService.create(createFactoryInput);
   }
 
-  @Query(() => [Factory], { name: 'factory' })
+  @Query(() => [Factory], { name: 'factories' })
   findAll() {
     return this.factoryService.findAll();
   }
@@ -24,8 +26,13 @@ export class FactoryResolver {
   }
 
   @Mutation(() => Factory)
-  updateFactory(@Args('updateFactoryInput') updateFactoryInput: UpdateFactoryInput) {
-    return this.factoryService.update(updateFactoryInput.id, updateFactoryInput);
+  updateFactory(
+    @Args('updateFactoryInput') updateFactoryInput: UpdateFactoryInput,
+  ) {
+    return this.factoryService.update(
+      updateFactoryInput.id,
+      updateFactoryInput,
+    );
   }
 
   @Mutation(() => Factory)
