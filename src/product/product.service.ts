@@ -12,7 +12,7 @@ import { ProductRepository } from './product.repository';
 import { Product, ProductInterface } from './entities/product.entity';
 import { ColumnOption } from 'src/client/types';
 import { SaleService } from 'src/sale/sale.service';
-import { FilterQuery } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { ProductSaleInput } from './dtos/product-sale.input';
 import { ProductsInput } from './dtos/products-input';
@@ -20,6 +20,8 @@ import { ProductCategoryService } from 'src/product-category/product-category.se
 import { UtilService } from 'src/common/services/util.service';
 import { ProductSubsidiaryRepository } from './subsidiary.repository';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
+import { InjectModel } from '@nestjs/mongoose';
+import { ProductOrder } from 'src/product-order/entities/product-order.entity';
 
 @Injectable()
 export class ProductService {
@@ -30,6 +32,8 @@ export class ProductService {
     private readonly utilService: UtilService,
     private readonly productRepository: ProductRepository,
     private readonly productSubsidiaryRepository: ProductSubsidiaryRepository,
+    @InjectModel(ProductOrder.name)
+    private readonly productOrderModel: Model<ProductOrder>,
   ) {}
 
   async totalSaleBy(range: FindDateInput, groupId?: string) {
@@ -91,7 +95,11 @@ export class ProductService {
       productList: { $in: [_id] },
     });
 
-    if (isUsedProduct) {
+    const isOrderedProduct = await this.productOrderModel.exists({
+      products: { $elemMatch: { _id } },
+    });
+
+    if (isUsedProduct || isOrderedProduct) {
       throw new BadRequestException(
         `${_id} 제품은 사용중인 제품입니다 삭제 할 수 없습니다.`,
       );

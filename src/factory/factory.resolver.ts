@@ -16,27 +16,19 @@ export class FactoryResolver {
   }
 
   @Query(() => [Factory], { name: 'factories' })
-  findAll() {
-    return this.factoryService.findAll();
-  }
-
-  @Query(() => Factory, { name: 'factory' })
-  findOne(@Args('id', { type: () => Int }) id: number) {
-    return this.factoryService.findOne(id);
+  factories(@Args('factoryName', { type: () => String }) factoryName: string) {
+    return this.factoryService.findAll(factoryName);
   }
 
   @Mutation(() => Factory)
   updateFactory(
     @Args('updateFactoryInput') updateFactoryInput: UpdateFactoryInput,
   ) {
-    return this.factoryService.update(
-      updateFactoryInput.id,
-      updateFactoryInput,
-    );
+    return this.factoryService.update(updateFactoryInput);
   }
 
   @Mutation(() => Factory)
-  removeFactory(@Args('id', { type: () => Int }) id: number) {
+  removeFactory(@Args('id', { type: () => String }) id: string) {
     return this.factoryService.remove(id);
   }
 }

@@ -1,14 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { CreateStorageInput } from './dto/create-storage.input';
 import { UpdateStorageInput } from './dto/update-storage.input';
+import { FilterQuery } from 'mongoose';
+import { StorageRepository } from './storage.repository';
 
 @Injectable()
 export class StorageService {
+  constructor(private readonly storageRepository: StorageRepository) {}
+
   create(createStorageInput: CreateStorageInput) {
     return 'This action adds a new storage';
   }
 
-  findAll() {
+  findAll(filterQuery: FilterQuery<Storage>) {
     return `This action returns all storage`;
   }
 

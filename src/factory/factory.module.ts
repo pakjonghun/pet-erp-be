@@ -4,6 +4,10 @@ import { FactoryResolver } from './factory.resolver';
 import { FactoryRepository } from './factory.repository';
 import { DatabaseModule } from 'src/common/database/database.module';
 import { Factory, FactorySchema } from './entities/factory.entity';
+import {
+  ProductOrder,
+  ProductOrderSchema,
+} from 'src/product-order/entities/product-order.entity';
 
 @Module({
   imports: [
@@ -11,6 +15,10 @@ import { Factory, FactorySchema } from './entities/factory.entity';
       {
         name: Factory.name,
         schema: FactorySchema,
+      },
+      {
+        name: ProductOrder.name,
+        schema: ProductOrderSchema,
       },
     ]),
   ],

@@ -6,6 +6,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Factory } from 'src/factory/entities/factory.entity';
 import { FilterQuery, Model } from 'mongoose';
 import { Product } from 'src/product/entities/product.entity';
+import { OrdersInput } from './dto/orders.input';
+import { ProductOrder } from './entities/product-order.entity';
 
 @Injectable()
 export class ProductOrderService {
@@ -46,20 +48,31 @@ export class ProductOrderService {
     });
   }
 
-  findAll() {
-    return `This action returns all order`;
+  async findMany({ keyword, ...query }: OrdersInput) {
+    const newQuery = {
+      filterQuery: {
+        $or: [
+          { factory: { $exists: keyword, $options: 'i' } },
+          {
+            products: {
+              $elemMatch: {
+                name: { $exists: keyword, $options: 'i' },
+              },
+            },
+          },
+        ],
+      },
+      ...query,
+    };
+    return this.productOrderRepository.findMany(newQuery);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} order`;
+  update({ _id, ...updateOrderInput }: UpdateOrderInput) {
+    return this.productOrderRepository.update({ _id }, updateOrderInput);
   }
 
-  update(id: number, updateOrderInput: UpdateOrderInput) {
-    return `This action updates a #${id} order`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} order`;
+  remove(_id: string) {
+    return this.productOrderRepository.remove({ _id });
   }
 
   private notFoundException(query: FilterQuery<any>) {

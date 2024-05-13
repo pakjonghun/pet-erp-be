@@ -4,14 +4,13 @@ import mongoose from 'mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 import { Factory } from 'src/factory/entities/factory.entity';
 import { Product } from 'src/product/entities/product.entity';
-import { Storage } from 'src/storage/entities/storage.entity';
 
-interface OrderProductInterface {
+export interface OrderProductInterface {
   count: number;
   product: Product;
 }
 
-interface ProductOrderInterface {
+export interface ProductOrderInterface {
   factory: Factory;
   products: OrderProductInterface[];
   payCost: number;

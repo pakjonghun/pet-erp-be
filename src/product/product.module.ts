@@ -12,6 +12,10 @@ import {
   SubsidiarySchema,
 } from 'src/subsidiary/entities/subsidiary.entity';
 import { ProductSubsidiaryRepository } from './subsidiary.repository';
+import {
+  ProductOrder,
+  ProductOrderSchema,
+} from 'src/product-order/entities/product-order.entity';
 
 @Module({
   exports: [ProductService],
@@ -19,6 +23,7 @@ import { ProductSubsidiaryRepository } from './subsidiary.repository';
     DatabaseModule.forFeature([
       { name: Product.name, schema: productSchema },
       { name: Subsidiary.name, schema: SubsidiarySchema },
+      { name: ProductOrder.name, schema: ProductOrderSchema },
     ]),
     SaleModule,
     forwardRef(() => AppModule),

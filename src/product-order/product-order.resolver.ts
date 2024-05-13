@@ -3,6 +3,7 @@ import { ProductOrderService } from './product-order.service';
 import { ProductOrder } from './entities/product-order.entity';
 import { CreateOrderInput } from './dto/create-order.input';
 import { UpdateOrderInput } from './dto/update-order.input';
+import { OrdersInput } from './dto/orders.input';
 
 @Resolver(() => ProductOrder)
 export class ProductOrderResolver {
@@ -14,22 +15,17 @@ export class ProductOrderResolver {
   }
 
   @Query(() => [ProductOrder])
-  findAll() {
-    return this.orderService.findAll();
-  }
-
-  @Query(() => ProductOrder)
-  findOne(@Args('id', { type: () => Int }) id: number) {
-    return this.orderService.findOne(id);
+  findAll(@Args('ordersInput') ordersInput: OrdersInput) {
+    return this.orderService.findMany(ordersInput);
   }
 
   @Mutation(() => ProductOrder)
   updateOrder(@Args('updateOrderInput') updateOrderInput: UpdateOrderInput) {
-    return this.orderService.update(updateOrderInput.id, updateOrderInput);
+    return this.orderService.update(updateOrderInput);
   }
 
   @Mutation(() => ProductOrder)
-  removeOrder(@Args('id', { type: () => Int }) id: number) {
+  removeOrder(@Args('id', { type: () => String }) id: string) {
     return this.orderService.remove(id);
   }
 }

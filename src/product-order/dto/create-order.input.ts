@@ -1,8 +1,14 @@
 import { InputType, Int, Field } from '@nestjs/graphql';
 import { IsArray, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+import {
+  OrderProductInterface,
+  ProductOrderInterface,
+} from '../entities/product-order.entity';
 
 @InputType()
-export class CreateOrderProductInput {
+export class CreateOrderProductInput
+  implements Omit<OrderProductInterface, 'product'>
+{
   @Field(() => Int)
   @IsNumber()
   @Min(1, { message: '제품 숫자는 1 이상을 입력하세요.' })
@@ -15,7 +21,9 @@ export class CreateOrderProductInput {
 }
 
 @InputType()
-export class CreateOrderInput {
+export class CreateOrderInput
+  implements Omit<ProductOrderInterface, 'factory' | 'products'>
+{
   @IsString()
   @IsNotEmpty({ message: '제조 공장 아이디를 입력하세요.' })
   @Field(() => String)

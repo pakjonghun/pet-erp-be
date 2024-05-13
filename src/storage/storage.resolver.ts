@@ -16,9 +16,9 @@ export class StorageResolver {
     return this.storageService.create(createStorageInput);
   }
 
-  @Query(() => [Storage], { name: 'storage' })
-  findAll() {
-    return this.storageService.findAll();
+  @Query(() => [Storage], { name: 'storages' })
+  storages(@Args('storageName') storageName: String) {
+    return this.storageService.findAll(storageName);
   }
 
   @Query(() => Storage, { name: 'storage' })
@@ -43,6 +43,6 @@ export class StorageResolver {
 
   @Query(() => [StockStorageOutput])
   stockStorages() {
-    return this.storageService.findAll();
+    return this.storageService.findAll({});
   }
 }
