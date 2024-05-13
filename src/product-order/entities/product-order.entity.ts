@@ -1,5 +1,5 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 import { Factory } from 'src/factory/entities/factory.entity';
@@ -13,7 +13,6 @@ interface OrderProductInterface {
 
 interface ProductOrderInterface {
   factory: Factory;
-  storage: Storage;
   products: OrderProductInterface[];
   payCost: number;
   notPayCost: number;
@@ -36,12 +35,8 @@ export class ProductOrder
   implements ProductOrderInterface
 {
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Factory.name })
-  @Field(() => Factory)
+  @Field(() => Factory, { nullable: true })
   factory: Factory;
-
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Storage.name })
-  @Field(() => Storage)
-  storage: Storage;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Product.name })
   @Field(() => [OrderProduct])
@@ -59,3 +54,5 @@ export class ProductOrder
   @Field(() => Int)
   totalPayCost: number;
 }
+
+export const ProductOrderSchema = SchemaFactory.createForClass(ProductOrder);
