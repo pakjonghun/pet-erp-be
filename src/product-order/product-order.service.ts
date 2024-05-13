@@ -7,7 +7,6 @@ import { Factory } from 'src/factory/entities/factory.entity';
 import { FilterQuery, Model } from 'mongoose';
 import { Product } from 'src/product/entities/product.entity';
 import { OrdersInput } from './dto/orders.input';
-import { ProductOrder } from './entities/product-order.entity';
 
 @Injectable()
 export class ProductOrderService {
@@ -18,21 +17,21 @@ export class ProductOrderService {
   ) {}
 
   async create({ factory, products, ...body }: CreateOrderInput) {
-    const factoryDoc = await this.factoryModel.findById(factory);
-    if (!factoryDoc) this.notFoundException({ _id: factory });
+    const factoryDoc = await this.factoryModel.findOne({ name: factory });
+    if (!factoryDoc) this.notFoundException({ name: factory });
 
-    const productIds = products.map((item) => item.product);
+    const productNames = products.map((item) => item.product);
     const productList = await this.productModel.find({
-      _id: { $in: productIds },
+      name: { $in: productNames },
     });
 
-    if (productList.length !== productIds.length) {
-      this.notFoundException({ _id: { $in: productIds } });
+    if (productList.length !== productNames.length) {
+      this.notFoundException({ name: { $in: productNames } });
     }
 
     const newProducts = productList.map((product) => {
       const targetProduct = products.find(
-        (item) => item.product === (product._id as unknown as String),
+        (item) => item.product === (product.name as unknown as string),
       );
 
       return {

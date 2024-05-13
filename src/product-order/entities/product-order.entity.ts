@@ -19,11 +19,14 @@ export interface ProductOrderInterface {
 }
 
 @ObjectType()
+@Schema({ versionKey: false })
 export class OrderProduct implements OrderProductInterface {
+  @Prop({ type: Number })
   @Field(() => Int)
   count: number;
 
   @Field(() => Product)
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Product.name })
   product: Product;
 }
 
@@ -34,10 +37,10 @@ export class ProductOrder
   implements ProductOrderInterface
 {
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Factory.name })
-  @Field(() => Factory, { nullable: true })
+  @Field(() => Factory)
   factory: Factory;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Product.name })
+  @Prop({ type: [OrderProduct], ref: OrderProduct.name })
   @Field(() => [OrderProduct])
   products: OrderProduct[];
 
