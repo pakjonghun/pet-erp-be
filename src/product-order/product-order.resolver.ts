@@ -15,7 +15,7 @@ export class ProductOrderResolver {
   }
 
   @Query(() => [ProductOrder])
-  findAll(@Args('ordersInput') ordersInput: OrdersInput) {
+  orders(@Args('ordersInput') ordersInput: OrdersInput) {
     return this.orderService.findMany(ordersInput);
   }
 
@@ -25,7 +25,7 @@ export class ProductOrderResolver {
   }
 
   @Mutation(() => ProductOrder)
-  removeOrder(@Args('id', { type: () => String }) id: string) {
-    return this.orderService.remove(id);
+  removeOrder(@Args('_id', { type: () => String }) _id: string) {
+    return this.orderService.remove(_id);
   }
 }

@@ -2,7 +2,7 @@ import { ObjectType, Field } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 
-interface StorageInterface {
+export interface StorageInterface {
   name: string;
   phoneNumber: string;
   address: string;
