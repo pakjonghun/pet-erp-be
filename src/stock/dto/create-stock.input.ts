@@ -1,7 +1,41 @@
 import { InputType, Int, Field } from '@nestjs/graphql';
+import {
+  ArrayNotEmpty,
+  IsBoolean,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Min,
+} from 'class-validator';
+import { StockInterface } from '../entities/stock.entity';
+
+@InputType()
+export class CreateSingleStockInput
+  implements Omit<StockInterface, 'product' | 'storage'>
+{
+  @Field(() => String)
+  @IsString()
+  @IsNotEmpty({ message: '제품아이디를 입력하세요.' })
+  productId: string;
+
+  @Field(() => String)
+  @IsString()
+  @IsNotEmpty({ message: '제품아이디를 입력하세요.' })
+  storageId: string;
+
+  @Field(() => Int)
+  @IsNumber()
+  @Min(0, { message: '재고는 0 이상의 숫자를 입력하세요.' })
+  count: number;
+
+  @IsBoolean()
+  @IsNotEmpty({ message: '재고가 부자재 인지 여부를 입력하세요.' })
+  isSubsidiary: boolean;
+}
 
 @InputType()
 export class CreateStockInput {
-  @Field(() => Int, { description: 'Example field (placeholder)' })
-  exampleField: number;
+  @ArrayNotEmpty({ message: '1개 이상의 창고와 제품을 입력하세요.' })
+  @Field(() => [CreateSingleStockInput], { nullable: false })
+  stocks: CreateSingleStockInput[];
 }

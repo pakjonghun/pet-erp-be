@@ -8,11 +8,20 @@ import { TotalProductStockOutput } from './dto/total-product-stock.output';
 @Resolver(() => Stock)
 export class StockResolver {
   constructor(private readonly stockService: StockService) {}
-
-  @Mutation(() => Stock)
-  createStock(@Args('createStockInput') createStockInput: CreateStockInput) {
-    return this.stockService.create(createStockInput);
+  @Mutation(() => [Stock])
+  addStock(@Args('addStocksInput') addStocksInput: CreateStockInput) {
+    return this.stockService.add(addStocksInput);
   }
+
+  @Mutation(() => [Stock])
+  outStock(@Args('outStocksInput') addStocksInput: CreateStockInput) {
+    return this.stockService.out(addStocksInput);
+  }
+
+  // @Mutation(() => Stock)
+  // createStock(@Args('createStockInput') createStockInput: CreateStockInput) {
+  //   return this.stockService.create(createStockInput);
+  // }
 
   @Query(() => [TotalProductStockOutput], { name: 'stock' })
   findAll() {
@@ -20,8 +29,8 @@ export class StockResolver {
   }
 
   @Query(() => Stock, { name: 'stock' })
-  findOne(@Args('id', { type: () => Int }) id: number) {
-    return this.stockService.findOne(id);
+  findOne(@Args('_id', { type: () => String }) _id: string) {
+    return this.stockService.findOne({});
   }
 
   @Mutation(() => Stock)

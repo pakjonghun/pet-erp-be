@@ -1,13 +1,14 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
-import { Prop, Schema } from '@nestjs/mongoose';
-import mongoose from 'mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import mongoose, { HydratedDocument } from 'mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 import { Product } from 'src/product/entities/product.entity';
 import { Storage } from 'src/storage/entities/storage.entity';
 
-interface StockInterface {
+export interface StockInterface {
   product: Product;
   storage: Storage;
+  count: number;
   isSubsidiary: boolean;
 }
 
@@ -30,3 +31,6 @@ export class Stock extends AbstractEntity implements StockInterface {
   @Field(() => Boolean)
   isSubsidiary: boolean;
 }
+
+export const StockSchema = SchemaFactory.createForClass(Stock);
+export type StockDocument = HydratedDocument<Stock>;
