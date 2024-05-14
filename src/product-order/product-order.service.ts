@@ -7,6 +7,7 @@ import { Factory } from 'src/factory/entities/factory.entity';
 import { FilterQuery, Model } from 'mongoose';
 import { Product } from 'src/product/entities/product.entity';
 import { OrdersInput } from './dto/orders.input';
+import { ProductOrder } from './entities/product-order.entity';
 
 @Injectable()
 export class ProductOrderService {
@@ -48,28 +49,20 @@ export class ProductOrderService {
   }
 
   async findMany({ keyword, ...query }: OrdersInput) {
-    const newQuery = {
-      filterQuery: {
-        $or: [
-          { factory: { $exists: keyword, $options: 'i' } },
-          {
-            products: {
-              $elemMatch: {
-                name: { $exists: keyword, $options: 'i' },
-              },
-            },
-          },
-        ],
-      },
-      ...query,
+    const newQuery: FilterQuery<ProductOrder> = {
+      name: { $regex: keyword, $options: 'i' },
     };
-    return this.productOrderRepository.findMany(newQuery);
+    const result = await this.productOrderRepository.findMany({
+      filterQuery: newQuery,
+      ...query,
+    });
+    return result;
   }
 
   update({ _id, ...updateOrderInput }: UpdateOrderInput) {
     return this.productOrderRepository.update({ _id }, updateOrderInput);
   }
-
+  //
   remove(_id: string) {
     return this.productOrderRepository.remove({ _id });
   }

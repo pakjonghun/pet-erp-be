@@ -16,6 +16,7 @@ export interface ProductOrderInterface {
   payCost: number;
   notPayCost: number;
   totalPayCost: number;
+  isDone: boolean;
 }
 
 @ObjectType()
@@ -40,7 +41,7 @@ export class ProductOrder
   @Field(() => Factory)
   factory: Factory;
 
-  @Prop({ type: [OrderProduct], ref: OrderProduct.name })
+  @Prop({ type: [OrderProduct] })
   @Field(() => [OrderProduct])
   products: OrderProduct[];
 
@@ -55,6 +56,10 @@ export class ProductOrder
   @Prop({ type: Number })
   @Field(() => Int)
   totalPayCost: number;
+
+  @Prop({ type: Boolean, default: false })
+  @Field(() => Boolean)
+  isDone: boolean;
 }
 
 export const ProductOrderSchema = SchemaFactory.createForClass(ProductOrder);

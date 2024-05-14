@@ -1,5 +1,4 @@
-import { Field, InputType } from '@nestjs/graphql';
-import { IsOptional, IsString } from 'class-validator';
+import { InputType } from '@nestjs/graphql';
 import { FindManyDTO } from 'src/common/dtos/find-many.input';
 
 @InputType()

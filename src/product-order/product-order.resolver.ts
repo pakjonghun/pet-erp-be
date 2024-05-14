@@ -4,6 +4,7 @@ import { ProductOrder } from './entities/product-order.entity';
 import { CreateOrderInput } from './dto/create-order.input';
 import { UpdateOrderInput } from './dto/update-order.input';
 import { OrdersInput } from './dto/orders.input';
+import { ProductOrderOutput } from './dto/orders.output';
 
 @Resolver(() => ProductOrder)
 export class ProductOrderResolver {
@@ -14,7 +15,7 @@ export class ProductOrderResolver {
     return this.orderService.create(createOrderInput);
   }
 
-  @Query(() => [ProductOrder])
+  @Query(() => ProductOrderOutput)
   orders(@Args('ordersInput') ordersInput: OrdersInput) {
     return this.orderService.findMany(ordersInput);
   }

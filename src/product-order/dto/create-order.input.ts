@@ -1,5 +1,12 @@
 import { InputType, Int, Field } from '@nestjs/graphql';
-import { IsArray, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Min,
+} from 'class-validator';
 import {
   OrderProductInterface,
   ProductOrderInterface,
@@ -47,4 +54,8 @@ export class CreateOrderInput
   @IsNumber()
   @Min(0, { message: '총 금액은 0 이상을 입력하세요.' })
   totalPayCost: number;
+
+  @Field(() => Boolean)
+  @IsBoolean()
+  isDone: boolean;
 }
