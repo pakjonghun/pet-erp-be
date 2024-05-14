@@ -41,12 +41,12 @@ export class ProductOrderService {
         count: targetProduct.count,
       };
     });
-
-    return this.productOrderRepository.create({
+    const result = await this.productOrderRepository.create({
       ...body,
       factory: factoryDoc,
       products: newProducts,
     });
+    return result;
   }
 
   async findMany({

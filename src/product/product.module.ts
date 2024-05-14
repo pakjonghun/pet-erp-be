@@ -15,9 +15,10 @@ import {
   ProductOrder,
   ProductOrderSchema,
 } from 'src/product-order/entities/product-order.entity';
+import { ProductLoader } from './product.loader';
 
 @Module({
-  exports: [ProductService],
+  exports: [ProductService, ProductLoader],
   imports: [
     DatabaseModule.forFeature([
       { name: Product.name, schema: productSchema },
@@ -32,6 +33,7 @@ import {
     ProductService,
     ProductRepository,
     ProductSubsidiaryRepository,
+    ProductLoader,
   ],
 })
 export class ProductModule {}

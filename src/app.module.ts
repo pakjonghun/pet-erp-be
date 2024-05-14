@@ -74,7 +74,7 @@ import * as Joi from 'joi';
     GraphQLModule.forRootAsync({
       driver: ApolloDriver,
       useClass: GqlConfigService,
-      imports: [FactoryModule],
+      imports: [FactoryModule, ProductModule],
     }),
     ScheduleModule.forRoot(),
     DatabaseModule,
