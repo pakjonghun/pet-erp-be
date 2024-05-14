@@ -84,7 +84,6 @@ export class ProductOrderService {
       .skip(skip)
       .limit(limit)
       .lean<ProductOrder[]>();
-    console.log('data : ', data);
     return {
       data,
       totalCount,

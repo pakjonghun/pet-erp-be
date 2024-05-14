@@ -29,6 +29,7 @@ import { StockModule } from './stock/stock.module';
 import { FactoryModule } from './factory/factory.module';
 import { StorageModule } from './storage/storage.module';
 import { ProductOrderModule } from './product-order/product-order.module';
+import { FactoryLoader } from './factory/factory.loader';
 
 @Module({
   imports: [
@@ -70,28 +71,32 @@ import { ProductOrderModule } from './product-order/product-order.module';
       //
       inject: [ConfigService],
     }),
-    GraphQLModule.forRoot<ApolloDriverConfig>({
-      autoSchemaFile: true,
+    GraphQLModule.forRootAsync<ApolloDriverConfig>({
+      imports: [FactoryModule],
+      inject: [FactoryLoader],
       driver: ApolloDriver,
-      path: '/api/graphql',
-      context: ({ req, res }) => {
-        return { req, res };
-      },
-      formatError: (error) => {
-        const originalError = error.extensions?.originalError as object;
-        const statusCode =
-          typeof originalError == 'object' &&
-          'statusCode' in originalError &&
-          originalError.statusCode;
-        new Logger().error(error);
-        return {
-          message: error.message,
-          code: error.extensions.code,
-          locations: error.locations,
-          path: error.path,
-          statusCode,
-        };
-      },
+      useFactory: async (factoryLoader: FactoryLoader) => ({
+        autoSchemaFile: true,
+        path: '/api/graphql',
+        context: ({ req, res }) => {
+          return { req, res, factoryLoader };
+        },
+        formatError: (error) => {
+          const originalError = error.extensions?.originalError as object;
+          const statusCode =
+            typeof originalError == 'object' &&
+            'statusCode' in originalError &&
+            originalError.statusCode;
+          new Logger().error(error);
+          return {
+            message: error.message,
+            code: error.extensions.code,
+            locations: error.locations,
+            path: error.path,
+            statusCode,
+          };
+        },
+      }),
     }),
     ScheduleModule.forRoot(),
     DatabaseModule,

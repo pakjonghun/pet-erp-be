@@ -9,6 +9,7 @@ import {
   ProductOrderSchema,
 } from 'src/product-order/entities/product-order.entity';
 import { AppModule } from 'src/app.module';
+import { FactoryLoader } from './factory.loader';
 
 @Module({
   imports: [
@@ -24,7 +25,12 @@ import { AppModule } from 'src/app.module';
       },
     ]),
   ],
-  providers: [FactoryResolver, FactoryService, FactoryRepository],
-  exports: [FactoryService],
+  providers: [
+    FactoryResolver,
+    FactoryService,
+    FactoryRepository,
+    FactoryLoader,
+  ],
+  exports: [FactoryService, FactoryLoader],
 })
 export class FactoryModule {}
