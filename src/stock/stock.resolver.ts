@@ -18,19 +18,9 @@ export class StockResolver {
     return this.stockService.out(addStocksInput);
   }
 
-  // @Mutation(() => Stock)
-  // createStock(@Args('createStockInput') createStockInput: CreateStockInput) {
-  //   return this.stockService.create(createStockInput);
-  // }
-
   @Query(() => [TotalProductStockOutput], { name: 'stock' })
   findAll() {
     return this.stockService.findAll();
-  }
-
-  @Query(() => Stock, { name: 'stock' })
-  findOne(@Args('_id', { type: () => String }) _id: string) {
-    return this.stockService.findOne({});
   }
 
   @Mutation(() => Stock)

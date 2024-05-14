@@ -4,12 +4,14 @@ import { GqlOptionsFactory } from '@nestjs/graphql';
 import { FactoryLoader } from 'src/factory/factory.loader';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { ProductLoader } from 'src/product/product.loader';
+import { StorageLoader } from 'src/storage/storage.loader';
 @Injectable()
 export class GqlConfigService implements GqlOptionsFactory {
   constructor(
     private readonly factoryLoader: FactoryLoader,
     private readonly productLoader: ProductLoader,
-  ) {} // private readonly factoryLoader: FactoryLoader, // @Inject(forwardRef(() => FactoryLoader))
+    private readonly storageLoader: StorageLoader,
+  ) {}
   createGqlOptions(): ApolloDriverConfig {
     return {
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
@@ -19,12 +21,14 @@ export class GqlConfigService implements GqlOptionsFactory {
       context: ({ req, res }) => {
         const factoryLoader = this.factoryLoader.createLoader();
         const productLoader = this.productLoader.createLoader();
+        const storageLoader = this.storageLoader.createLoader();
         return {
           req,
           res,
           loaders: {
             factoryLoader,
             productLoader,
+            storageLoader,
           },
         };
       },
