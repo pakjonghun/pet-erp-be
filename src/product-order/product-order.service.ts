@@ -1,5 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateOrderInput } from './dto/create-order.input';
+import {
+  CreateOrderInput,
+  CreateOrderProductInput,
+} from './dto/create-order.input';
 import { UpdateOrderInput } from './dto/update-order.input';
 import { ProductOrderRepository } from './product-order.repository';
 import { InjectModel } from '@nestjs/mongoose';
@@ -19,17 +22,8 @@ export class ProductOrderService {
   ) {}
 
   async create({ factory, products, ...body }: CreateOrderInput) {
-    const factoryDoc = await this.factoryModel.findOne({ name: factory });
-    if (!factoryDoc) this.notFoundException({ name: factory });
-
-    const productNames = products.map((item) => item.product);
-    const productList = await this.productModel.find({
-      name: { $in: productNames },
-    });
-
-    if (productList.length !== productNames.length) {
-      this.notFoundException({ name: { $in: productNames } });
-    }
+    const factoryDoc = await this.factoryCheck(factory);
+    const productList = await this.productsCheck(products);
 
     const newProducts = productList.map((product) => {
       const targetProduct = products.find(
@@ -90,12 +84,59 @@ export class ProductOrderService {
     };
   }
 
-  update({ _id, ...updateOrderInput }: UpdateOrderInput) {
-    return this.productOrderRepository.update({ _id }, updateOrderInput);
+  async update({ _id, ...body }: UpdateOrderInput) {
+    let factory: undefined | Factory;
+    if (body.factory) {
+      factory = await this.factoryCheck(body.factory);
+    }
+
+    let newProductList = [];
+    if (body.products) {
+      const productList = await this.productsCheck(body.products);
+      newProductList = productList.map((product) => {
+        const targetProduct = body.products.find(
+          (item) => item.product === (product.name as unknown as string),
+        );
+
+        return {
+          product,
+          count: targetProduct.count,
+        };
+      });
+    }
+
+    const result = await this.productOrderRepository.update(
+      { _id },
+      {
+        ...body,
+        products: newProductList,
+        factory,
+      },
+    );
+    return result;
   }
-  //
+
   remove(_id: string) {
     return this.productOrderRepository.remove({ _id });
+  }
+
+  private async factoryCheck(factoryName: string) {
+    const factoryDoc = await this.factoryModel.findOne({ name: factoryName });
+    if (!factoryDoc) this.notFoundException({ name: factoryName });
+    return factoryDoc;
+  }
+
+  private async productsCheck(products: CreateOrderProductInput[]) {
+    const productNames = products.map((item) => item.product);
+    const productList = await this.productModel.find({
+      name: { $in: productNames },
+    });
+
+    if (productList.length !== productNames.length) {
+      this.notFoundException({ name: { $in: productNames } });
+    }
+
+    return productList;
   }
 
   private notFoundException(query: FilterQuery<any>) {
