@@ -5,7 +5,6 @@ import { SubsidiaryResolver } from './subsidiary.resolver';
 import { Subsidiary, SubsidiarySchema } from './entities/subsidiary.entity';
 import { SubsidiaryRepository } from './subsidiary.repository';
 import { ProductModule } from 'src/product/product.module';
-import { AppModule } from 'src/app.module';
 import { SubsidiaryCategoryModule } from 'src/subsidiary-category/subsidiary-category.module';
 
 @Module({
@@ -16,7 +15,6 @@ import { SubsidiaryCategoryModule } from 'src/subsidiary-category/subsidiary-cat
     ]),
     ProductModule,
     forwardRef(() => SubsidiaryCategoryModule),
-    forwardRef(() => AppModule),
   ],
   providers: [SubsidiaryResolver, SubsidiaryService, SubsidiaryRepository],
 })

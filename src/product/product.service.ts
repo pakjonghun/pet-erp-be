@@ -17,7 +17,7 @@ import { Sale } from 'src/sale/entities/sale.entity';
 import { ProductSaleInput } from './dtos/product-sale.input';
 import { ProductsInput } from './dtos/products-input';
 import { ProductCategoryService } from 'src/product-category/product-category.service';
-import { UtilService } from 'src/common/services/util.service';
+import { UtilService } from 'src/util/util.service';
 import { ProductSubsidiaryRepository } from './subsidiary.repository';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { InjectModel } from '@nestjs/mongoose';

@@ -8,7 +8,7 @@ import {
   HangleToClientType,
 } from './entities/client.entity';
 import { ClientRepository } from './client.repository';
-import { UtilService } from 'src/common/services/util.service';
+import { UtilService } from 'src/util/util.service';
 import { ColumnOption } from './types';
 import { SaleService } from 'src/sale/sale.service';
 import { ClientsInput } from './dtos/clients.input';

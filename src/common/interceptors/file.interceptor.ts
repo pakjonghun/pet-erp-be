@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { map } from 'rxjs';
 import { Response } from 'express';
-import { UtilService } from '../services/util.service';
+import { UtilService } from '../../util/util.service';
 
 @Injectable()
 export class FileInspector implements NestInterceptor {

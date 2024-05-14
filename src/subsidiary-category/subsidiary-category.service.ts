@@ -6,7 +6,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { ColumnOption } from 'src/client/types';
-import { UtilService } from 'src/common/services/util.service';
+import { UtilService } from 'src/util/util.service';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import * as ExcelJS from 'exceljs';
 import { SubsidiaryCategoryRepository } from './subsidiary-category.repository';

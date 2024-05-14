@@ -4,7 +4,6 @@ import { ProductResolver } from './product.resolver';
 import { DatabaseModule } from 'src/common/database/database.module';
 import { Product, productSchema } from './entities/product.entity';
 import { ProductRepository } from './product.repository';
-import { AppModule } from 'src/app.module';
 import { SaleModule } from 'src/sale/sale.module';
 import { ProductCategoryModule } from 'src/product-category/product-category.module';
 import {
@@ -26,7 +25,6 @@ import {
       { name: ProductOrder.name, schema: ProductOrderSchema },
     ]),
     SaleModule,
-    forwardRef(() => AppModule),
     forwardRef(() => ProductCategoryModule),
   ],
   providers: [

@@ -2,7 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { CreateStorageInput } from './dto/create-storage.input';
 import { UpdateStorageInput } from './dto/update-storage.input';
 import { FilterQuery } from 'mongoose';
-import { UtilService } from 'src/common/services/util.service';
+import { UtilService } from 'src/util/util.service';
 import { ColumnOption } from 'src/client/types';
 import { StoragesInput } from './dto/storages.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';

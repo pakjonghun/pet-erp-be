@@ -8,12 +8,10 @@ import {
 } from './entities/product-category.entity';
 import { ProductCategoryRepository } from './product-category.repository';
 import { ProductModule } from 'src/product/product.module';
-import { AppModule } from 'src/app.module';
 
 @Module({
   exports: [ProductCategoryService],
   imports: [
-    forwardRef(() => AppModule),
     forwardRef(() => ProductModule),
     DatabaseModule.forFeature([
       { name: ProductCategory.name, schema: productCategorySchema },

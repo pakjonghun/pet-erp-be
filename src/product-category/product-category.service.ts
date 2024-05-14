@@ -18,7 +18,7 @@ import {
   ProductCategoryInterface,
 } from './entities/product-category.entity';
 import { ColumnOption } from 'src/client/types';
-import { UtilService } from 'src/common/services/util.service';
+import { UtilService } from 'src/util/util.service';
 
 @Injectable()
 export class ProductCategoryService {

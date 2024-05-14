@@ -1,12 +1,12 @@
 import { LogInterceptor } from './common/interceptors/log.interceptor';
-import { Logger, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseModule } from './common/database/database.module';
 import { LoggerModule } from 'nestjs-pino';
 import { GraphQLModule } from '@nestjs/graphql';
-import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import { ApolloDriver } from '@nestjs/apollo';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -22,14 +22,14 @@ import { ProductCategoryModule } from './product-category/product-category.modul
 import { FileInspector } from './common/interceptors/file.interceptor';
 import { SubsidiaryModule } from './subsidiary/subsidiary.module';
 import { SubsidiaryCategoryModule } from './subsidiary-category/subsidiary-category.module';
-import * as Joi from 'joi';
-import { UtilService } from './common/services/util.service';
 import { WholeSaleModule } from './whole-sale/whole-sale.module';
 import { StockModule } from './stock/stock.module';
 import { FactoryModule } from './factory/factory.module';
 import { StorageModule } from './storage/storage.module';
 import { ProductOrderModule } from './product-order/product-order.module';
-import { FactoryLoader } from './factory/factory.loader';
+import { GqlConfigService } from 'src/common/services/graphql.service';
+import { UtilModule } from './util/util.module';
+import * as Joi from 'joi';
 
 @Module({
   imports: [
@@ -68,35 +68,13 @@ import { FactoryLoader } from './factory/factory.loader';
           },
         };
       },
-      //
       inject: [ConfigService],
     }),
-    GraphQLModule.forRootAsync<ApolloDriverConfig>({
-      imports: [FactoryModule],
-      inject: [FactoryLoader],
+
+    GraphQLModule.forRootAsync({
       driver: ApolloDriver,
-      useFactory: async (factoryLoader: FactoryLoader) => ({
-        autoSchemaFile: true,
-        path: '/api/graphql',
-        context: ({ req, res }) => {
-          return { req, res, factoryLoader };
-        },
-        formatError: (error) => {
-          const originalError = error.extensions?.originalError as object;
-          const statusCode =
-            typeof originalError == 'object' &&
-            'statusCode' in originalError &&
-            originalError.statusCode;
-          new Logger().error(error);
-          return {
-            message: error.message,
-            code: error.extensions.code,
-            locations: error.locations,
-            path: error.path,
-            statusCode,
-          };
-        },
-      }),
+      useClass: GqlConfigService,
+      imports: [FactoryModule],
     }),
     ScheduleModule.forRoot(),
     DatabaseModule,
@@ -114,8 +92,9 @@ import { FactoryLoader } from './factory/factory.loader';
     FactoryModule,
     StorageModule,
     ProductOrderModule,
+    UtilModule,
   ],
-  exports: [FileService, UtilService],
+  exports: [FileService],
   controllers: [AppController],
   providers: [
     {
@@ -130,10 +109,10 @@ import { FactoryLoader } from './factory/factory.loader';
       provide: APP_INTERCEPTOR,
       useClass: FileInspector,
     },
+    GqlConfigService,
     DateScalar,
     AppService,
     FileService,
-    UtilService,
   ],
 })
 export class AppModule {}

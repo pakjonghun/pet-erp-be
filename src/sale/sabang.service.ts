@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { UtilService } from 'src/common/services/util.service';
+import { UtilService } from 'src/util/util.service';
 import { ConfigService } from '@nestjs/config';
 import { DateRange } from './types';
 import { AwsS3Service } from './aws.service';

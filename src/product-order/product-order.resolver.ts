@@ -43,11 +43,12 @@ export class ProductOrderResolver {
   removeOrder(@Args('_id', { type: () => String }) _id: string) {
     return this.orderService.remove(_id);
   }
-  //
+
   @ResolveField(() => Factory)
   async factory(
     @Parent() order: ProductOrder,
-    @Context('factoryLoader') factoryLoader: DataLoader<string, FactoryLoader>,
+    @Context('loaders')
+    { factoryLoader }: { factoryLoader: DataLoader<string, FactoryLoader> },
   ) {
     const factoryId = (
       order.factory as unknown as Types.ObjectId

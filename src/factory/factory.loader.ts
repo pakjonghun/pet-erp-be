@@ -1,10 +1,10 @@
-import { Injectable, Scope } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
 import { Factory } from 'src/factory/entities/factory.entity';
 import * as DataLoader from 'dataloader';
 
-@Injectable({ scope: Scope.REQUEST })
+@Injectable()
 export class FactoryLoader {
   constructor(
     @InjectModel(Factory.name) private readonly factoryModel: Model<Factory>,

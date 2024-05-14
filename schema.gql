@@ -1,0 +1,652 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Log {
+  _id: ID!
+  userId: String!
+  description: String!
+  logType: LogType!
+  createdAt: Date!
+}
+
+enum LogType {
+  READ
+  CREATE
+  UPDATE
+  UPLOAD
+  DELETE
+}
+
+type ProductCategory {
+  _id: ID
+  name: String
+}
+
+type Product {
+  _id: ID!
+  code: String!
+  barCode: String
+  name: String!
+  wonPrice: Int
+  salePrice: Int
+  leadTime: Int
+  maintainDate: Int
+  category: ProductCategory
+}
+
+type SubsidiaryCategory {
+  _id: ID
+  name: String
+}
+
+type Subsidiary {
+  _id: ID!
+  code: String!
+  name: String!
+  category: SubsidiaryCategory
+  productList: [Product!]
+  wonPrice: Int
+  leadTime: Int
+}
+
+type Sale {
+  _id: ID!
+  code: String!
+  shoppingMall: String
+  count: Int
+  barCode: String
+  consignee: String
+  address1: String
+  postalCode: String
+  telephoneNumber1: String
+  message: String
+  productName: String
+  deliveryName: String
+  invoiceNumber: String
+  originOrderNumber: String
+  orderNumber: String
+  productCode: String
+  saleAt: Date
+  payCost: Int
+  orderStatus: String
+  mallId: String
+  wonCost: Int
+  deliveryCost: Int
+  isWholeSale: Boolean
+}
+
+type Factory {
+  _id: ID!
+  name: String!
+  phoneNumber: String
+  address: String
+  note: String
+}
+
+type OrderProduct {
+  count: Int!
+  product: Product!
+}
+
+type ProductOrder {
+  _id: ID!
+  factory: Factory!
+  products: [OrderProduct!]!
+  payCost: Int!
+  notPayCost: Int!
+  totalPayCost: Int!
+  isDone: Boolean!
+}
+
+type Client {
+  _id: ID!
+  code: String!
+  feeRate: Float
+  name: String!
+  clientType: clientType!
+  businessName: String
+  businessNumber: String
+  payDate: Int
+  manager: String
+  managerTel: String
+  inActive: Boolean
+}
+
+enum clientType {
+  wholeSale
+  platform
+  cs
+  reward
+  marketing
+  bender
+  offline
+  openMarket
+  proMall
+}
+
+type Storage {
+  _id: ID!
+  name: String!
+  phoneNumber: String
+  address: String
+  note: String
+}
+
+type User {
+  _id: ID!
+  id: String!
+  role: UserRole!
+  createdAt: Date!
+  updatedAt: Date!
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+type MyInfo {
+  id: String!
+  role: UserRole!
+  createdAt: Date!
+}
+
+type FindLogsResponseDTO {
+  totalCount: Int!
+  data: [Log!]!
+}
+
+type ProductSaleChartOutput {
+  _id: Date!
+  accPayCost: Int
+  accProfit: Int
+}
+
+type ProductsOutput {
+  totalCount: Int!
+  data: [Product!]!
+}
+
+type ClientId {
+  mallId: String!
+  productCode: String!
+}
+
+type SaleInfo {
+  accPayCost: Int
+  accCount: Int
+  name: String
+  accProfit: Float
+  averagePayCost: Float
+}
+
+type TotalSaleInfo {
+  current: SaleInfo
+  previous: SaleInfo
+}
+
+type SaleInfos {
+  accPayCost: Int
+  accCount: Int
+  name: String
+  accProfit: Float
+  averagePayCost: Float
+  prevAccPayCost: Int
+  prevAccCount: Int
+  prevAccProfit: Float
+  prevAveragePayCost: Float
+}
+
+type ClientInfo {
+  accPayCost: Int
+  accCount: Int
+  _id: ClientId
+  accProfit: Float
+  averagePayCost: Float
+}
+
+type ProductSaleData {
+  _id: ID!
+  code: String!
+  barCode: String
+  name: String!
+  wonPrice: Int
+  salePrice: Int
+  leadTime: Int
+  maintainDate: Int
+  category: ProductCategory
+  sales: SaleInfos
+  clients: [ClientInfo!]!
+}
+
+type ProductSaleOutput {
+  totalCount: Int!
+  data: [ProductSaleData!]!
+}
+
+type CategoriesOutput {
+  totalCount: Int!
+  data: [ProductCategory!]!
+}
+
+type ClientsOutput {
+  totalCount: Int!
+  data: [Client!]!
+}
+
+type SubsidiariesOutput {
+  totalCount: Int!
+  data: [Subsidiary!]!
+}
+
+type SubsidiaryCategoriesOutput {
+  totalCount: Int!
+  data: [SubsidiaryCategory!]!
+}
+
+type WholeSaleProduct {
+  code: String!
+  count: Int!
+  productName: String!
+  productCode: String!
+}
+
+type WholeSaleOutput {
+  _id: String!
+  productList: [WholeSaleProduct!]!
+  address1: String
+  telephoneNumber1: String
+  saleAt: Date
+  payCost: Int
+  mallId: String
+  wonCost: Int
+  deliveryCost: Int
+  count: Int!
+}
+
+type Stock {
+  _id: ID!
+  product: Product!
+  storage: Storage!
+  count: Int!
+  isSubsidiary: Boolean!
+}
+
+type TotalProductStockOutput {
+  _id: String!
+  product: Product!
+  storage: Storage
+  storageCount: Int
+  orderCount: Int
+  recentSaleCount: Int
+}
+
+type FactoriesOutput {
+  totalCount: Int!
+  data: [Factory!]!
+}
+
+type StoragesOutput {
+  totalCount: Int!
+  data: [Storage!]!
+}
+
+type ProductOrderOutput {
+  totalCount: Int!
+  data: [ProductOrder!]!
+}
+
+"""Date custom scalar type"""
+scalar Date
+
+type Query {
+  factories(factoriesInput: FactoriesInput!): FactoriesOutput!
+  users: [User!]!
+  user(id: String!): User!
+  myInfo: MyInfo!
+  logs(findLogsQuery: FindLogsDTO!): FindLogsResponseDTO!
+  products(productsInput: ProductsInput!): ProductsOutput!
+  product(_id: String!): Product!
+  productSales(productSalesInput: ProductSaleInput!): ProductSaleOutput
+  productSale(productCode: String!): [ProductSaleChartOutput!]
+  dashboardProduct(dashboardProductInput: FindDateInput): TotalSaleInfo
+  dashboardProducts(dashboardProductsInput: FindDateInput): [SaleInfos!]
+  categories(categoriesInput: CategoriesInput!): CategoriesOutput!
+  client(_id: String!): Client!
+  clients(clientsInput: ClientsInput!): ClientsOutput!
+  dashboardClient(dashboardClientInput: FindDateInput): TotalSaleInfo
+  dashboardClients(dashboardClientsInput: FindDateInput): [SaleInfos!]
+  subsidiaries(subsidiariesInput: SubsidiariesInput!): SubsidiariesOutput!
+  subsidiaryCategories(subsidiaryCategoriesInput: SubsidiaryCategoriesInput!): SubsidiaryCategoriesOutput!
+  wholeSale(_id: String!): Sale!
+  stock(_id: String!): Stock!
+  storages(storagesInput: StoragesInput!): StoragesOutput!
+  orders(ordersInput: OrdersInput!): ProductOrderOutput!
+}
+
+input FactoriesInput {
+  keyword: String!
+  limit: Int!
+  skip: Int!
+}
+
+input FindLogsDTO {
+  keyword: String!
+  limit: Int!
+  skip: Int!
+  order: Order
+  sort: String
+  keywordTarget: String!
+  from: Date!
+  to: Date!
+}
+
+enum Order {
+  ASC
+  DESC
+}
+
+input ProductsInput {
+  keyword: String!
+  limit: Int!
+  skip: Int!
+}
+
+input ProductSaleInput {
+  keyword: String!
+  limit: Int!
+  skip: Int!
+  order: Order
+  sort: String
+  keywordTarget: String!
+  from: Date!
+  to: Date!
+}
+
+input FindDateInput {
+  from: Date!
+  to: Date!
+}
+
+input CategoriesInput {
+  keyword: String!
+  limit: Int!
+  skip: Int!
+}
+
+input ClientsInput {
+  keyword: String!
+  limit: Int!
+  skip: Int!
+}
+
+input SubsidiariesInput {
+  keyword: String!
+  limit: Int!
+  skip: Int!
+}
+
+input SubsidiaryCategoriesInput {
+  keyword: String!
+  limit: Int!
+  skip: Int!
+}
+
+input StoragesInput {
+  keyword: String!
+  limit: Int!
+  skip: Int!
+}
+
+input OrdersInput {
+  keyword: String!
+  limit: Int!
+  skip: Int!
+  order: Order
+  sort: String
+}
+
+type Mutation {
+  createFactory(createFactoryInput: CreateFactoryInput!): Factory!
+  updateFactory(updateFactoryInput: UpdateFactoryInput!): Factory!
+  removeFactory(_id: String!): Factory!
+  createUser(createUserInput: CreateUserDTO!): User!
+  updateUser(updateUserInput: UpdateUserDTO!): User!
+  updateProfile(updateProfileInput: UpdateProfileDTO!): User!
+  removeUser(id: String!): User!
+  createLog(createLogInput: CreateLogDTO!): Log!
+  createProduct(createProductInput: CreateProductInput!): Product!
+  updateProduct(updateProductInput: UpdateProductInput!): Product!
+  removeProduct(_id: String!): Product!
+  createCategory(createCategoryInput: CreateCategoryInput!): ProductCategory!
+  updateCategory(updateCategoryInput: UpdateCategoryInput!): ProductCategory!
+  removeCategory(_id: String!): ProductCategory!
+  createClient(createClientInput: CreateClientInput!): Client!
+  updateClient(updateClientInput: UpdateClientInput!): Client!
+  removeClient(_id: String!): Client!
+  createSubsidiary(createSubsidiaryInput: CreateSubsidiaryInput!): Subsidiary!
+  updateSubsidiary(updateSubsidiaryInput: UpdateSubsidiaryInput!): Subsidiary!
+  removeSubsidiary(_id: String!): Subsidiary!
+  createSubsidiaryCategory(createSubsidiaryCategoryInput: CreateSubsidiaryCategoryInput!): SubsidiaryCategory!
+  updateSubsidiaryCategory(updateSubsidiaryCategoryInput: UpdateSubsidiaryCategoryInput!): SubsidiaryCategory!
+  removeSubsidiaryCategory(_id: String!): SubsidiaryCategory!
+  createWholeSale(createWholeSaleInput: CreateWholeSaleInput!): Sale!
+  updateWholeSale(updateWholeSaleInput: UpdateWholeSaleInput!): WholeSaleOutput!
+  removeWholeSale(id: Int!): Sale!
+  addStock(addStocksInput: CreateStockInput!): [Stock!]!
+  outStock(outStocksInput: CreateStockInput!): [Stock!]!
+  updateStock(updateStockInput: UpdateStockInput!): Stock!
+  removeStock(id: Int!): Stock!
+  createStorage(createStorageInput: CreateStorageInput!): Storage!
+  updateStorage(updateStorageInput: UpdateStorageInput!): Storage!
+  removeStorage(_id: String!): Storage!
+  createOrder(createOrderInput: CreateOrderInput!): ProductOrder!
+  updateOrder(updateOrderInput: UpdateOrderInput!): ProductOrder!
+  removeOrder(_id: String!): ProductOrder!
+}
+
+input CreateFactoryInput {
+  name: String!
+  address: String
+  note: String
+  phoneNumber: String
+}
+
+input UpdateFactoryInput {
+  name: String
+  address: String
+  note: String
+  phoneNumber: String
+  _id: String!
+}
+
+input CreateUserDTO {
+  id: String!
+  role: String!
+  password: String!
+}
+
+input UpdateUserDTO {
+  id: String
+  role: String
+  password: String
+}
+
+input UpdateProfileDTO {
+  role: String
+  password: String
+}
+
+input CreateLogDTO {
+  logType: LogType!
+  userId: String!
+  description: String!
+}
+
+input CreateProductInput {
+  code: String!
+  barCode: String
+  name: String!
+  wonPrice: Int
+  salePrice: Int
+  leadTime: Int
+  maintainDate: Int
+  category: String
+}
+
+input UpdateProductInput {
+  code: String
+  barCode: String
+  name: String
+  wonPrice: Int
+  salePrice: Int
+  leadTime: Int
+  maintainDate: Int
+  category: String
+  _id: String!
+}
+
+input CreateCategoryInput {
+  name: String!
+}
+
+input UpdateCategoryInput {
+  name: String
+  _id: String!
+}
+
+input CreateClientInput {
+  code: String!
+  feeRate: Float
+  clientType: String
+  businessName: String
+  businessNumber: String
+  payDate: Int
+  manager: String
+  managerTel: String
+  inActive: Boolean
+  name: String!
+}
+
+input UpdateClientInput {
+  code: String
+  feeRate: Float
+  clientType: String
+  businessName: String
+  businessNumber: String
+  payDate: Int
+  manager: String
+  managerTel: String
+  inActive: Boolean
+  name: String
+  _id: String!
+}
+
+input CreateSubsidiaryInput {
+  code: String!
+  name: String!
+  category: String
+  productList: [String!]
+  wonPrice: Int
+  leadTime: Int
+}
+
+input UpdateSubsidiaryInput {
+  code: String
+  name: String
+  category: String
+  productList: [String!]
+  wonPrice: Int
+  leadTime: Int
+  _id: String!
+}
+
+input CreateSubsidiaryCategoryInput {
+  name: String!
+}
+
+input UpdateSubsidiaryCategoryInput {
+  name: String
+  _id: String!
+}
+
+input CreateWholeSaleInput {
+  storage: String!
+  saleAt: Date
+  payCost: Int
+  mallId: String
+  wonCost: Int
+  productList: [CreateWholeSaleProductList!]!
+}
+
+input CreateWholeSaleProductList {
+  count: String
+  name: String!
+  code: String!
+}
+
+input UpdateWholeSaleInput {
+  storage: String
+  saleAt: Date
+  payCost: Int
+  mallId: String
+  wonCost: Int
+  productList: [CreateWholeSaleProductList!]
+  _id: String!
+}
+
+input CreateStockInput {
+  stocks: [CreateSingleStockInput!]!
+}
+
+input CreateSingleStockInput {
+  productId: String!
+  storageId: String!
+  count: Int!
+}
+
+input UpdateStockInput {
+  stocks: [CreateSingleStockInput!]
+  id: Int!
+}
+
+input CreateStorageInput {
+  name: String!
+  address: String
+  note: String
+  phoneNumber: String
+}
+
+input UpdateStorageInput {
+  name: String
+  address: String
+  note: String
+  phoneNumber: String
+  _id: String!
+}
+
+input CreateOrderInput {
+  factory: String!
+  products: [CreateOrderProductInput!]!
+  payCost: Int!
+  notPayCost: Int!
+  totalPayCost: Int!
+  isDone: Boolean!
+}
+
+input CreateOrderProductInput {
+  count: Int!
+  product: String!
+}
+
+input UpdateOrderInput {
+  factory: String
+  products: [CreateOrderProductInput!]
+  payCost: Int
+  notPayCost: Int
+  totalPayCost: Int
+  isDone: Boolean
+  _id: String!
+}

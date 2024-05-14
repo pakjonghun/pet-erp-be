@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { UtilService } from 'src/common/services/util.service';
+import { UtilService } from 'src/util/util.service';
 import { SaleRepository } from './sale.repository';
 import { FilterQuery, PipelineStage } from 'mongoose';
 import { Sale } from './entities/sale.entity';

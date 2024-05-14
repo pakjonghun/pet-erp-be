@@ -5,7 +5,7 @@ import { FactoryRepository } from './factory.repository';
 import { InjectModel } from '@nestjs/mongoose';
 import { ProductOrder } from 'src/product-order/entities/product-order.entity';
 import { FilterQuery, Model } from 'mongoose';
-import { UtilService } from 'src/common/services/util.service';
+import { UtilService } from 'src/util/util.service';
 import { ColumnOption } from 'src/client/types';
 import { Factory, FactoryInterface } from './entities/factory.entity';
 import { FactoriesInput } from './dto/factories.input';
