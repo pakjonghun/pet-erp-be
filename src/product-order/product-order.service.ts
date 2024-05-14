@@ -8,6 +8,7 @@ import { FilterQuery, Model } from 'mongoose';
 import { Product } from 'src/product/entities/product.entity';
 import { OrdersInput } from './dto/orders.input';
 import { ProductOrder } from './entities/product-order.entity';
+import { OrderEnum } from 'src/common/dtos/find-many.input';
 
 @Injectable()
 export class ProductOrderService {
@@ -48,15 +49,46 @@ export class ProductOrderService {
     });
   }
 
-  async findMany({ keyword, ...query }: OrdersInput) {
-    const newQuery: FilterQuery<ProductOrder> = {
-      name: { $regex: keyword, $options: 'i' },
+  async findMany({
+    keyword,
+    skip,
+    limit,
+    sort = 'createdAt',
+    order = OrderEnum.DESC,
+  }: OrdersInput) {
+    const filterQuery = { name: { $regex: keyword, $options: 'i' } };
+
+    const productList = await this.productModel
+      .find(filterQuery)
+      .select('_id')
+      .lean();
+
+    const factoryList = await this.factoryModel
+      .find(filterQuery)
+      .select('_id')
+      .lean();
+
+    const orderFilterQuery = {
+      $or: [
+        { factory: { $in: factoryList } },
+        { 'products.product': { $in: productList } },
+      ],
     };
-    const result = await this.productOrderRepository.findMany({
-      filterQuery: newQuery,
-      ...query,
-    });
-    return result;
+
+    const totalCount =
+      await this.productOrderRepository.model.countDocuments(orderFilterQuery);
+
+    const data = await this.productOrderRepository.model
+      .find(orderFilterQuery)
+      .sort({ [sort]: order === OrderEnum.DESC ? -1 : 1, _id: 1 })
+      .skip(skip)
+      .limit(limit)
+      .lean<ProductOrder[]>();
+    console.log('data : ', data);
+    return {
+      data,
+      totalCount,
+    };
   }
 
   update({ _id, ...updateOrderInput }: UpdateOrderInput) {
