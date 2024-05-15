@@ -1,9 +1,10 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { StockService } from './stock.service';
 import { Stock } from './entities/stock.entity';
 import { CreateStockInput } from './dto/create-stock.input';
-import { UpdateStockInput } from './dto/update-stock.input';
 import { TotalProductStockOutput } from './dto/total-product-stock.output';
+import { StocksInput } from './dto/stocks.input';
+import { StocksOutput } from './dto/stocks.output';
 
 @Resolver(() => Stock)
 export class StockResolver {
@@ -18,18 +19,14 @@ export class StockResolver {
     return this.stockService.out(addStocksInput);
   }
 
+  @Query(() => StocksOutput)
+  stocks(@Args('stocksInput') stockInput: StocksInput) {
+    return this.stockService.findMany(stockInput);
+  }
+
   @Query(() => [TotalProductStockOutput], { name: 'stock' })
   findAll() {
-    return this.stockService.findAll();
-  }
-
-  @Mutation(() => Stock)
-  updateStock(@Args('updateStockInput') updateStockInput: UpdateStockInput) {
-    return this.stockService.update(updateStockInput.id, updateStockInput);
-  }
-
-  @Mutation(() => Stock)
-  removeStock(@Args('id', { type: () => Int }) id: number) {
-    return this.stockService.remove(id);
+    // return this.stockService.findAll();
+    return;
   }
 }

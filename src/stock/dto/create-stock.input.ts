@@ -15,13 +15,13 @@ export class CreateSingleStockInput
 {
   @Field(() => String)
   @IsString()
-  @IsNotEmpty({ message: '제품아이디를 입력하세요.' })
-  productId: string;
+  @IsNotEmpty({ message: '제품이름을 입력하세요.' })
+  productName: string;
 
   @Field(() => String)
   @IsString()
-  @IsNotEmpty({ message: '제품아이디를 입력하세요.' })
-  storageId: string;
+  @IsNotEmpty({ message: '창고이름을 입력하세요.' })
+  storageName: string;
 
   @Field(() => Int)
   @IsNumber()
@@ -35,7 +35,7 @@ export class CreateSingleStockInput
 
 @InputType()
 export class CreateStockInput {
-  @ArrayNotEmpty({ message: '1개 이상의 창고와 제품을 입력하세요.' })
+  @ArrayNotEmpty({ message: '1개 이상의 재고를 입력하세요.' })
   @Field(() => [CreateSingleStockInput], { nullable: false })
   stocks: CreateSingleStockInput[];
 }

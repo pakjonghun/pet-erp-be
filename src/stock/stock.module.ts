@@ -10,10 +10,19 @@ import {
 } from 'src/subsidiary/entities/subsidiary.entity';
 import { StockRepository } from './stock.repository';
 import { Stock, StockSchema } from './entities/stock.entity';
+import {
+  ProductOrder,
+  ProductOrderSchema,
+} from 'src/product-order/entities/product-order.entity';
+import { Sale, saleSchema } from 'src/sale/entities/sale.entity';
 
 @Module({
   imports: [
     DatabaseModule.forFeature([
+      {
+        name: ProductOrder.name,
+        schema: ProductOrderSchema,
+      },
       {
         name: Product.name,
         schema: productSchema,
@@ -29,6 +38,10 @@ import { Stock, StockSchema } from './entities/stock.entity';
       {
         name: Stock.name,
         schema: StockSchema,
+      },
+      {
+        name: Sale.name,
+        schema: saleSchema,
       },
     ]),
   ],

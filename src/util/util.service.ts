@@ -84,6 +84,11 @@ export class UtilService {
     ];
   }
 
+  recentDayjsMonthRange() {
+    const toady = dayjs();
+    return [toady.subtract(30, 'month').startOf('date'), dayjs().endOf('date')];
+  }
+
   getRandomNumber(length: number) {
     return Math.floor(Math.random() * Math.pow(10, length));
   }
