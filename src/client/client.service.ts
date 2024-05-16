@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateClientInput } from './dtos/create-client.input';
 import { UpdateClientInput } from './dtos/update-client.input';
 import {
+  Client,
   ClientInterface,
   ClientType,
   ClientTypeToHangle,
@@ -15,6 +16,7 @@ import { ClientsInput } from './dtos/clients.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import * as ExcelJS from 'exceljs';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
+import { FilterQuery } from 'mongoose';
 
 @Injectable()
 export class ClientService {
@@ -61,10 +63,16 @@ export class ClientService {
   }
 
   findMany(query: ClientsInput) {
+    const filterQuery: FilterQuery<Client> = {
+      name: { $regex: query.keyword, $options: 'i' },
+    };
+
+    if (query.clientType) {
+      filterQuery.clientType = query.clientType;
+    }
+
     return this.clientRepository.findMany({
-      filterQuery: {
-        name: { $regex: query.keyword, $options: 'i' },
-      },
+      filterQuery,
       skip: query.skip,
       limit: query.limit,
       order: OrderEnum.DESC,

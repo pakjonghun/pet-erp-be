@@ -28,7 +28,6 @@ export class ProductResolver {
 
   @Query(() => ProductsOutput, { name: 'products' })
   async products(@Args('productsInput') productsInput: ProductsInput) {
-    console.log('productsInput : ', productsInput);
     const result = await this.productService.findMany(productsInput);
     return result;
   }

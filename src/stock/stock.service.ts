@@ -251,12 +251,33 @@ export class StockService {
     order = OrderEnum.DESC,
     sort = 'createdAt',
     skip,
+    storageName,
   }: StocksInput) {
-    const filterQuery = {
+    type CountAggregate = { _id: string; accCount: number };
+
+    const filterQuery: FilterQuery<Product> = {
       name: { $regex: keyword, $options: 'i' },
     };
 
-    type CountAggregate = { _id: string; accCount: number };
+    let stocks: Stock[] = [];
+
+    if (storageName) {
+      const storage = await this.storageModel.findOne({ name: storageName });
+      if (!storage) {
+        throw new NotFoundException(
+          `${storageName}은 존재하지 않는 창고 입니다.`,
+        );
+      }
+
+      stocks = await this.stockRepository.model
+        .find({
+          storage: storage._id,
+        })
+        .lean<Stock[]>();
+
+      const initProductIds = stocks.map((stock) => stock.product);
+      filterQuery._id = { $in: initProductIds };
+    }
 
     const productList = await this.productModel
       .find(filterQuery)
@@ -267,8 +288,65 @@ export class StockService {
       .lean<Product[]>();
 
     const productIdList = productList.map((item) => item._id);
-    console.log('productIdList : ', productIdList);
     const productCodeList = productList.map((item) => item.code);
+
+    let stockPipeLine: PipelineStage[] = [];
+    if (storageName && stocks.length) {
+      stockPipeLine = [
+        {
+          $match: {
+            _id: { $in: stocks.map((stock) => stock._id) },
+            count: {
+              $exists: true,
+              $gt: 0,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$product',
+            accCount: { $sum: '$count' },
+          },
+        },
+        {
+          $project: {
+            _id: { $toString: '$_id' },
+            accCount: 1,
+          },
+        },
+      ];
+    } else {
+      stockPipeLine = [
+        {
+          $match: {
+            product: { $in: productIdList },
+            count: {
+              $exists: true,
+              $gt: 0,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$product',
+            accCount: { $sum: '$count' },
+          },
+        },
+        {
+          $project: {
+            _id: { $toString: '$_id' },
+            accCount: 1,
+          },
+        },
+      ];
+    }
+
+    const stockList =
+      await this.stockRepository.model.aggregate<CountAggregate>(stockPipeLine);
+    const stockMap = new Map(
+      stockList.map((stock) => [stock._id, stock.accCount]),
+    );
+
     const orderPipeLine: PipelineStage[] = [
       {
         $match: {
@@ -316,7 +394,7 @@ export class StockService {
     const orderMap = new Map(
       orderList.map((order) => [order._id, order.accCount]),
     );
-    console.log('orderList', orderList);
+
     const [from, to] = this.utilService.recentDayjsMonthRange();
     const salePipeLine: PipelineStage[] = [
       {
@@ -352,37 +430,6 @@ export class StockService {
     const saleMap = new Map(
       saleList.map((stock) => [stock._id, stock.accCount]),
     );
-    console.log('saleList : ', saleList);
-
-    const stockPipeLine: PipelineStage[] = [
-      {
-        $match: {
-          product: { $in: productIdList },
-          count: {
-            $exists: true,
-            $gt: 0,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: '$product',
-          accCount: { $sum: '$count' },
-        },
-      },
-      {
-        $project: {
-          _id: { $toString: '$_id' },
-          accCount: 1,
-        },
-      },
-    ];
-    const stockList =
-      await this.stockRepository.model.aggregate<CountAggregate>(stockPipeLine);
-    const stockMap = new Map(
-      stockList.map((stock) => [stock._id, stock.accCount]),
-    );
-    console.log('stockList : ', stockList);
 
     const data = productList.map((item) => {
       const projectId = item._id.toHexString();
@@ -392,7 +439,6 @@ export class StockService {
 
       const daySale = saleItem / 30;
       const leftDate = daySale == 0 ? null : Math.floor(stockItem / daySale);
-      console.log('leftDate : ', saleItem, daySale, leftDate);
 
       const newData: StockColumn = {
         wonPrice: item.wonPrice,
