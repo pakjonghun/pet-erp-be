@@ -1,28 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateWholeSaleInput } from './dto/create-whole-sale.input';
 import { UpdateWholeSaleInput } from './dto/update-whole-sale.input';
 import { WholeSaleRepository } from './whole-sale.repository';
 import { SaleInterface } from 'src/sale/entities/sale.entity';
 import * as uuid from 'uuid';
+import { InjectModel } from '@nestjs/mongoose';
+import { Storage } from 'src/storage/entities/storage.entity';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class WholeSaleService {
-  constructor(private readonly wholeSaleRepository: WholeSaleRepository) {}
+  constructor(
+    private readonly wholeSaleRepository: WholeSaleRepository,
+    @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
+  ) {}
 
-  async create({
-    productList,
-    storage,
-    ...commonSaleInfo
-  }: CreateWholeSaleInput) {
-    const allWholeSaleData = productList.map((product) => {
-      // const uniqueId = uuid.v4();
-      // const code = `${uniqueId}_${product.productCode}_${storage._id}`;
-      // const saleData: SaleInterface = { ...product, code, ...commonSaleInfo };
-      // const saleDateDoc = new this.wholeSaleRepository.model(saleData);
-      // return saleDateDoc;
-    });
-
-    // await this.wholeSaleRepository.bulkWrite(allWholeSaleData);
+  async create({ productList, ...commonSaleInfo }: CreateWholeSaleInput) {
     return 'This action adds a new wholeSale';
   }
 

@@ -2,58 +2,65 @@ import {
   ArrayNotEmpty,
   IsArray,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
+  Min,
 } from 'class-validator';
 import { SaleInterface } from './../../sale/entities/sale.entity';
 import { InputType, Field, Int } from '@nestjs/graphql';
-import { IsObjectId } from 'src/common/validations/id.validation';
+import { IsDateValidate } from 'src/common/validations/date.validation';
 
 @InputType()
 export class CreateWholeSaleProductList {
-  @IsOptional()
   @IsString()
-  @Field(() => String, { nullable: true })
-  count?: number;
+  @IsNotEmpty({ message: '창고 이름을 입력하세요.' })
+  @Field(() => String)
+  storageName: string;
 
   @IsString()
   @IsNotEmpty({ message: '제품 이름을 입력해주세요.' })
   @Field(() => String)
-  name: string;
+  productName: string;
 
   @IsString()
   @IsNotEmpty({ message: '제품 코드를 입력해주세요.' })
   @Field(() => String)
-  code?: string;
+  productCode: string;
+
+  @IsNumber()
+  @Min(1, { message: '수량은 1이상의 숫자를 입력하세요.' })
+  @Field(() => Int)
+  count: number;
+
+  @IsNumber()
+  @Min(0, { message: '판매가는 0이상의 숫자를 입력하세요.' })
+  @Field(() => Int)
+  payCost: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0, { message: '원가는 0 이상의 숫자를 입력하세요.' })
+  @Field(() => Int, { nullable: true })
+  wonCost?: number;
 }
 
 @InputType()
 export class CreateWholeSaleInput implements Omit<SaleInterface, 'code'> {
   @IsString()
-  @IsNotEmpty({ message: '창고 아이디를 입력하세요.' })
-  @IsObjectId({ message: '올바른 창고 아이디를 입력하세요.' })
+  @IsNotEmpty({ message: '판매 거래처를 입력하세요.' })
   @Field(() => String)
-  storage: string;
+  mallId: string;
 
   @IsOptional()
-  @IsString()
-  @Field(() => Date, { nullable: true })
-  saleAt?: Date;
-
-  @IsOptional()
-  @IsString()
-  @Field(() => Int, { nullable: true })
-  payCost?: number;
+  @IsDateValidate({ message: '올바른 판매 날짜를 입력하세요.' })
+  @Field(() => Date)
+  saleAt: Date;
 
   @IsOptional()
   @IsString()
   @Field(() => String, { nullable: true })
-  mallId?: string;
-
-  @IsOptional()
-  @IsString()
-  @Field(() => Int, { nullable: true })
-  wonCost?: number;
+  telephoneNumber1?: string;
 
   @IsArray()
   @ArrayNotEmpty({ message: '1개 이상의 제품을 입력해주세요.' })

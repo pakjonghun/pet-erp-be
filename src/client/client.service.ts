@@ -68,7 +68,7 @@ export class ClientService {
     };
 
     if (query.clientType) {
-      filterQuery.clientType = query.clientType;
+      filterQuery.clientType = { $in: query.clientType };
     }
 
     return this.clientRepository.findMany({
