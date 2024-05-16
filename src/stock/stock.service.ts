@@ -6,10 +6,15 @@ import {
 } from '@nestjs/common';
 import { CreateStockInput } from './dto/create-stock.input';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model, PipelineStage } from 'mongoose';
+import {
+  AnyBulkWriteOperation,
+  FilterQuery,
+  Model,
+  PipelineStage,
+} from 'mongoose';
 import { Subsidiary } from 'src/subsidiary/entities/subsidiary.entity';
 import { Storage } from 'src/storage/entities/storage.entity';
-import { Stock, StockDocument } from './entities/stock.entity';
+import { Stock } from './entities/stock.entity';
 import { StockRepository } from './stock.repository';
 import { StocksInput } from './dto/stocks.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
@@ -191,22 +196,17 @@ export class StockService {
   }
 
   async out({ stocks }: CreateStockInput) {
-    const newStock: StockDocument[] = [];
+    const newStock: AnyBulkWriteOperation<Stock>[] = [];
 
-    for await (const {
-      productName,
-      storageName,
-      count,
-      isSubsidiary,
-    } of stocks) {
-      const product = await this.productModel.findOne({ _id: productName });
+    for await (const { productName, storageName, count } of stocks) {
+      const product = await this.productModel.findOne({ name: productName });
       if (!product) {
         throw new NotFoundException(
           `${productName}는 존재하지 않는 제품 입니다.`,
         );
       }
 
-      const storage = await this.storageModel.findOne({ _id: storageName });
+      const storage = await this.storageModel.findOne({ name: storageName });
       if (!storage) {
         throw new NotFoundException(
           `${storageName}는 존재하지 않는 창고 입니다.`,
@@ -226,21 +226,19 @@ export class StockService {
 
       if (stock.count < count) {
         throw new ConflictException(
-          `재고가 부족합니다. ${storage.name}창고에 ${product.name} 제품은 ${stock.count}EA 남아있습니다.`,
+          `재고가 부족합니다. ${storage.name}에 ${product.name} 제품은 ${stock.count}EA 남아있습니다.`,
         );
       }
 
-      const stockDoc = new this.stockRepository.model({
-        count,
-        isSubsidiary,
-        product,
-        storage,
+      newStock.push({
+        updateOne: {
+          filter: { _id: stock._id },
+          update: { $set: { count: stock.count - count } },
+        },
       });
-
-      newStock.push(stockDoc);
     }
 
-    return this.stockRepository.bulkWrite(newStock);
+    await this.stockRepository.model.bulkWrite(newStock);
   }
 
   findAll() {

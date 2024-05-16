@@ -15,7 +15,7 @@ export class StockResolver {
     return this.stockService.add(addStocksInput);
   }
 
-  @Mutation(() => [Stock])
+  @Mutation(() => [Stock], { nullable: true })
   outStock(@Args('outStocksInput') addStocksInput: CreateStockInput) {
     return this.stockService.out(addStocksInput);
   }
