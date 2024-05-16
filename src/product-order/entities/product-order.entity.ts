@@ -64,6 +64,9 @@ export class ProductOrder
   @Prop({ type: Boolean, default: false })
   @Field(() => Boolean)
   isDone: boolean;
+
+  @Field(() => Date)
+  createdAt: Date;
 }
 
 export const ProductOrderSchema = SchemaFactory.createForClass(ProductOrder);

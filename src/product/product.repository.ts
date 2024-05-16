@@ -4,12 +4,16 @@ import { AbstractRepository } from 'src/common/database/abstract.repository';
 import { Product } from './entities/product.entity';
 import { FilterQuery, Model } from 'mongoose';
 import { ProductsInput } from './dtos/products-input';
+import { UtilService } from 'src/util/util.service';
 
 @Injectable()
 export class ProductRepository extends AbstractRepository<Product> {
   protected readonly logger = new Logger();
 
-  constructor(@InjectModel(Product.name) productMode: Model<Product>) {
+  constructor(
+    private readonly utilService: UtilService,
+    @InjectModel(Product.name) productMode: Model<Product>,
+  ) {
     super(productMode);
   }
 
@@ -25,8 +29,9 @@ export class ProductRepository extends AbstractRepository<Product> {
   }
 
   async findFullManyProducts({ keyword, limit, skip }: ProductsInput) {
+    const escapedKeyword = this.utilService.escapeRegex(keyword);
     const filterQuery: FilterQuery<Product> = {
-      name: { $regex: keyword, $options: 'i' },
+      name: { $regex: escapedKeyword, $options: 'i' },
     };
     const totalCount = await this.model.countDocuments(filterQuery);
     const data = await this.model

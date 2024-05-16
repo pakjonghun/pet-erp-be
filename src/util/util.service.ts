@@ -107,4 +107,8 @@ export class UtilService {
   getNumberWithComma = (number: number) => {
     return Intl.NumberFormat('ko-KR').format(number);
   };
+
+  escapeRegex(string: string) {
+    return string.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  }
 }

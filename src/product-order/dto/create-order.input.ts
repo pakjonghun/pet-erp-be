@@ -30,7 +30,7 @@ export class CreateOrderProductInput
 
 @InputType()
 export class CreateOrderInput
-  implements Omit<ProductOrderInterface, 'factory' | 'products'>
+  implements Omit<ProductOrderInterface, 'factory' | 'products' | 'createdAt'>
 {
   @Field(() => Date)
   @IsDate({ message: '올바른 형식의 ISO 날짜를 입력해주세요.' })
