@@ -18,7 +18,7 @@ export class StockColumn {
   @Field(() => Int, { nullable: true })
   wonPrice?: number;
 
-  @Field(() => Int)
+  @Field(() => Int, { nullable: true })
   leftDate: number;
 }
 

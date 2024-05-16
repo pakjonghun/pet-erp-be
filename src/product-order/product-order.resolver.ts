@@ -89,4 +89,10 @@ export class ProductOrderResolver {
       ),
     }));
   }
+
+  @Query(() => [ProductOrder])
+  async stocksOrder(@Args('productName') productName: string) {
+    const result = await this.orderService.findStocksOrder(productName);
+    return result;
+  }
 }

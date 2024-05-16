@@ -10,7 +10,7 @@ import { StockStateOutput } from './dto/stocks-state.output';
 @Resolver(() => Stock)
 export class StockResolver {
   constructor(private readonly stockService: StockService) {}
-  @Mutation(() => [Stock])
+  @Mutation(() => [Stock], { nullable: true })
   addStock(@Args('addStocksInput') addStocksInput: CreateStockInput) {
     return this.stockService.add(addStocksInput);
   }

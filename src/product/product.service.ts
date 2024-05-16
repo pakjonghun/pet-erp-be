@@ -86,6 +86,25 @@ export class ProductService {
   }
 
   async update({ _id, ...body }: UpdateProductInput) {
+    if (body.category) {
+      const productCategory = await this.categoryService.findOne({
+        name: body.category,
+      });
+
+      if (!productCategory) {
+        throw new NotFoundException(
+          `${body.category}은 존재하지 않는 분류 입니다.`,
+        );
+      }
+
+      const newBody = {
+        ...body,
+        category: productCategory,
+      };
+      await this.productRepository.update({ _id }, newBody);
+      return this.findOne({ _id });
+    }
+
     await this.productRepository.update({ _id }, body);
     return this.findOne({ _id });
   }

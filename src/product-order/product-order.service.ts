@@ -21,6 +21,28 @@ export class ProductOrderService {
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
   ) {}
 
+  async findStocksOrder(productName: string) {
+    const product = await this.productModel.findOne({ name: productName });
+    if (!product) {
+      throw new NotFoundException(
+        `${productName}은 존재하지 않는 제품 입니다.`,
+      );
+    }
+
+    const orderList = await this.productOrderRepository.model
+      .find({
+        products: {
+          $elemMatch: {
+            product: product._id,
+          },
+        },
+      })
+      .sort({ isDone: 1, createdAt: -1 })
+      .lean<ProductOrder[]>();
+
+    return orderList;
+  }
+
   async create({ factory, products, ...body }: CreateOrderInput) {
     const factoryDoc = await this.factoryCheck(factory);
     const productList = await this.productsCheck(products);

@@ -393,11 +393,12 @@ export class StockService {
       const stockItem = stockMap.get(projectId) ?? 0;
 
       const daySale = saleItem / 30;
-      const leftDate = Math.floor(stockItem / daySale);
+      const leftDate = daySale == 0 ? null : Math.floor(stockItem / daySale);
+      console.log('leftDate : ', saleItem, daySale, leftDate);
 
       const newData: StockColumn = {
         wonPrice: item.wonPrice,
-        leftDate: stockItem == 0 ? 0 : leftDate,
+        leftDate: stockItem == 0 ? -1 : leftDate,
         monthSaleCount: saleItem,
         productName: item.name,
         stockCount: `${this.utilService.getNumberWithComma(stockItem)}(+${this.utilService.getNumberWithComma(orderItem)})`,
@@ -406,7 +407,7 @@ export class StockService {
 
       return newData;
     });
-    console.log('data : ', data);
+    // console.log('data : ', data);
     // console.log('result  : ', result);
 
     const totalCount = await this.productModel.countDocuments(filterQuery);
