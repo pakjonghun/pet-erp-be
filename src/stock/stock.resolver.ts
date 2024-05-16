@@ -5,6 +5,7 @@ import { CreateStockInput } from './dto/create-stock.input';
 import { TotalProductStockOutput } from './dto/total-product-stock.output';
 import { StocksInput } from './dto/stocks.input';
 import { StocksOutput } from './dto/stocks.output';
+import { StockStateOutput } from './dto/stocks-state.output';
 
 @Resolver(() => Stock)
 export class StockResolver {
@@ -22,6 +23,12 @@ export class StockResolver {
   @Query(() => StocksOutput)
   stocks(@Args('stocksInput') stockInput: StocksInput) {
     return this.stockService.findMany(stockInput);
+  }
+
+  @Query(() => [StockStateOutput])
+  async stocksState(@Args('productName') productName: string) {
+    const result = await this.stockService.findStockByState(productName);
+    return result;
   }
 
   @Query(() => [TotalProductStockOutput], { name: 'stock' })

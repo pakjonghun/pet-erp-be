@@ -15,6 +15,7 @@ import {
   ProductOrderSchema,
 } from 'src/product-order/entities/product-order.entity';
 import { Sale, saleSchema } from 'src/sale/entities/sale.entity';
+import { Factory, FactorySchema } from 'src/factory/entities/factory.entity';
 
 @Module({
   imports: [
@@ -42,6 +43,10 @@ import { Sale, saleSchema } from 'src/sale/entities/sale.entity';
       {
         name: Sale.name,
         schema: saleSchema,
+      },
+      {
+        name: Factory.name,
+        schema: FactorySchema,
       },
     ]),
   ],

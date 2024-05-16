@@ -12,8 +12,11 @@ export class StockColumn {
   @Field(() => Int)
   monthSaleCount: number;
 
-  @Field(() => Int)
-  leadTime: number;
+  @Field(() => Int, { nullable: true })
+  leadTime?: number;
+
+  @Field(() => Int, { nullable: true })
+  wonPrice?: number;
 
   @Field(() => Int)
   leftDate: number;

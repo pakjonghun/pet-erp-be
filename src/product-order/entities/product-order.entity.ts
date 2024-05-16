@@ -29,9 +29,13 @@ export class OrderProduct implements OrderProductInterface {
   @Field(() => Product)
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Product.name })
   product: Product;
+
+  @Field(() => Product, { nullable: true })
+  @Prop({ type: Number })
+  leftCount: number;
 }
 
-@Schema({ timestamps: { createdAt: false }, versionKey: false })
+@Schema({ timestamps: true, versionKey: false })
 @ObjectType()
 export class ProductOrder
   extends AbstractEntity

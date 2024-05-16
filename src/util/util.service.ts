@@ -103,4 +103,8 @@ export class UtilService {
     const prevTo = dayjs(to).subtract(diff, 'hour').toDate();
     return { from: prevFrom, to: prevTo };
   }
+
+  getNumberWithComma = (number: number) => {
+    return Intl.NumberFormat('ko-KR').format(number);
+  };
 }

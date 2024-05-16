@@ -17,6 +17,10 @@ import { ProductOrder } from 'src/product-order/entities/product-order.entity';
 import { UtilService } from 'src/util/util.service';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { StockColumn } from './dto/stocks.output';
+import { StockStateOutput } from './dto/stocks-state.output';
+import { ObjectId } from 'mongodb';
+import * as dayjs from 'dayjs';
+import { Factory } from 'src/factory/entities/factory.entity';
 
 @Injectable()
 export class StockService {
@@ -30,7 +34,117 @@ export class StockService {
     @InjectModel(Subsidiary.name)
     private readonly subsidiaryModel: Model<Subsidiary>,
     private readonly stockRepository: StockRepository,
+    @InjectModel(Factory.name)
+    private readonly factoryModel: Model<Factory>,
   ) {}
+
+  async findStockByState(productName: string) {
+    try {
+      const product = await this.productModel.findOne({ name: productName });
+      console.log('product : ', product);
+      if (!product) {
+        throw new NotFoundException(
+          `${productName}은 존재하지 않는 제품입니다.`,
+        );
+      }
+
+      const factoryList = await this.factoryModel.find({}).lean<Factory[]>();
+      const storageList = await this.storageModel.find({}).lean<Storage[]>();
+
+      const orderList = await this.productOrderModel
+        .find({
+          products: {
+            $elemMatch: {
+              product: product._id,
+            },
+          },
+          isDone: false,
+        })
+        .lean<ProductOrder[]>();
+
+      const factoryMap = new Map<string, StockStateOutput[]>();
+      orderList.forEach((order) => {
+        const factoryId = (order.factory as unknown as ObjectId).toHexString();
+        if (factoryMap.has(factoryId)) return;
+
+        factoryMap.set(factoryId, []);
+      });
+
+      orderList.forEach((order) => {
+        const createdAt = order.createdAt;
+
+        const factoryId = (order.factory as unknown as ObjectId).toHexString();
+        const orderCompleteDate =
+          product.leadTime == null
+            ? null
+            : dayjs(createdAt)
+                .add(product.leadTime ?? 0, 'day')
+                .format('YYYY-MM-DD');
+        order.products.forEach((item) => {
+          const productId = (item.product as unknown as ObjectId).toHexString();
+          if (productId !== productId) return;
+
+          const locationDoc = factoryList.find(
+            (factory) =>
+              factory._id.toHexString() ==
+              (order.factory as unknown as ObjectId).toHexString(),
+          );
+          if (!locationDoc) return;
+
+          const factoryItem = factoryMap.get(factoryId);
+          if (!factoryItem) return;
+
+          const existItemIndex = factoryItem.findIndex(
+            (item) => item.orderCompleteDate === orderCompleteDate,
+          );
+          const prevCount = factoryItem[existItemIndex]?.count ?? 0;
+          const newItem: StockStateOutput = {
+            productName: product.name,
+            count: prevCount + item.count,
+            location: locationDoc.name,
+            orderCompleteDate,
+            state: '제조중',
+          };
+          if (existItemIndex != -1) {
+            factoryItem[existItemIndex] = newItem;
+          } else {
+            factoryItem.push(newItem);
+          }
+        });
+      });
+
+      const stockList = await this.stockRepository.model
+        .find({
+          product: product._id,
+        })
+        .lean<Stock[]>();
+
+      const stockValues = stockList.map((stock) => {
+        const location = storageList.find(
+          (item) =>
+            item._id.toHexString() ==
+            (stock.storage as unknown as ObjectId).toHexString(),
+        );
+        if (!location) return;
+
+        const newItem: StockStateOutput = {
+          productName: product.name,
+          count: stock.count,
+          location: location.name,
+          orderCompleteDate: null,
+          state: '보관중',
+        };
+
+        return newItem;
+      });
+
+      const orderValues = Array.from(factoryMap.values()).flat();
+
+      return orderValues.concat(stockValues);
+    } catch (e) {
+      console.log(e);
+    }
+  }
 
   async add({ stocks }: CreateStockInput) {
     for await (const {
@@ -148,7 +262,7 @@ export class StockService {
 
     const productList = await this.productModel
       .find(filterQuery)
-      .select(['_id', 'code', 'name', 'leadTime'])
+      .select(['_id', 'code', 'name', 'leadTime', 'wonPrice'])
       .limit(limit)
       .skip(skip)
       .sort({ [sort]: order == OrderEnum.DESC ? -1 : 1 })
@@ -282,10 +396,11 @@ export class StockService {
       const leftDate = Math.floor(stockItem / daySale);
 
       const newData: StockColumn = {
+        wonPrice: item.wonPrice,
         leftDate: stockItem == 0 ? 0 : leftDate,
         monthSaleCount: saleItem,
         productName: item.name,
-        stockCount: `${stockItem}(+${orderItem})`,
+        stockCount: `${this.utilService.getNumberWithComma(stockItem)}(+${this.utilService.getNumberWithComma(orderItem)})`,
         leadTime: item.leadTime,
       };
 

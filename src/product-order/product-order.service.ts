@@ -33,6 +33,7 @@ export class ProductOrderService {
       return {
         product,
         count: targetProduct.count,
+        leftCount: targetProduct.count,
       };
     });
     const result = await this.productOrderRepository.create({

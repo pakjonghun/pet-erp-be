@@ -2,6 +2,7 @@ import { InputType, Int, Field } from '@nestjs/graphql';
 import {
   IsArray,
   IsBoolean,
+  IsDate,
   IsNotEmpty,
   IsNumber,
   IsString,
@@ -31,6 +32,10 @@ export class CreateOrderProductInput
 export class CreateOrderInput
   implements Omit<ProductOrderInterface, 'factory' | 'products'>
 {
+  @Field(() => Date)
+  @IsDate({ message: '올바른 형식의 ISO 날짜를 입력해주세요.' })
+  createdAt: Date;
+
   @IsString()
   @IsNotEmpty({ message: '제조 공장 아이디를 입력하세요.' })
   @Field(() => String)
