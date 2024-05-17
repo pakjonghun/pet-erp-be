@@ -1,15 +1,16 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateWholeSaleInput } from './dto/create-whole-sale.input';
 import { UpdateWholeSaleInput } from './dto/update-whole-sale.input';
 import { WholeSaleRepository } from './whole-sale.repository';
 import { Sale, SaleInterface } from 'src/sale/entities/sale.entity';
-import { InjectModel } from '@nestjs/mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Storage } from 'src/storage/entities/storage.entity';
-import { AnyBulkWriteOperation, Model } from 'mongoose';
+import { AnyBulkWriteOperation, Connection, Model } from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
 import { Product } from 'src/product/entities/product.entity';
 import { Stock } from 'src/stock/entities/stock.entity';
@@ -26,6 +27,7 @@ export class WholeSaleService {
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Client.name) private readonly clientModel: Model<Client>,
     @InjectModel(Stock.name) private readonly stockModel: Model<Stock>,
+    @InjectConnection() private readonly connection: Connection,
   ) {}
 
   async create({
@@ -53,74 +55,100 @@ export class WholeSaleService {
     const storageNameList = productList.map((product) => product.storageName);
     const storageDocList = await this.storageModel
       .find({
-        name: { $in: productNameList },
+        name: { $in: storageNameList },
       })
       .lean<Product[]>();
-
-    if (storageNameList.length !== storageDocList.length) {
+    const storageSet = new Set(storageNameList);
+    if (storageSet.size !== storageDocList.length) {
       throw new NotFoundException('존재하지 않는 창고가 있습니다.');
     }
 
     const saleDocList: AnyBulkWriteOperation<Sale>[] = [];
+    const stockDocList: AnyBulkWriteOperation<Stock>[] = [];
     const wholeSaleId = uuid.v4();
-    for await (const {
-      count,
-      payCost,
-      productCode,
-      productName,
-      storageName,
-      wonCost,
-    } of productList) {
-      const targetProduct = productDocList.find(
-        (item) => item.name === productName,
-      );
-      const targetStorage = storageDocList.find(
-        (item) => item.name === storageName,
-      );
-      if (!targetProduct || !targetStorage) continue;
 
-      const stockDoc = await this.stockModel
-        .findOne({
-          storage: targetStorage._id,
-          product: targetProduct._id,
-        })
-        .lean<Stock>();
-
-      if (!stockDoc) {
-        throw new NotFoundException(
-          `${storageName}에 ${productName}제품이 존재하지 않습니다.`,
-        );
-      }
-
-      if (stockDoc.count < count) {
-        throw new ConflictException(
-          `${storageName}에 ${productName}재고가 부족합니다. 남은재고 ${stockDoc.count}`,
-        );
-      }
-
-      const newWholeSale: SaleInterface = {
-        code: uuid.v4(),
+    const session = await this.connection.startSession();
+    session.startTransaction();
+    try {
+      for await (const {
         count,
-        telephoneNumber1,
-        productName,
-        productCode,
-        saleAt,
         payCost,
-        mallId,
+        productCode,
+        productName,
+        storageName,
         wonCost,
-        wholeSaleId,
-        // deliveryCost?: number,
-      };
+      } of productList) {
+        const targetProduct = productDocList.find(
+          (item) => item.name === productName,
+        );
+        const targetStorage = storageDocList.find(
+          (item) => item.name === storageName,
+        );
+        if (!targetProduct || !targetStorage) continue;
 
-      const saleItem = new this.wholeSaleRepository.model(newWholeSale);
-      saleDocList.push({
-        insertOne: {
-          document: saleItem,
-        },
-      });
+        const stockDoc = await this.stockModel
+          .findOne({
+            storage: targetStorage._id,
+            product: targetProduct._id,
+          })
+          .lean<Stock>();
+
+        if (!stockDoc) {
+          throw new NotFoundException(
+            `${storageName}에 ${productName}제품이 존재하지 않습니다.`,
+          );
+        }
+
+        if (stockDoc.count < count) {
+          throw new ConflictException(
+            `${storageName}에 ${productName}재고가 부족합니다. 남은재고 ${stockDoc.count}`,
+          );
+        }
+
+        //재고를 출고 시킨다.
+        //트랜젝션이 필요함.
+        stockDocList.push({
+          updateOne: {
+            filter: {
+              _id: stockDoc._id,
+            },
+            update: { $inc: { count: -count } },
+          },
+        });
+
+        const newWholeSale: SaleInterface = {
+          code: uuid.v4(),
+          count,
+          telephoneNumber1,
+          productName,
+          productCode,
+          saleAt,
+          payCost,
+          mallId,
+          wonCost,
+          wholeSaleId,
+          // deliveryCost?: number,
+        };
+
+        const saleItem = new this.wholeSaleRepository.model(newWholeSale);
+        saleDocList.push({
+          insertOne: {
+            document: saleItem,
+          },
+        });
+      }
+
+      await this.wholeSaleRepository.model.bulkWrite(saleDocList);
+      await this.stockModel.bulkWrite(stockDocList);
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw new InternalServerErrorException(
+        `서버 오류가 발생했습니다. ${error.message} `,
+      );
+    } finally {
+      await session.endSession();
     }
-
-    await this.wholeSaleRepository.model.bulkWrite(saleDocList);
   }
 
   async findAll({ from, to, keyword, limit, skip }: WholeSalesInput) {

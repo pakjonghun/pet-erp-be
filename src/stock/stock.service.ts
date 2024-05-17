@@ -78,25 +78,34 @@ export class StockService {
         },
       },
       {
-        $sort: {
-          [sort]: order === OrderEnum.DESC ? -1 : 1,
-          _id: 1,
+        $facet: {
+          result: [
+            {
+              $sort: {
+                [sort]: order === OrderEnum.DESC ? -1 : 1,
+                _id: 1,
+              },
+            },
+            {
+              $skip: skip,
+            },
+            {
+              $limit: limit,
+            },
+          ],
+          totalCount: [{ $count: 'count' }],
         },
-      },
-      {
-        $skip: skip,
-      },
-      {
-        $limit: limit,
       },
     ];
 
-    const stockList =
-      await this.stockRepository.model.aggregate<Stock>(stockPipeLine);
+    const stockList = await this.stockRepository.model.aggregate<{
+      result: Stock[];
+      totalCount: { count: number }[];
+    }>(stockPipeLine);
 
     const result: ProductCountColumn[] = [];
-
-    stockList.forEach((stock) => {
+    console.log(stockList);
+    stockList[0].result.forEach((stock) => {
       const productItem = productMap.get(
         (stock.product as unknown as ObjectId).toHexString(),
       );
@@ -105,12 +114,17 @@ export class StockService {
       const newProduct: ProductCountColumn = {
         name: productItem.name,
         count: stock.count,
+        code: productItem.code,
+        salePrice: productItem.salePrice,
+        wonPrice: productItem.wonPrice,
       };
 
       result.push(newProduct);
     });
-
-    return result;
+    return {
+      data: result,
+      totalCount: stockList[0].totalCount[0]?.count ?? 0,
+    };
   }
 
   async findStockByState(productName: string) {

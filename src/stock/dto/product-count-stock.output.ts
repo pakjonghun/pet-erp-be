@@ -3,7 +3,12 @@ import { FindManyOutput } from 'src/common/dtos/find-many.output';
 import { Product } from 'src/product/entities/product.entity';
 
 @ObjectType()
-export class ProductCountColumn extends PickType(Product, ['name']) {
+export class ProductCountColumn extends PickType(Product, [
+  'name',
+  'salePrice',
+  'wonPrice',
+  'code',
+]) {
   @Field(() => Int)
   count: number;
 }
