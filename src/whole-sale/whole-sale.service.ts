@@ -1,3 +1,4 @@
+import { ProductSaleData } from './../product/dtos/product-sale.output';
 import {
   ConflictException,
   Injectable,
@@ -9,15 +10,23 @@ import { WholeSaleRepository } from './whole-sale.repository';
 import { Sale, SaleInterface } from 'src/sale/entities/sale.entity';
 import { InjectModel } from '@nestjs/mongoose';
 import { Storage } from 'src/storage/entities/storage.entity';
-import { AnyBulkWriteOperation, Model, PipelineStage } from 'mongoose';
+import {
+  AnyBulkWriteOperation,
+  FilterQuery,
+  Model,
+  PipelineStage,
+} from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
 import { Product } from 'src/product/entities/product.entity';
 import { Stock } from 'src/stock/entities/stock.entity';
 import * as uuid from 'uuid';
+import { WholeSalesInput } from './dto/whole-sales.input';
+import { UtilService } from 'src/util/util.service';
 
 @Injectable()
 export class WholeSaleService {
   constructor(
+    private readonly utilService: UtilService,
     private readonly wholeSaleRepository: WholeSaleRepository,
     @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
@@ -120,25 +129,99 @@ export class WholeSaleService {
     await this.wholeSaleRepository.model.bulkWrite(saleDocList);
   }
 
-  async findAll() {
+  async findAll({ from, to, keyword, limit, skip }: WholeSalesInput) {
+    const filterQuery: Record<string, any> = {
+      wholeSaleId: { $exists: true },
+      productName: {
+        $regex: this.utilService.escapeRegex(keyword),
+        $options: 'i',
+      },
+    };
+
+    if (from && to) {
+      filterQuery.saleAt = {
+        $gte: from,
+        $lte: to,
+      };
+    }
+
+    if (from && !to) {
+      filterQuery.saleAt = {
+        $gte: from,
+      };
+    }
+
+    if (!from && to) {
+      filterQuery.saleAt = {
+        $lte: to,
+      };
+    }
+
     const result = await this.wholeSaleRepository.model
-      .find({
-        wholeSaleId: { $exists: true },
-      })
-      .sort({ wholeSaleId: 1, createdAt: -1 });
+      .find()
+      .sort({ wholeSaleId: 1, createdAt: -1 })
+      .limit(limit)
+      .skip(skip)
+      .lean<Sale[]>();
 
     return result;
   }
 
-  findOne(id: string) {
-    return `This action returns a #${id} wholeSale`;
+  async update({
+    wholeSaleId,
+    mallId,
+    productList,
+    saleAt,
+    telephoneNumber1,
+  }: UpdateWholeSaleInput) {
+    //일단 다 찾는다.
+    const wholeSaleList = await this.wholeSaleRepository.model
+      .find({
+        wholeSaleId,
+      })
+      .lean<Sale[]>();
+
+    if (wholeSaleList.length == 0) {
+      throw new NotFoundException('해당 도매 판매데이터를 찾을 수 없습니다.');
+    }
+
+    //삭제, 생성, 업데이트, 변동없는것 을 구분한다.
+    const prevSaleMapByCode = new Map<string, Sale>(
+      wholeSaleList.map((sale) => [sale.code, sale]),
+    );
+
+    const updateWholeSaleList = productList.map(({ productCode, ...rest }) => [
+      productCode,
+      {
+        ...rest,
+        code: productCode,
+        mallId,
+        saleAt,
+        telephoneNumber1,
+      } as unknown as Sale,
+    ]) as [string, Sale][];
+
+    const updateSaleByCode = new Map<string, Sale>(updateWholeSaleList);
+
+    const createMap = new Map<string, any>();
+    const updateMap = new Map<string, any>();
+    const deleteMap = new Map<string, any>();
+
+    const createWholeSaleList = wholeSaleList.filter(
+      (item) => !prevSaleMapByCode.has(item.code),
+    );
+    const deleteWholeSaleList = wholeSaleList.filter(
+      (item) => !updateSaleByCode.has(item.code),
+    );
+
+    const prevMallId = wholeSaleList[0].mallId;
+    const prevSaleAt = wholeSaleList[0].saleAt;
+    const prevPhone = wholeSaleList[0].telephoneNumber1;
+
+    //삭제 생성 업데이트를 진행해 준다.
   }
 
-  update(updateWholeSaleInput: UpdateWholeSaleInput) {
-    return `This action updates a  wholeSale`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} wholeSale`;
+  async remove(wholeSaleId: string) {
+    await this.wholeSaleRepository.model.deleteMany({ wholeSaleId });
   }
 }

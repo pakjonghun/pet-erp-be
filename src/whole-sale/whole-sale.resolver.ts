@@ -4,6 +4,7 @@ import { CreateWholeSaleInput } from './dto/create-whole-sale.input';
 import { UpdateWholeSaleInput } from './dto/update-whole-sale.input';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { WholeSaleOutput } from './dto/whole-sales.output';
+import { WholeSalesInput } from './dto/whole-sales.input';
 
 @Resolver(() => Sale)
 export class WholeSaleResolver {
@@ -16,14 +17,9 @@ export class WholeSaleResolver {
     return this.wholeSaleService.create(createWholeSaleInput);
   }
 
-  @Query(() => [Sale], { name: 'wholeSale' })
-  findAll() {
-    return this.wholeSaleService.findAll();
-  }
-
-  @Query(() => Sale, { name: 'wholeSale' })
-  findOne(@Args('_id') _id: string) {
-    return this.wholeSaleService.findOne(_id);
+  @Query(() => [Sale])
+  wholeSales(@Args('wholeSalesInput') wholeSalesInput: WholeSalesInput) {
+    return this.wholeSaleService.findAll(wholeSalesInput);
   }
 
   @Mutation(() => WholeSaleOutput)
@@ -34,7 +30,9 @@ export class WholeSaleResolver {
   }
 
   @Mutation(() => Sale)
-  removeWholeSale(@Args('id', { type: () => Int }) id: number) {
-    return this.wholeSaleService.remove(id);
+  removeWholeSale(
+    @Args('wholeSaleId', { type: () => String }) wholeSaleId: string,
+  ) {
+    return this.wholeSaleService.remove(wholeSaleId);
   }
 }
