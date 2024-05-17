@@ -9,7 +9,7 @@ import { WholeSaleRepository } from './whole-sale.repository';
 import { Sale, SaleInterface } from 'src/sale/entities/sale.entity';
 import { InjectModel } from '@nestjs/mongoose';
 import { Storage } from 'src/storage/entities/storage.entity';
-import { AnyBulkWriteOperation, Model } from 'mongoose';
+import { AnyBulkWriteOperation, Model, PipelineStage } from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
 import { Product } from 'src/product/entities/product.entity';
 import { Stock } from 'src/stock/entities/stock.entity';
@@ -59,7 +59,7 @@ export class WholeSaleService {
     }
 
     const saleDocList: AnyBulkWriteOperation<Sale>[] = [];
-
+    const wholeSaleId = uuid.v4();
     for await (const {
       count,
       payCost,
@@ -105,6 +105,7 @@ export class WholeSaleService {
         payCost,
         mallId,
         wonCost,
+        wholeSaleId,
         // deliveryCost?: number,
       };
 
@@ -119,8 +120,14 @@ export class WholeSaleService {
     await this.wholeSaleRepository.model.bulkWrite(saleDocList);
   }
 
-  findAll() {
-    return `This action returns all wholeSale`;
+  async findAll() {
+    const result = await this.wholeSaleRepository.model
+      .find({
+        wholeSaleId: { $exists: true },
+      })
+      .sort({ wholeSaleId: 1, createdAt: -1 });
+
+    return result;
   }
 
   findOne(id: string) {
