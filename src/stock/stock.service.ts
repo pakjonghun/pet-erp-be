@@ -26,6 +26,8 @@ import { StockStateOutput } from './dto/stocks-state.output';
 import { ObjectId } from 'mongodb';
 import * as dayjs from 'dayjs';
 import { Factory } from 'src/factory/entities/factory.entity';
+import { ProductCountStocksInput } from './dto/product-count-stock.input';
+import { ProductCountColumn } from './dto/product-count-stock.output';
 
 @Injectable()
 export class StockService {
@@ -43,19 +45,79 @@ export class StockService {
     private readonly factoryModel: Model<Factory>,
   ) {}
 
+  async productCountStocks({
+    keyword: productName,
+    limit,
+    skip,
+    storageName,
+    order = OrderEnum.DESC,
+    sort = 'createdAt',
+  }: ProductCountStocksInput) {
+    //이 창고에 있는 모든 상품을 갯수와 함께 반환
+    const storage = await this.checkStorageByName(storageName);
+    const productList = await this.productModel
+      .find({
+        name: {
+          $regex: this.utilService.escapeRegex(productName),
+          $options: 'i',
+        },
+      })
+      .lean<Product[]>();
+
+    const productMap = new Map<string, Product>(
+      productList.map((product) => [product._id.toHexString(), product]),
+    );
+
+    const productIdList = productList.map((product) => product._id);
+    const stockPipeLine: PipelineStage[] = [
+      {
+        $match: {
+          product: { $in: productIdList },
+          storage: storage._id,
+          count: { $gt: 0 },
+        },
+      },
+      {
+        $sort: {
+          [sort]: order === OrderEnum.DESC ? -1 : 1,
+          _id: 1,
+        },
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+    ];
+
+    const stockList =
+      await this.stockRepository.model.aggregate<Stock>(stockPipeLine);
+
+    const result: ProductCountColumn[] = [];
+
+    stockList.forEach((stock) => {
+      const productItem = productMap.get(
+        (stock.product as unknown as ObjectId).toHexString(),
+      );
+      if (!productItem) return;
+
+      const newProduct: ProductCountColumn = {
+        name: productItem.name,
+        count: stock.count,
+      };
+
+      result.push(newProduct);
+    });
+
+    return result;
+  }
+
   async findStockByState(productName: string) {
     try {
-      const product = await this.productModel.findOne({ name: productName });
-      console.log('product : ', product);
-      if (!product) {
-        throw new NotFoundException(
-          `${productName}은 존재하지 않는 제품입니다.`,
-        );
-      }
-
+      const product = await this.checkProductByName(productName);
       const factoryList = await this.factoryModel.find({}).lean<Factory[]>();
       const storageList = await this.storageModel.find({}).lean<Storage[]>();
-
       const orderList = await this.productOrderModel
         .find({
           products: {
@@ -165,12 +227,7 @@ export class StockService {
         );
       }
 
-      const storage = await this.storageModel.findOne({ name: storageName });
-      if (!storage) {
-        throw new NotFoundException(
-          `${storageName}는 존재하지 않는 창고 아이디 입니다.`,
-        );
-      }
+      const storage = await this.checkStorageByName(storageName);
 
       const stock = await this.findOne({
         storage,
@@ -460,5 +517,21 @@ export class StockService {
   }
   private findOne(filterQuery: FilterQuery<Stock>) {
     return this.stockRepository.findOne(filterQuery);
+  }
+
+  private async checkProductByName(productName: string) {
+    const product = await this.productModel.findOne({ name: productName });
+    if (!product) {
+      throw new NotFoundException(`${productName}은 존재하지 않는 제품입니다.`);
+    }
+    return product;
+  }
+
+  private async checkStorageByName(storageName: string) {
+    const storage = await this.storageModel.findOne({ name: storageName });
+    if (!storage) {
+      throw new NotFoundException(`${storageName}은 존재하지 않는 제품입니다.`);
+    }
+    return storage;
   }
 }

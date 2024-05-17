@@ -32,6 +32,7 @@ export class ProductService {
     private readonly utilService: UtilService,
     private readonly productRepository: ProductRepository,
     private readonly productSubsidiaryRepository: ProductSubsidiaryRepository,
+
     @InjectModel(ProductOrder.name)
     private readonly productOrderModel: Model<ProductOrder>,
   ) {}

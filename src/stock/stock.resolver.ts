@@ -6,16 +6,18 @@ import { TotalProductStockOutput } from './dto/total-product-stock.output';
 import { StocksInput } from './dto/stocks.input';
 import { StocksOutput } from './dto/stocks.output';
 import { StockStateOutput } from './dto/stocks-state.output';
+import { ProductCountStocksInput } from './dto/product-count-stock.input';
+import { ProductCountStocksOutput } from './dto/product-count-stock.output';
 
 @Resolver(() => Stock)
 export class StockResolver {
   constructor(private readonly stockService: StockService) {}
-  @Mutation(() => [Stock], { nullable: true })
+  @Mutation(() => null, { nullable: true })
   addStock(@Args('addStocksInput') addStocksInput: CreateStockInput) {
     return this.stockService.add(addStocksInput);
   }
 
-  @Mutation(() => [Stock], { nullable: true })
+  @Mutation(() => null, { nullable: true })
   outStock(@Args('outStocksInput') addStocksInput: CreateStockInput) {
     return this.stockService.out(addStocksInput);
   }
@@ -23,6 +25,14 @@ export class StockResolver {
   @Query(() => StocksOutput)
   stocks(@Args('stocksInput') stockInput: StocksInput) {
     return this.stockService.findMany(stockInput);
+  }
+
+  @Query(() => ProductCountStocksOutput, { nullable: true })
+  productCountStocks(
+    @Args('productCountStocksInput')
+    productCountStockInput: ProductCountStocksInput,
+  ) {
+    return this.stockService.productCountStocks(productCountStockInput);
   }
 
   @Query(() => [StockStateOutput])
