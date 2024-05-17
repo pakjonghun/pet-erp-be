@@ -8,6 +8,7 @@ import { WholeSaleRepository } from './whole-sale.repository';
 import { Product, productSchema } from 'src/product/entities/product.entity';
 import { Storage, StorageSchema } from 'src/storage/entities/storage.entity';
 import { Client, clientSchema } from 'src/client/entities/client.entity';
+import { Stock, StockSchema } from 'src/stock/entities/stock.entity';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { Client, clientSchema } from 'src/client/entities/client.entity';
       { name: Client.name, schema: clientSchema },
       { name: Product.name, schema: productSchema },
       { name: Storage.name, schema: StorageSchema },
+      { name: Stock.name, schema: StockSchema },
     ]),
   ],
   providers: [WholeSaleResolver, WholeSaleService, WholeSaleRepository],

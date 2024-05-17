@@ -1,4 +1,4 @@
-import { Field, InputType, Int, ObjectType, PickType } from '@nestjs/graphql';
+import { Field, Int, ObjectType, PickType } from '@nestjs/graphql';
 import { FindManyOutput } from 'src/common/dtos/find-many.output';
 import { Product } from 'src/product/entities/product.entity';
 
@@ -8,7 +8,7 @@ export class ProductCountColumn extends PickType(Product, ['name']) {
   count: number;
 }
 
-@InputType()
+@ObjectType()
 export class ProductCountStocksOutput extends FindManyOutput {
   @Field(() => [ProductCountColumn])
   data: ProductCountColumn[];

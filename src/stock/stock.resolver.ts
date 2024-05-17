@@ -12,12 +12,12 @@ import { ProductCountStocksOutput } from './dto/product-count-stock.output';
 @Resolver(() => Stock)
 export class StockResolver {
   constructor(private readonly stockService: StockService) {}
-  @Mutation(() => null, { nullable: true })
+  @Mutation(() => [Stock], { nullable: true })
   addStock(@Args('addStocksInput') addStocksInput: CreateStockInput) {
     return this.stockService.add(addStocksInput);
   }
 
-  @Mutation(() => null, { nullable: true })
+  @Mutation(() => [Stock], { nullable: true })
   outStock(@Args('outStocksInput') addStocksInput: CreateStockInput) {
     return this.stockService.out(addStocksInput);
   }

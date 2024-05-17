@@ -1,4 +1,3 @@
-import { ProductSaleData } from './../product/dtos/product-sale.output';
 import {
   ConflictException,
   Injectable,
@@ -10,12 +9,7 @@ import { WholeSaleRepository } from './whole-sale.repository';
 import { Sale, SaleInterface } from 'src/sale/entities/sale.entity';
 import { InjectModel } from '@nestjs/mongoose';
 import { Storage } from 'src/storage/entities/storage.entity';
-import {
-  AnyBulkWriteOperation,
-  FilterQuery,
-  Model,
-  PipelineStage,
-} from 'mongoose';
+import { AnyBulkWriteOperation, Model } from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
 import { Product } from 'src/product/entities/product.entity';
 import { Stock } from 'src/stock/entities/stock.entity';
