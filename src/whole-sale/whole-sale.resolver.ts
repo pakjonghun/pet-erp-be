@@ -17,12 +17,13 @@ export class WholeSaleResolver {
     return this.wholeSaleService.create(createWholeSaleInput);
   }
 
-  @Query(() => [Sale])
+  @Query(() => WholeSaleOutput)
   wholeSales(@Args('wholeSalesInput') wholeSalesInput: WholeSalesInput) {
+    console.log('111111 : ');
     return this.wholeSaleService.findAll(wholeSalesInput);
   }
 
-  @Mutation(() => WholeSaleOutput)
+  @Mutation(() => [Sale], { nullable: true })
   updateWholeSale(
     @Args('updateWholeSaleInput') updateWholeSaleInput: UpdateWholeSaleInput,
   ) {

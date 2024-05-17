@@ -10,13 +10,19 @@ import { WholeSaleRepository } from './whole-sale.repository';
 import { Sale, SaleInterface } from 'src/sale/entities/sale.entity';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Storage } from 'src/storage/entities/storage.entity';
-import { AnyBulkWriteOperation, Connection, Model } from 'mongoose';
+import {
+  AnyBulkWriteOperation,
+  Connection,
+  Model,
+  PipelineStage,
+} from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
 import { Product } from 'src/product/entities/product.entity';
 import { Stock } from 'src/stock/entities/stock.entity';
 import * as uuid from 'uuid';
 import { WholeSalesInput } from './dto/whole-sales.input';
 import { UtilService } from 'src/util/util.service';
+import { WholeSaleItem } from './dto/whole-sales.output';
 
 @Injectable()
 export class WholeSaleService {
@@ -139,6 +145,7 @@ export class WholeSaleService {
       }
 
       await this.wholeSaleRepository.model.bulkWrite(saleDocList);
+
       await this.stockModel.bulkWrite(stockDocList);
       await session.commitTransaction();
     } catch (error) {
@@ -152,6 +159,7 @@ export class WholeSaleService {
   }
 
   async findAll({ from, to, keyword, limit, skip }: WholeSalesInput) {
+    console.log('1 : ');
     const filterQuery: Record<string, any> = {
       wholeSaleId: { $exists: true },
       productName: {
@@ -179,14 +187,58 @@ export class WholeSaleService {
       };
     }
 
-    const result = await this.wholeSaleRepository.model
-      .find()
-      .sort({ wholeSaleId: 1, createdAt: -1 })
-      .limit(limit)
-      .skip(skip)
-      .lean<Sale[]>();
+    const salePipeLine: PipelineStage[] = [
+      {
+        $match: filterQuery,
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $group: {
+                _id: '$wholeSaleId',
+                mallId: { $first: '$mallId' },
+                saleAt: { $first: '$saleAt' },
+                telephoneNumber1: { $first: '$telephoneNumber1' },
+                productList: {
+                  $push: {
+                    // storageName: '$storageName',
+                    productName: '$productName',
+                    productCode: '$productCode',
+                    count: '$count',
+                    payCost: '$payCost',
+                    wonCost: '$wonCost',
+                  },
+                },
+              },
+            },
+            {
+              $sort: {
+                createdAt: -1,
+                _id: 1,
+              },
+            },
+            {
+              $limit: limit,
+            },
+            {
+              $skip: skip,
+            },
+          ],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+    ];
 
-    return result;
+    const sales = await this.wholeSaleRepository.model.aggregate<{
+      data: WholeSaleItem[];
+      totalCount: { count: number }[];
+    }>(salePipeLine);
+
+    return {
+      data: sales[0].data,
+      totalCount: sales[0].totalCount[0]?.count ?? 0,
+    };
   }
 
   async update({
