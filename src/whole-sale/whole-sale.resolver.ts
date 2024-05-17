@@ -9,7 +9,7 @@ import { WholeSaleOutput } from './dto/whole-sales.output';
 export class WholeSaleResolver {
   constructor(private readonly wholeSaleService: WholeSaleService) {}
 
-  @Mutation(() => Sale)
+  @Mutation(() => Sale, { nullable: true })
   createWholeSale(
     @Args('createWholeSaleInput') createWholeSaleInput: CreateWholeSaleInput,
   ) {
