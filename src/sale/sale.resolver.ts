@@ -15,7 +15,8 @@ export class SaleResolver {
   }
 
   @Query(() => DeliveryCost, { nullable: true })
-  deliveryCost() {
-    return this.saleService.deliveryCost();
+  async deliveryCost() {
+    const result = await this.saleService.deliveryCost();
+    return result;
   }
 }
