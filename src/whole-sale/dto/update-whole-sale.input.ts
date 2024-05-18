@@ -1,5 +1,5 @@
 import { CreateWholeSaleInput } from './create-whole-sale.input';
-import { InputType, Field, PartialType, ID } from '@nestjs/graphql';
+import { InputType, Field } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 @InputType()

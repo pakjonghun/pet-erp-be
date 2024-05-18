@@ -12,6 +12,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Storage } from 'src/storage/entities/storage.entity';
 import {
   AnyBulkWriteOperation,
+  ClientSession,
   Connection,
   Model,
   PipelineStage,
@@ -24,10 +25,7 @@ import { WholeSalesInput } from './dto/whole-sales.input';
 import { UtilService } from 'src/util/util.service';
 import { WholeSaleItem } from './dto/whole-sales.output';
 import { StockService } from 'src/stock/stock.service';
-import {
-  CreateSingleStockInput,
-  CreateStockInput,
-} from 'src/stock/dto/create-stock.input';
+import { CreateSingleStockInput } from 'src/stock/dto/create-stock.input';
 
 @Injectable()
 export class WholeSaleService {
@@ -42,12 +40,10 @@ export class WholeSaleService {
     @InjectConnection() private readonly connection: Connection,
   ) {}
 
-  async create({
-    productList,
-    mallId,
-    saleAt,
-    telephoneNumber1,
-  }: CreateWholeSaleInput) {
+  async createWholeSale(
+    { productList, mallId, saleAt, telephoneNumber1 }: CreateWholeSaleInput,
+    session: ClientSession,
+  ) {
     const client = await this.clientModel.findOne({ name: mallId });
     if (!client) {
       throw new NotFoundException(`${mallId} 는 존재하지 않는 거래처 입니다.`);
@@ -79,81 +75,84 @@ export class WholeSaleService {
     const stockDocList: AnyBulkWriteOperation<Stock>[] = [];
     const wholeSaleId = uuid.v4();
 
+    for await (const {
+      count,
+      payCost,
+      productCode,
+      productName,
+      storageName,
+      wonCost,
+    } of productList) {
+      const targetProduct = productDocList.find(
+        (item) => item.name === productName,
+      );
+      const targetStorage = storageDocList.find(
+        (item) => item.name === storageName,
+      );
+      if (!targetProduct || !targetStorage) continue;
+
+      const stockDoc = await this.stockModel
+        .findOne({
+          storage: targetStorage._id,
+          product: targetProduct._id,
+        })
+        .lean<Stock>();
+
+      if (!stockDoc) {
+        throw new NotFoundException(
+          `${storageName}에 ${productName}제품이 존재하지 않습니다.`,
+        );
+      }
+
+      if (stockDoc.count < count) {
+        throw new ConflictException(
+          `${storageName}에 ${productName}재고가 부족합니다. 남은재고 ${stockDoc.count}`,
+        );
+      }
+
+      //재고를 출고 시킨다.
+      //트랜젝션이 필요함.
+      stockDocList.push({
+        updateOne: {
+          filter: {
+            _id: stockDoc._id,
+          },
+          update: { $inc: { count: -count } },
+        },
+      });
+
+      const newWholeSale: SaleInterface = {
+        code: uuid.v4(),
+        count,
+        telephoneNumber1,
+        productName,
+        productCode,
+        saleAt,
+        payCost,
+        mallId,
+        wonCost,
+        wholeSaleId,
+        storageName,
+        // deliveryCost?: number,
+      };
+
+      const saleItem = new this.wholeSaleRepository.model(newWholeSale);
+      saleDocList.push({
+        insertOne: {
+          document: saleItem,
+        },
+      });
+    }
+
+    await this.wholeSaleRepository.model.bulkWrite(saleDocList, { session });
+    await this.stockModel.bulkWrite(stockDocList, { session });
+  }
+
+  async create(createWholeSaleInput: CreateWholeSaleInput) {
     const session = await this.connection.startSession();
     session.startTransaction();
     try {
-      for await (const {
-        count,
-        payCost,
-        productCode,
-        productName,
-        storageName,
-        wonCost,
-      } of productList) {
-        const targetProduct = productDocList.find(
-          (item) => item.name === productName,
-        );
-        const targetStorage = storageDocList.find(
-          (item) => item.name === storageName,
-        );
-        if (!targetProduct || !targetStorage) continue;
-
-        const stockDoc = await this.stockModel
-          .findOne({
-            storage: targetStorage._id,
-            product: targetProduct._id,
-          })
-          .lean<Stock>();
-
-        if (!stockDoc) {
-          throw new NotFoundException(
-            `${storageName}에 ${productName}제품이 존재하지 않습니다.`,
-          );
-        }
-
-        if (stockDoc.count < count) {
-          throw new ConflictException(
-            `${storageName}에 ${productName}재고가 부족합니다. 남은재고 ${stockDoc.count}`,
-          );
-        }
-
-        //재고를 출고 시킨다.
-        //트랜젝션이 필요함.
-        stockDocList.push({
-          updateOne: {
-            filter: {
-              _id: stockDoc._id,
-            },
-            update: { $inc: { count: -count } },
-          },
-        });
-
-        const newWholeSale: SaleInterface = {
-          code: uuid.v4(),
-          count,
-          telephoneNumber1,
-          productName,
-          productCode,
-          saleAt,
-          payCost,
-          mallId,
-          wonCost,
-          wholeSaleId,
-          storageName,
-          // deliveryCost?: number,
-        };
-
-        const saleItem = new this.wholeSaleRepository.model(newWholeSale);
-        saleDocList.push({
-          insertOne: {
-            document: saleItem,
-          },
-        });
-      }
-
-      await this.wholeSaleRepository.model.bulkWrite(saleDocList);
-
-      await this.stockModel.bulkWrite(stockDocList);
+      await this.createWholeSale(createWholeSaleInput, session);
       await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction();
@@ -250,56 +249,39 @@ export class WholeSaleService {
   async update({
     wholeSaleId,
     mallId,
-    productList,
+    productList: curProductList,
     saleAt,
     telephoneNumber1,
   }: UpdateWholeSaleInput) {
-    //일단 다 찾는다.
-    const wholeSaleList = await this.wholeSales(wholeSaleId);
-
-    //삭제, 생성, 업데이트, 변동없는것 을 구분한다.
-    const prevSaleMapByCode = new Map<string, Sale>(
-      wholeSaleList.map((sale) => [sale.code, sale]),
-    );
-
-    const updateWholeSaleList = productList.map(({ productCode, ...rest }) => [
-      productCode,
-      {
-        ...rest,
-        code: productCode,
-        mallId,
-        saleAt,
-        telephoneNumber1,
-      } as unknown as Sale,
-    ]) as [string, Sale][];
-
-    const updateSaleByCode = new Map<string, Sale>(updateWholeSaleList);
-
-    const createMap = new Map<string, any>();
-    const updateMap = new Map<string, any>();
-    const deleteMap = new Map<string, any>();
-
-    const createWholeSaleList = wholeSaleList.filter(
-      (item) => !prevSaleMapByCode.has(item.code),
-    );
-    const deleteWholeSaleList = wholeSaleList.filter(
-      (item) => !updateSaleByCode.has(item.code),
-    );
-
-    const prevMallId = wholeSaleList[0].mallId;
-    const prevSaleAt = wholeSaleList[0].saleAt;
-    const prevPhone = wholeSaleList[0].telephoneNumber1;
-
-    //삭제 생성 업데이트를 진행해 준다.
-  }
-
-  async remove(wholeSaleId: string) {
     const session = await this.connection.startSession();
     session.startTransaction();
     try {
-      const stockList = await this.salesToStocks(wholeSaleId);
-      await this.stockService.add({ stocks: stockList });
-      await this.wholeSaleRepository.model.deleteMany({ wholeSaleId });
+      // 제품 코드 제품 이름 날짜 모든게 다 바뀔수 있음. 생성, 삭제 업데이트 할 것을 구분 할 수 없음.
+      // 모두 지우고 새로 온 아이템으로 새로 만들어야 함.
+      await this.remove(wholeSaleId, session);
+      await this.createWholeSale(
+        {
+          saleAt,
+          mallId,
+          telephoneNumber1,
+          productList: curProductList,
+        },
+        session,
+      );
+      await session.commitTransaction();
+    } catch (err) {
+      await session.abortTransaction();
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  async removeAllWholeSaleById(wholeSaleId: string) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+    try {
+      await this.remove(wholeSaleId, session);
+      await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction();
       throw new InternalServerErrorException(
@@ -308,6 +290,15 @@ export class WholeSaleService {
     } finally {
       await session.endSession();
     }
+  }
+
+  async remove(wholeSaleId: string, session: ClientSession) {
+    const stockList = await this.salesToStocks(wholeSaleId);
+    await this.stockService.add({ stocks: stockList }, session);
+    await this.wholeSaleRepository.model.deleteMany(
+      { wholeSaleId },
+      { session },
+    );
   }
 
   private async wholeSales(wholeSaleId: string) {

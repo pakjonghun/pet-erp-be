@@ -8,6 +8,7 @@ import { CreateStockInput } from './dto/create-stock.input';
 import { InjectModel } from '@nestjs/mongoose';
 import {
   AnyBulkWriteOperation,
+  ClientSession,
   FilterQuery,
   Model,
   PipelineStage,
@@ -227,7 +228,7 @@ export class StockService {
     }
   }
 
-  async add({ stocks }: CreateStockInput) {
+  async add({ stocks }: CreateStockInput, session?: ClientSession) {
     for await (const {
       productName,
       storageName,
@@ -248,20 +249,42 @@ export class StockService {
         product,
       });
 
-      if (!stock) {
-        await this.stockRepository.create({
-          count,
-          isSubsidiary,
-          product,
-          storage,
-        });
+      if (session) {
+        if (!stock) {
+          await this.stockRepository.create(
+            {
+              count,
+              isSubsidiary,
+              product,
+              storage,
+            },
+            session,
+          );
+        } else {
+          await this.stockRepository.update(
+            { _id: stock._id },
+            {
+              count: stock.count + count,
+            },
+            session,
+          );
+        }
       } else {
-        await this.stockRepository.update(
-          { _id: stock._id },
-          {
-            count: stock.count + count,
-          },
-        );
+        if (!stock) {
+          await this.stockRepository.create({
+            count,
+            isSubsidiary,
+            product,
+            storage,
+          });
+        } else {
+          await this.stockRepository.update(
+            { _id: stock._id },
+            {
+              count: stock.count + count,
+            },
+          );
+        }
       }
     }
   }
@@ -522,8 +545,6 @@ export class StockService {
 
       return newData;
     });
-    // console.log('data : ', data);
-    // console.log('result  : ', result);
 
     const totalCount = await this.productModel.countDocuments(filterQuery);
 

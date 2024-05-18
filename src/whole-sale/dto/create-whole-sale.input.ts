@@ -12,7 +12,7 @@ import { InputType, Field, Int } from '@nestjs/graphql';
 import { IsDateValidate } from 'src/common/validations/date.validation';
 
 @InputType()
-export class CreateWholeSaleProductList {
+export class CreateWholeSaleProduct {
   @IsString()
   @IsNotEmpty({ message: '창고 이름을 입력하세요.' })
   @Field(() => String)
@@ -64,6 +64,6 @@ export class CreateWholeSaleInput implements Omit<SaleInterface, 'code'> {
 
   @IsArray()
   @ArrayNotEmpty({ message: '1개 이상의 제품을 입력해주세요.' })
-  @Field(() => [CreateWholeSaleProductList])
-  productList: CreateWholeSaleProductList[];
+  @Field(() => [CreateWholeSaleProduct])
+  productList: CreateWholeSaleProduct[];
 }

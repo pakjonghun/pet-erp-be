@@ -7,6 +7,7 @@ import {
   UpdateQuery,
   HydratedDocument,
   Types,
+  ClientSession,
 } from 'mongoose';
 import { ColumnOption } from 'src/client/types';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
@@ -18,14 +19,30 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
 
   constructor(public readonly model: Model<T>) {}
 
-  async create(body: Omit<T, '_id' | 'createdAt' | 'updatedAt'>): Promise<T> {
-    const newDocument = new this.model({
-      _id: new Types.ObjectId(),
-      ...body,
-    });
+  async create(
+    body: Omit<T, '_id' | 'createdAt' | 'updatedAt'>,
+    session?: ClientSession,
+  ): Promise<T> {
+    if (session) {
+      const newDocument = new this.model(
+        {
+          _id: new Types.ObjectId(),
+          ...body,
+        },
+        { session },
+      );
 
-    const result = (await newDocument.save()).toJSON() as unknown as T;
-    return result;
+      const result = (await newDocument.save()).toJSON() as unknown as T;
+      return result;
+    } else {
+      const newDocument = new this.model({
+        _id: new Types.ObjectId(),
+        ...body,
+      });
+
+      const result = (await newDocument.save()).toJSON() as unknown as T;
+      return result;
+    }
   }
 
   async findAll(query: FilterQuery<T>): Promise<T[]> {
@@ -46,28 +63,59 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
     return result;
   }
 
-  async update(query: FilterQuery<T>, body: UpdateQuery<T>): Promise<T> {
-    const result = await this.model
-      .findOneAndUpdate(query, body, {
-        new: true,
-      })
-      .lean<T>();
-    if (!result) {
-      this.logger.warn(`update failed ${query}`);
-      throw new BadRequestException('업데이트할 문서를 찾지 못했습니다.');
-    }
+  async update(
+    query: FilterQuery<T>,
+    body: UpdateQuery<T>,
+    session?: ClientSession,
+  ): Promise<T> {
+    if (session) {
+      const result = await this.model
+        .findOneAndUpdate(query, body, {
+          new: true,
+          session,
+        })
+        .lean<T>();
+      if (!result) {
+        this.logger.warn(`update failed ${query}`);
+        throw new BadRequestException('업데이트할 문서를 찾지 못했습니다.');
+      }
 
-    return result;
+      return result;
+    } else {
+      const result = await this.model
+        .findOneAndUpdate(query, body, {
+          new: true,
+        })
+        .lean<T>();
+      if (!result) {
+        this.logger.warn(`update failed ${query}`);
+        throw new BadRequestException('업데이트할 문서를 찾지 못했습니다.');
+      }
+
+      return result;
+    }
   }
 
-  async remove(query: FilterQuery<T>): Promise<T> {
-    const result = await this.model.findOneAndDelete(query).lean<T>();
-    if (!result) {
-      this.logger.warn(`delete failed ${query}`);
-      throw new BadRequestException('삭제할 문서를 찾지 못했습니다.');
-    }
+  async remove(query: FilterQuery<T>, session?: ClientSession): Promise<T> {
+    if (session) {
+      const result = await this.model
+        .findOneAndDelete(query, { session })
+        .lean<T>();
+      if (!result) {
+        this.logger.warn(`delete failed ${query}`);
+        throw new BadRequestException('삭제할 문서를 찾지 못했습니다.');
+      }
 
-    return result;
+      return result;
+    } else {
+      const result = await this.model.findOneAndDelete(query).lean<T>();
+      if (!result) {
+        this.logger.warn(`delete failed ${query}`);
+        throw new BadRequestException('삭제할 문서를 찾지 못했습니다.');
+      }
+
+      return result;
+    }
   }
 
   async bulkWrite(documents: HydratedDocument<T>[]) {

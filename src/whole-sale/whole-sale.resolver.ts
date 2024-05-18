@@ -39,7 +39,7 @@ export class WholeSaleResolver {
 
   @Mutation(() => WholeSaleItem, { nullable: true })
   async removeWholeSale(@Args('_id', { type: () => String }) _id: string) {
-    await this.wholeSaleService.remove(_id);
+    await this.wholeSaleService.removeAllWholeSaleById(_id);
     return { _id };
   }
 
