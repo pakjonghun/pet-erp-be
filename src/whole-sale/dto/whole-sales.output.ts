@@ -36,6 +36,15 @@ export class WholeSaleItem {
   @Field(() => String, { nullable: true })
   telephoneNumber1?: string;
 
+  @Field(() => Int)
+  totalCount: number;
+
+  @Field(() => Int)
+  totalWonCost: number;
+
+  @Field(() => Int)
+  totalPayCost: number;
+
   @Field(() => [WholeSaleProduct])
   productList: WholeSaleProduct[];
 }
