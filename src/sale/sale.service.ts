@@ -1,16 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UtilService } from 'src/util/util.service';
 import { SaleRepository } from './sale.repository';
-import { FilterQuery, PipelineStage } from 'mongoose';
+import { FilterQuery, Model, PipelineStage } from 'mongoose';
 import { Sale } from './entities/sale.entity';
 import { SaleInfo, SaleInfoList } from 'src/product/dtos/product-sale.output';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
+import { DeliveryCostInput } from './dto/delivery-cost.Input';
+import * as dayjs from 'dayjs';
+import { InjectModel } from '@nestjs/mongoose';
+import { DeliveryCost } from './entities/delivery.entity';
 
 @Injectable()
 export class SaleService {
   private readonly logger = new Logger(SaleService.name);
   constructor(
+    @InjectModel(DeliveryCost.name)
+    private readonly deliveryCostModel: Model<DeliveryCost>,
     private readonly utilService: UtilService,
     private readonly saleRepository: SaleRepository,
   ) {}
@@ -261,5 +267,55 @@ export class SaleService {
         },
       },
     ];
+  }
+
+  async setDeliveryCost({
+    year,
+    month,
+    monthDeliveryPayCost,
+  }: DeliveryCostInput) {
+    const date = dayjs(new Date(`${year}-${month}-1`));
+    const from = date.startOf('month').toDate();
+    const to = date.endOf('month').toDate();
+
+    const pipeLine: PipelineStage[] = [
+      {
+        $match: {
+          saleAt: {
+            $gte: from,
+            $lte: to,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+        },
+      },
+    ];
+
+    const result = await this.saleRepository.saleModel.aggregate<{
+      count: number;
+    }>(pipeLine);
+
+    const count = result[0].count;
+
+    const newDeliveryCost = !count //
+      ? 0
+      : monthDeliveryPayCost / result[0].count;
+
+    await this.deliveryCostModel.findOneAndUpdate(
+      {},
+      { $set: { deliveryCost: newDeliveryCost } },
+      { upsert: true },
+    );
+
+    return result;
+  }
+
+  async deliveryCost() {
+    const result = await this.deliveryCostModel.findOne().lean<DeliveryCost>();
+    return result.deliveryCost;
   }
 }
