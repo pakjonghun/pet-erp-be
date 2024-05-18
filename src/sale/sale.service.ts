@@ -1,4 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { UtilService } from 'src/util/util.service';
 import { SaleRepository } from './sale.repository';
 import { FilterQuery, Model, PipelineStage } from 'mongoose';
@@ -6,7 +10,7 @@ import { Sale } from './entities/sale.entity';
 import { SaleInfo, SaleInfoList } from 'src/product/dtos/product-sale.output';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
-import { DeliveryCostInput } from './dto/delivery-cost.Input';
+import { SetDeliveryCostInput } from './dto/delivery-cost.Input';
 import * as dayjs from 'dayjs';
 import { InjectModel } from '@nestjs/mongoose';
 import { DeliveryCost } from './entities/delivery.entity';
@@ -273,7 +277,7 @@ export class SaleService {
     year,
     month,
     monthDeliveryPayCost,
-  }: DeliveryCostInput) {
+  }: SetDeliveryCostInput) {
     const date = dayjs(new Date(`${year}-${month}-1`));
     const from = date.startOf('month').toDate();
     const to = date.endOf('month').toDate();
@@ -295,27 +299,30 @@ export class SaleService {
       },
     ];
 
-    const result = await this.saleRepository.saleModel.aggregate<{
+    const saleCount = await this.saleRepository.saleModel.aggregate<{
       count: number;
     }>(pipeLine);
 
-    const count = result[0].count;
-
+    const count = saleCount[0].count;
     const newDeliveryCost = !count //
       ? 0
-      : monthDeliveryPayCost / result[0].count;
-
-    await this.deliveryCostModel.findOneAndUpdate(
+      : monthDeliveryPayCost / count;
+    const result = await this.deliveryCostModel.findOneAndUpdate(
       {},
-      { $set: { deliveryCost: newDeliveryCost } },
-      { upsert: true },
+      { $set: { deliveryCost: newDeliveryCost, year, month } },
+      { upsert: true, new: true },
     );
+
+    if (!result) {
+      throw new InternalServerErrorException(
+        '서버에서 예상치 못한 발생했습니다.',
+      );
+    }
 
     return result;
   }
 
   async deliveryCost() {
-    const result = await this.deliveryCostModel.findOne().lean<DeliveryCost>();
-    return result.deliveryCost;
+    return this.deliveryCostModel.findOne().lean<DeliveryCost>();
   }
 }

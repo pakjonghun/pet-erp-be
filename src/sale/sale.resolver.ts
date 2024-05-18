@@ -1,6 +1,6 @@
-import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { DeliveryCost } from './entities/delivery.entity';
-import { DeliveryCostInput } from './dto/delivery-cost.Input';
+import { SetDeliveryCostInput } from './dto/delivery-cost.Input';
 import { SaleService } from './sale.service';
 
 @Resolver(() => DeliveryCost)
@@ -9,12 +9,12 @@ export class SaleResolver {
 
   @Mutation(() => DeliveryCost)
   setDeliveryCost(
-    @Args('deliveryCostInput') deliveryCostInput: DeliveryCostInput,
+    @Args('setDeliveryCostInput') setDeliveryCostInput: SetDeliveryCostInput,
   ) {
-    return this.saleService.setDeliveryCost(deliveryCostInput);
+    return this.saleService.setDeliveryCost(setDeliveryCostInput);
   }
 
-  @Query(() => Int, { nullable: true })
+  @Query(() => DeliveryCost, { nullable: true })
   deliveryCost() {
     return this.saleService.deliveryCost();
   }

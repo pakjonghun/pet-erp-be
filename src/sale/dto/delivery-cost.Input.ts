@@ -2,7 +2,7 @@ import { Field, Float, InputType, Int } from '@nestjs/graphql';
 import { IsNumber, Max, Min } from 'class-validator';
 
 @InputType()
-export class DeliveryCostInput {
+export class SetDeliveryCostInput {
   @Field(() => Int)
   @IsNumber()
   @Min(1000, { message: '연도는 1000 이상의 숫자를 입력하세요.' })
