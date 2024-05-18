@@ -207,7 +207,7 @@ export class WholeSaleService {
                 telephoneNumber1: { $first: '$telephoneNumber1' },
                 productList: {
                   $push: {
-                    // storageName: '$storageName',
+                    storageName: '$storageName',
                     productName: '$productName',
                     productCode: '$productCode',
                     count: '$count',
