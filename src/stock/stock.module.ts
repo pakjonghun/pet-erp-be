@@ -18,6 +18,7 @@ import { Sale, saleSchema } from 'src/sale/entities/sale.entity';
 import { Factory, FactorySchema } from 'src/factory/entities/factory.entity';
 
 @Module({
+  exports: [StockService],
   imports: [
     DatabaseModule.forFeature([
       {

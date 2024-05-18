@@ -37,11 +37,10 @@ export class WholeSaleResolver {
     return this.wholeSaleService.update(updateWholeSaleInput);
   }
 
-  @Mutation(() => Sale)
-  removeWholeSale(
-    @Args('wholeSaleId', { type: () => String }) wholeSaleId: string,
-  ) {
-    return this.wholeSaleService.remove(wholeSaleId);
+  @Mutation(() => WholeSaleItem, { nullable: true })
+  async removeWholeSale(@Args('_id', { type: () => String }) _id: string) {
+    await this.wholeSaleService.remove(_id);
+    return { _id };
   }
 
   @ResolveField(() => Int)

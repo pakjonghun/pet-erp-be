@@ -8,7 +8,6 @@ import { MigrateService } from './migrate.service';
     MongooseModule.forRootAsync({
       useFactory: (config: ConfigService) => ({
         uri: config.get('DB_URL'),
-        useUnifiedTopology: true,
       }),
       inject: [ConfigService],
     }),

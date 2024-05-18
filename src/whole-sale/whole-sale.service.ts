@@ -23,12 +23,18 @@ import * as uuid from 'uuid';
 import { WholeSalesInput } from './dto/whole-sales.input';
 import { UtilService } from 'src/util/util.service';
 import { WholeSaleItem } from './dto/whole-sales.output';
+import { StockService } from 'src/stock/stock.service';
+import {
+  CreateSingleStockInput,
+  CreateStockInput,
+} from 'src/stock/dto/create-stock.input';
 
 @Injectable()
 export class WholeSaleService {
   constructor(
     private readonly utilService: UtilService,
     private readonly wholeSaleRepository: WholeSaleRepository,
+    private readonly stockService: StockService,
     @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Client.name) private readonly clientModel: Model<Client>,
@@ -249,15 +255,7 @@ export class WholeSaleService {
     telephoneNumber1,
   }: UpdateWholeSaleInput) {
     //일단 다 찾는다.
-    const wholeSaleList = await this.wholeSaleRepository.model
-      .find({
-        wholeSaleId,
-      })
-      .lean<Sale[]>();
-
-    if (wholeSaleList.length == 0) {
-      throw new NotFoundException('해당 도매 판매데이터를 찾을 수 없습니다.');
-    }
+    const wholeSaleList = await this.wholeSales(wholeSaleId);
 
     //삭제, 생성, 업데이트, 변동없는것 을 구분한다.
     const prevSaleMapByCode = new Map<string, Sale>(
@@ -296,6 +294,49 @@ export class WholeSaleService {
   }
 
   async remove(wholeSaleId: string) {
-    await this.wholeSaleRepository.model.deleteMany({ wholeSaleId });
+    const session = await this.connection.startSession();
+    session.startTransaction();
+    try {
+      const stockList = await this.salesToStocks(wholeSaleId);
+      await this.stockService.add({ stocks: stockList });
+      await this.wholeSaleRepository.model.deleteMany({ wholeSaleId });
+    } catch (error) {
+      await session.abortTransaction();
+      throw new InternalServerErrorException(
+        `서버에서 오류가 발생했습니다. ${error.message}`,
+      );
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  private async wholeSales(wholeSaleId: string) {
+    const wholeSaleList = await this.wholeSaleRepository.model
+      .find({
+        wholeSaleId,
+      })
+      .lean<Sale[]>();
+
+    if (wholeSaleList.length == 0) {
+      throw new NotFoundException('해당 도매 판매데이터를 찾을 수 없습니다.');
+    }
+
+    return wholeSaleList;
+  }
+
+  private async salesToStocks(wholeSaleId: string) {
+    const wholeSaleList = await this.wholeSales(wholeSaleId);
+    const stockList = wholeSaleList.map((item) => {
+      const createStock: CreateSingleStockInput = {
+        productName: item.productName,
+        storageName: item.storageName,
+        count: item.count,
+        isSubsidiary: false,
+      };
+
+      return createStock;
+    });
+
+    return stockList;
   }
 }

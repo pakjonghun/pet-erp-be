@@ -9,6 +9,7 @@ import { Product, productSchema } from 'src/product/entities/product.entity';
 import { Storage, StorageSchema } from 'src/storage/entities/storage.entity';
 import { Client, clientSchema } from 'src/client/entities/client.entity';
 import { Stock, StockSchema } from 'src/stock/entities/stock.entity';
+import { StockModule } from 'src/stock/stock.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { Stock, StockSchema } from 'src/stock/entities/stock.entity';
       { name: Storage.name, schema: StorageSchema },
       { name: Stock.name, schema: StockSchema },
     ]),
+    StockModule,
   ],
   providers: [WholeSaleResolver, WholeSaleService, WholeSaleRepository],
 })
