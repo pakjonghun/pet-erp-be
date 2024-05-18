@@ -19,7 +19,6 @@ export class WholeSaleResolver {
 
   @Query(() => WholeSaleOutput)
   wholeSales(@Args('wholeSalesInput') wholeSalesInput: WholeSalesInput) {
-    console.log('111111 : ');
     return this.wholeSaleService.findAll(wholeSalesInput);
   }
 

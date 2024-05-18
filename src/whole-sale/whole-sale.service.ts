@@ -133,6 +133,7 @@ export class WholeSaleService {
           mallId,
           wonCost,
           wholeSaleId,
+          storageName,
           // deliveryCost?: number,
         };
 
@@ -159,7 +160,6 @@ export class WholeSaleService {
   }
 
   async findAll({ from, to, keyword, limit, skip }: WholeSalesInput) {
-    console.log('1 : ');
     const filterQuery: Record<string, any> = {
       wholeSaleId: { $exists: true },
       productName: {

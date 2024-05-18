@@ -25,6 +25,7 @@ export interface SaleInterface {
   wonCost?: number;
   deliveryCost?: number;
   wholeSaleId?: string;
+  storageName?: string;
 }
 
 @ObjectType()
@@ -120,6 +121,10 @@ export class Sale extends AbstractEntity implements SaleInterface {
   @Prop({ type: String })
   @Field(() => String, { nullable: true })
   wholeSaleId?: string;
+
+  @Prop({ type: String })
+  @Field(() => String, { nullable: true })
+  storageName?: string;
 }
 
 export const saleSchema = SchemaFactory.createForClass(Sale);
