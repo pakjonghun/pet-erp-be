@@ -17,7 +17,7 @@ export class LogResolver {
     return this.logService.create(createLogInput);
   }
 
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.ADMIN])
   @Query(() => FindLogsResponseDTO, { name: 'logs' })
   findMany(@Args('findLogsQuery') query: FindLogsDTO) {
     return this.logService.findMany(query);

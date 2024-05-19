@@ -20,29 +20,42 @@ import { Product } from 'src/product/entities/product.entity';
 import { InternalServerErrorException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { ObjectId } from 'mongodb';
+import { Roles } from 'src/common/decorators/role.decorator';
+import { AuthRoleEnum } from 'src/users/entities/user.entity';
 
 @Resolver(() => ProductOrder)
 export class ProductOrderResolver {
   constructor(private readonly orderService: ProductOrderService) {}
 
+  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
   @Mutation(() => ProductOrder)
   createOrder(@Args('createOrderInput') createOrderInput: CreateOrderInput) {
     return this.orderService.create(createOrderInput);
   }
 
+  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
   @Mutation(() => ProductOrder)
   updateOrder(@Args('updateOrderInput') updateOrderInput: UpdateOrderInput) {
     return this.orderService.update(updateOrderInput);
   }
 
+  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
   @Mutation(() => ProductOrder)
   removeOrder(@Args('_id', { type: () => String }) _id: string) {
     return this.orderService.remove(_id);
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => ProductOrderOutput)
   async orders(@Args('ordersInput') ordersInput: OrdersInput) {
     return this.orderService.findMany(ordersInput);
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => [ProductOrder])
+  async stocksOrder(@Args('productName') productName: string) {
+    const result = await this.orderService.findStocksOrder(productName);
+    return result;
   }
 
   @ResolveField(() => Factory)
@@ -88,11 +101,5 @@ export class ProductOrderResolver {
           product._id.toHexString() === item.product._id.toHexString(),
       ),
     }));
-  }
-
-  @Query(() => [ProductOrder])
-  async stocksOrder(@Args('productName') productName: string) {
-    const result = await this.orderService.findStocksOrder(productName);
-    return result;
   }
 }

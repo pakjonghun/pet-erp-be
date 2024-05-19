@@ -7,11 +7,14 @@ import { ClientsOutput } from './dtos/clients.output';
 import { ClientsInput } from './dtos/clients.input';
 import { SaleInfos, TotalSaleInfo } from 'src/product/dtos/product-sale.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
+import { Roles } from 'src/common/decorators/role.decorator';
+import { AuthRoleEnum } from 'src/users/entities/user.entity';
 
 @Resolver(() => Client)
 export class ClientResolver {
   constructor(private readonly clientService: ClientService) {}
 
+  @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Client)
   createClient(
     @Args('createClientInput') createClientInput: CreateClientInput,
@@ -19,21 +22,25 @@ export class ClientResolver {
     return this.clientService.create(createClientInput);
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => [Client], { name: 'client' })
   findAll() {
     return this.clientService.findAll();
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => ClientsOutput)
   clients(@Args('clientsInput') clientsInput: ClientsInput) {
     return this.clientService.findMany(clientsInput);
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => Client, { name: 'client' })
   findOne(@Args('_id') _id: string) {
     return this.clientService.findOne(_id);
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Client)
   updateClient(
     @Args('updateClientInput') updateClientInput: UpdateClientInput,
@@ -41,12 +48,14 @@ export class ClientResolver {
     return this.clientService.update(updateClientInput);
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Client)
   async removeClient(@Args('_id') _id: string) {
     const result = await this.clientService.remove(_id);
     return result;
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => TotalSaleInfo, { nullable: true })
   async dashboardClient(
     @Args('dashboardClientInput', { nullable: true })
@@ -57,6 +66,7 @@ export class ClientResolver {
     return { current: current[0], previous: previous[0] };
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => [SaleInfos], { nullable: true })
   async dashboardClients(
     @Args('dashboardClientsInput', { nullable: true })

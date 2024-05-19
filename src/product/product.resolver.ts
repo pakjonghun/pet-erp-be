@@ -13,11 +13,14 @@ import {
   TotalSaleInfo,
 } from './dtos/product-sale.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
+import { Roles } from 'src/common/decorators/role.decorator';
+import { AuthRoleEnum } from 'src/users/entities/user.entity';
 
 @Resolver(() => Product)
 export class ProductResolver {
   constructor(private readonly productService: ProductService) {}
 
+  @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Product)
   async createProduct(
     @Args('createProductInput') createProductInput: CreateProductInput,
@@ -26,17 +29,20 @@ export class ProductResolver {
     return result;
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => ProductsOutput, { name: 'products' })
   async products(@Args('productsInput') productsInput: ProductsInput) {
     const result = await this.productService.findMany(productsInput);
     return result;
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => Product, { name: 'product' })
   findOne(@Args('_id', { type: () => String }) _id: string) {
     return this.productService.findOne({ _id });
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Product)
   updateProduct(
     @Args('updateProductInput') updateProductInput: UpdateProductInput,
@@ -44,11 +50,13 @@ export class ProductResolver {
     return this.productService.update(updateProductInput);
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Product)
   removeProduct(@Args('_id', { type: () => String }) _id: string) {
     return this.productService.remove(_id);
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => ProductSaleOutput, { nullable: true })
   async productSales(
     @Args('productSalesInput') productSalesInput: ProductSaleInput,
@@ -57,12 +65,14 @@ export class ProductResolver {
     return result;
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => [ProductSaleChartOutput], { nullable: true })
   async productSale(@Args('productCode') productCode: string) {
     const result = await this.productService.saleProduct(productCode);
     return result;
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => TotalSaleInfo, { nullable: true })
   async dashboardProduct(
     @Args('dashboardProductInput', { nullable: true })
@@ -74,6 +84,7 @@ export class ProductResolver {
     return { current: current[0], previous: previous[0] };
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => [SaleInfos], { nullable: true })
   async dashboardProducts(
     @Args('dashboardProductsInput', { nullable: true })

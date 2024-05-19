@@ -334,10 +334,6 @@ export class StockService {
     await this.stockRepository.model.bulkWrite(newStock);
   }
 
-  findAll() {
-    return `This action returns all stock`;
-  }
-
   async findMany({
     keyword,
     limit,

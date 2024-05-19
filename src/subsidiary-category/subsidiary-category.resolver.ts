@@ -5,6 +5,8 @@ import { CreateSubsidiaryCategoryInput } from './dto/create-subsidiary-category.
 import { UpdateSubsidiaryCategoryInput } from './dto/update-subsidiary-category.input';
 import { SubsidiaryCategoriesInput } from './dto/subsidiary-categories.input';
 import { SubsidiaryCategoriesOutput } from './dto/subsidiary-categories.output';
+import { Roles } from 'src/common/decorators/role.decorator';
+import { AuthRoleEnum } from 'src/users/entities/user.entity';
 
 @Resolver(() => SubsidiaryCategory)
 export class SubsidiaryCategoryResolver {
@@ -12,6 +14,7 @@ export class SubsidiaryCategoryResolver {
     private readonly subsidiaryCategoryService: SubsidiaryCategoryService,
   ) {}
 
+  @Roles([AuthRoleEnum.ANY])
   @Mutation(() => SubsidiaryCategory)
   createSubsidiaryCategory(
     @Args('createSubsidiaryCategoryInput')
@@ -20,6 +23,7 @@ export class SubsidiaryCategoryResolver {
     return this.subsidiaryCategoryService.create(createSubsidiaryCategoryInput);
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => SubsidiaryCategoriesOutput, { name: 'subsidiaryCategories' })
   subsidiaryCategories(
     @Args('subsidiaryCategoriesInput')
@@ -28,6 +32,7 @@ export class SubsidiaryCategoryResolver {
     return this.subsidiaryCategoryService.findMany(subsidiaryCategoriesInput);
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Mutation(() => SubsidiaryCategory)
   updateSubsidiaryCategory(
     @Args('updateSubsidiaryCategoryInput')
@@ -36,6 +41,7 @@ export class SubsidiaryCategoryResolver {
     return this.subsidiaryCategoryService.update(updateSubsidiaryCategoryInput);
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Mutation(() => SubsidiaryCategory)
   removeSubsidiaryCategory(@Args('_id') _id: string) {
     return this.subsidiaryCategoryService.remove(_id);

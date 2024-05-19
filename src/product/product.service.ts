@@ -341,7 +341,6 @@ export class ProductService {
       const recentCreateDate = getRecentCreateDate(product._id);
 
       const stock = getStockSum(product._id);
-
       return {
         ...product,
         sales: newSales[0],

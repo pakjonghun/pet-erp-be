@@ -19,6 +19,8 @@ import {
   EXCEL_FILE_SIZE_LIMIT,
 } from './common/constants';
 import { diskStorage } from 'multer';
+import { Roles } from './common/decorators/role.decorator';
+import { AuthRoleEnum } from './users/entities/user.entity';
 
 @Controller()
 export class AppController {
@@ -32,6 +34,7 @@ export class AppController {
     return this.appService.getHello();
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Post('/upload/:service')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -60,6 +63,7 @@ export class AppController {
     await this.fileService.upload(file, service);
   }
 
+  @Roles([AuthRoleEnum.ANY])
   @Post('/download/:service')
   async download(@Param('service') service: string) {
     return this.fileService.download(service);
