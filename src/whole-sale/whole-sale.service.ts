@@ -212,6 +212,7 @@ export class WholeSaleService {
                 mallId: { $first: '$mallId' },
                 saleAt: { $first: '$saleAt' },
                 telephoneNumber1: { $first: '$telephoneNumber1' },
+                isDone: { $first: '$isDone' },
                 productList: {
                   $push: {
                     storageName: '$storageName',

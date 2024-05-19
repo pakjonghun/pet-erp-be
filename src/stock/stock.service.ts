@@ -105,7 +105,6 @@ export class StockService {
     }>(stockPipeLine);
 
     const result: ProductCountColumn[] = [];
-    console.log(stockList);
     stockList[0].result.forEach((stock) => {
       const productItem = productMap.get(
         (stock.product as unknown as ObjectId).toHexString(),

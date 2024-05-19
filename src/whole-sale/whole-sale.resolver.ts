@@ -19,8 +19,9 @@ export class WholeSaleResolver {
   constructor(private readonly wholeSaleService: WholeSaleService) {}
 
   @Query(() => WholeSaleOutput)
-  wholeSales(@Args('wholeSalesInput') wholeSalesInput: WholeSalesInput) {
-    return this.wholeSaleService.findAll(wholeSalesInput);
+  async wholeSales(@Args('wholeSalesInput') wholeSalesInput: WholeSalesInput) {
+    const result = await this.wholeSaleService.findAll(wholeSalesInput);
+    return result;
   }
 
   @Mutation(() => [Sale], { nullable: true })
