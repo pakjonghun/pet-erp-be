@@ -22,6 +22,9 @@ import { ProductSubsidiaryRepository } from './subsidiary.repository';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { InjectModel } from '@nestjs/mongoose';
 import { ProductOrder } from 'src/product-order/entities/product-order.entity';
+import { Stock } from 'src/stock/entities/stock.entity';
+import * as dayjs from 'dayjs';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class ProductService {
@@ -35,6 +38,9 @@ export class ProductService {
 
     @InjectModel(ProductOrder.name)
     private readonly productOrderModel: Model<ProductOrder>,
+
+    @InjectModel(Stock.name)
+    private readonly stockModel: Model<Stock>,
   ) {}
 
   async totalSaleBy(range: FindDateInput, groupId?: string) {
@@ -221,6 +227,70 @@ export class ProductService {
       filterQuery: productFilterQuery,
     });
 
+    const productIdList = productList.data.map((product) => product._id);
+    const stockList = await this.stockModel
+      .find({
+        product: { $in: productIdList },
+      })
+      .lean<Stock[]>();
+    const orderList = await this.productOrderModel
+      .find({
+        products: { $elemMatch: { product: { $in: productIdList } } },
+      })
+      .lean<ProductOrder[]>();
+
+    const getStockSum = (productId: ObjectId) => {
+      return stockList
+        .filter(
+          (stock) =>
+            (stock.product as unknown as ObjectId).toHexString() ===
+            productId.toHexString(),
+        )
+        .reduce((acc, cur) => acc + cur.count, 0);
+    };
+
+    const getRecentCreateDate = (productId: ObjectId) => {
+      const today = dayjs();
+
+      const filteredOrderList = orderList.filter((order) =>
+        order.products.some(
+          (item) =>
+            (item.product as unknown as ObjectId).toHexString() ===
+            productId.toHexString(),
+        ),
+      );
+
+      if (filteredOrderList.length == 0) {
+        return '제작중인 제품 없음';
+      }
+
+      const targetProduct = productList.data.find(
+        (item) => item._id.toHexString() === productId.toHexString(),
+      );
+
+      if (!targetProduct) {
+        return '해당 제품을 검색 할 수 없음.';
+      }
+
+      const leadTime = targetProduct.leadTime ?? 0;
+
+      const shortestDiff = filteredOrderList.reduce((acc, cur) => {
+        const curDiff = dayjs(today).diff(cur.createdAt, 'day');
+        return curDiff < acc //
+          ? curDiff
+          : acc;
+      }, Infinity);
+
+      if (shortestDiff == Infinity) {
+        return '알수 없음';
+      }
+
+      const recentCreateDate = today
+        .add(shortestDiff + 1 + leadTime, 'day')
+        .format('YYYY-MM-DD');
+      return recentCreateDate;
+    };
+
     const productCodeList = productList.data.map((product) => product.code);
 
     const currentSaleFilterQuery = this.getSaleQueryByDate({
@@ -267,7 +337,18 @@ export class ProductService {
       const clients = current.clients.filter(
         (client) => client._id.productCode == productCode,
       );
-      return { ...product, sales: newSales[0], clients };
+
+      const recentCreateDate = getRecentCreateDate(product._id);
+
+      const stock = getStockSum(product._id);
+
+      return {
+        ...product,
+        sales: newSales[0],
+        clients,
+        stock,
+        recentCreateDate,
+      };
     });
     return { totalCount: productList.totalCount, data: newProductList };
   }

@@ -16,6 +16,7 @@ import {
   ProductOrderSchema,
 } from 'src/product-order/entities/product-order.entity';
 import { ProductLoader } from './product.loader';
+import { Stock, StockSchema } from 'src/stock/entities/stock.entity';
 
 @Module({
   exports: [ProductService, ProductLoader],
@@ -24,6 +25,7 @@ import { ProductLoader } from './product.loader';
       { name: Product.name, schema: productSchema },
       { name: Subsidiary.name, schema: SubsidiarySchema },
       { name: ProductOrder.name, schema: ProductOrderSchema },
+      { name: Stock.name, schema: StockSchema },
     ]),
     SaleModule,
     forwardRef(() => ProductCategoryModule),

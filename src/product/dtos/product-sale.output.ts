@@ -99,6 +99,12 @@ export class ProductSaleData extends Product {
 
   @Field(() => [ClientInfo])
   clients: ClientInfo[];
+
+  @Field(() => Int)
+  stock: number;
+
+  @Field(() => String, { nullable: true })
+  recentCreateDate: string;
 }
 
 @ObjectType()
