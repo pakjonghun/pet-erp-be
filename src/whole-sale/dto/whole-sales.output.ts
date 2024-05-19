@@ -45,6 +45,9 @@ export class WholeSaleItem {
   @Field(() => Int)
   totalPayCost: number;
 
+  @Field(() => Boolean, { nullable: true })
+  isDone: boolean;
+
   @Field(() => [WholeSaleProduct])
   productList: WholeSaleProduct[];
 }

@@ -45,10 +45,7 @@ export class WholeSaleResolver {
 
   @ResolveField(() => Int)
   totalWonCost(@Parent() parent: WholeSaleItem) {
-    return parent.productList.reduce(
-      (acc, cur) => acc + (cur.wonCost ?? 0) * cur.count,
-      0,
-    );
+    return parent.productList.reduce((acc, cur) => acc + (cur.wonCost ?? 0), 0);
   }
 
   @ResolveField(() => Int)
@@ -58,9 +55,6 @@ export class WholeSaleResolver {
 
   @ResolveField(() => Int)
   totalPayCost(@Parent() parent: WholeSaleItem) {
-    return parent.productList.reduce(
-      (acc, cur) => acc + cur.payCost * cur.count,
-      0,
-    );
+    return parent.productList.reduce((acc, cur) => acc + cur.payCost, 0);
   }
 }

@@ -1,6 +1,7 @@
 import {
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -47,6 +48,10 @@ export class CreateWholeSaleProduct {
 
 @InputType()
 export class CreateWholeSaleInput implements Omit<SaleInterface, 'code'> {
+  @IsBoolean()
+  @Field(() => Boolean, { nullable: true })
+  isDone: boolean;
+
   @IsString()
   @IsNotEmpty({ message: '판매 거래처를 입력하세요.' })
   @Field(() => String)

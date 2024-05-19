@@ -41,7 +41,13 @@ export class WholeSaleService {
   ) {}
 
   async createWholeSale(
-    { productList, mallId, saleAt, telephoneNumber1 }: CreateWholeSaleInput,
+    {
+      productList,
+      mallId,
+      saleAt,
+      telephoneNumber1,
+      isDone,
+    }: CreateWholeSaleInput,
     session: ClientSession,
   ) {
     const client = await this.clientModel.findOne({ name: mallId });
@@ -128,11 +134,12 @@ export class WholeSaleService {
         productName,
         productCode,
         saleAt,
-        payCost,
+        payCost: payCost * count,
         mallId,
-        wonCost,
+        wonCost: wonCost * count,
         wholeSaleId,
         storageName,
+        isDone,
         // deliveryCost?: number,
       };
 
@@ -252,6 +259,7 @@ export class WholeSaleService {
     productList: curProductList,
     saleAt,
     telephoneNumber1,
+    isDone,
   }: UpdateWholeSaleInput) {
     const session = await this.connection.startSession();
     session.startTransaction();
@@ -261,6 +269,7 @@ export class WholeSaleService {
       await this.remove(wholeSaleId, session);
       await this.createWholeSale(
         {
+          isDone,
           saleAt,
           mallId,
           telephoneNumber1,
