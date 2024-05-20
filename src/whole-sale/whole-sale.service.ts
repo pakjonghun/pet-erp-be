@@ -238,7 +238,19 @@ export class WholeSaleService {
               $skip: skip,
             },
           ],
-          totalCount: [{ $count: 'count' }],
+          totalCount: [
+            {
+              $match: filterQuery, // 동일한 필터 조건을 사용하여 전체 문서 수를 계산
+            },
+            {
+              $group: {
+                _id: '$wholeSaleId',
+              },
+            },
+            {
+              $count: 'count', // 문서의 총 개수를 세고 count 필드로 반환
+            },
+          ],
         },
       },
     ];
@@ -247,7 +259,6 @@ export class WholeSaleService {
       data: WholeSaleItem[];
       totalCount: { count: number }[];
     }>(salePipeLine);
-
     return {
       data: sales[0].data,
       totalCount: sales[0].totalCount[0]?.count ?? 0,
