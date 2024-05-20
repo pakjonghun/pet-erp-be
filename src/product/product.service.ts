@@ -12,7 +12,7 @@ import { ProductRepository } from './product.repository';
 import { Product, ProductInterface } from './entities/product.entity';
 import { ColumnOption } from 'src/client/types';
 import { SaleService } from 'src/sale/sale.service';
-import { FilterQuery, Model } from 'mongoose';
+import { FilterQuery, Model, PipelineStage } from 'mongoose';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { ProductSaleInput } from './dtos/product-sale.input';
 import { ProductsInput } from './dtos/products-input';
@@ -218,6 +218,247 @@ export class ProductService {
     to,
     ...query
   }: ProductSaleInput) {
+    const { from: beforeFrom, to: beforeTo } = this.utilService.getBeforeDate({
+      from,
+      to,
+    });
+    const salePipeLine: PipelineStage[] = [
+      {
+        $match: {
+          name: { $regex: keyword, $options: 'i' },
+        },
+      },
+      {
+        $lookup: {
+          from: 'stocks',
+          localField: '_id',
+          foreignField: 'product',
+          // pipeline: [
+          //   {
+          //     $match: {},
+          //   },
+          // ],
+          as: 'stock_info',
+        },
+      },
+      {
+        $lookup: {
+          from: 'sales',
+          localField: 'code',
+          foreignField: 'productCode',
+          pipeline: [
+            {
+              $match: {
+                count: { $exists: true },
+                payCost: { $exists: true },
+                wonCost: { $exists: true },
+                saleAt: {
+                  $gte: from,
+                  $lte: to,
+                },
+              },
+            },
+          ],
+          as: 'sale_info',
+        },
+      },
+      {
+        $lookup: {
+          from: 'sales',
+          localField: 'code',
+          foreignField: 'productCode',
+          pipeline: [
+            {
+              $match: {
+                count: { $exists: true },
+                payCost: { $exists: true },
+                wonCost: { $exists: true },
+                saleAt: {
+                  $gte: beforeFrom,
+                  $lte: beforeTo,
+                },
+              },
+            },
+          ],
+          as: 'prev_sale_info',
+        },
+      },
+      {
+        $lookup: {
+          as: 'order_info',
+          from: 'productorders',
+          let: { productId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                products: { $exists: true, $ne: [] },
+                isDone: false,
+              },
+            },
+            {
+              $project: {
+                createdAt: 1,
+                products: 1,
+              },
+            },
+            {
+              $unwind: '$products',
+            },
+            {
+              $lookup: {
+                foreignField: '_id',
+                from: 'products',
+                localField: 'products.product',
+                as: 'order_product_info',
+              },
+            },
+            {
+              $unwind: '$order_product_info',
+            },
+            {
+              $group: {
+                _id: '$_id',
+                createdAt: { $first: '$createdAt' },
+                maxLeadTime: { $max: '$order_product_info.leadTime' },
+              },
+            },
+            {
+              $addFields: {
+                calculatedDate: {
+                  $dateAdd: {
+                    startDate: '$createdAt',
+                    unit: 'day',
+                    amount: { $ifNull: ['$maxLeadTime', 0] },
+                  },
+                },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                recentCreateDate: { $min: '$calculatedDate' },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                recentCreateDate: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          recentCreateDate: {
+            $arrayElemAt: ['$order_info.recentCreateDate', 0],
+          },
+          stock: { $sum: '$stock_info.count' },
+          sales: {
+            accWonCost: { $sum: '$sale_info.wonCost' },
+            accPayCost: { $sum: '$sale_info.payCost' },
+            accCount: { $sum: '$sale_info.count' },
+            name: '$name',
+            prevAccWonCost: { $sum: '$prev_sale_info.wonCost' },
+            prevAccPayCost: { $sum: '$prev_sale_info.payCost' },
+            prevAccCount: { $sum: '$prev_sale_info.count' },
+          },
+        },
+      },
+      {
+        $addFields: {
+          'sales.accProfit': {
+            $subtract: ['$sales.accPayCost', '$sales.accWonCost'],
+          },
+          'sales.averagePayCost': {
+            $cond: {
+              if: { $gt: ['$sales.accCount', 0] },
+              then: {
+                $round: [
+                  { $divide: ['$sales.accPayCost', '$sales.accCount'] },
+                  2,
+                ],
+              },
+              else: 0,
+            },
+          },
+          'sales.prevAccProfit': {
+            $subtract: ['$sales.prevAccPayCost', '$sales.prevAccWonCost'],
+          },
+          'sales.prevAveragePayCost': {
+            $cond: {
+              if: { $gt: ['$sales.prevAccCount', 0] },
+              then: {
+                $round: [
+                  { $divide: ['$sales.prevAccPayCost', '$sales.prevAccCount'] },
+                  0,
+                ],
+              },
+              else: 0,
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          code: 1,
+          recentCreateDate: 1,
+          stock: 1,
+          sales: 1,
+          sale_info: 1,
+        },
+      },
+    ];
+
+    // 이 제품을 팔은 거래처
+    // const clientPipeLine:PipelineStage[]=[
+    //   {
+    //     $match:{
+    //       productCode:
+    //     }
+    //   }
+    // ]
+
+    // accPayCost
+    // accCount
+    // _id
+    // accProfit
+    // averagePayCost
+
+    // _id: new ObjectId('662f77533918fdaf2303fbc6'),
+    // code: '100026',
+    // barCode: '8809928840307',
+    // name: '데일리케얼_브레스(66g)',
+    // wonPrice: 2948,
+    // salePrice: 15800,
+    // maintainDate: 2,
+    // category: new ObjectId('662f77538f9e1b98bb0d67bf'),
+    // createdAt: 2024-04-29T10:32:51.642Z,
+    // updatedAt: 2024-04-29T10:32:51.642Z,
+    // sales: {},
+    //accPayCost
+    // accCount
+    // name
+    // accProfit
+    // averagePayCost
+    // prevAccPayCost
+    // prevAccCount
+    // prevAccProfit
+    // prevAveragePayCost
+    // clients: [],
+    // accPayCost
+    // accCount
+    // _id
+    // accProfit
+    // averagePayCost
+
+    // stock: 0,
+    // recentCreateDate: '제작중인 제품 없음'
+
+    const resul = await this.productRepository.model.aggregate(salePipeLine);
+    console.dir(resul, { depth: 10 });
+
     const productFilterQuery: FilterQuery<Product> = {
       [keywordTarget]: { $regex: keyword, $options: 'i' },
     };
@@ -349,6 +590,8 @@ export class ProductService {
         recentCreateDate,
       };
     });
+
+    // console.log('newProductList : ', newProductList);
     return { totalCount: productList.totalCount, data: newProductList };
   }
 
