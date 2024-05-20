@@ -28,7 +28,7 @@ export class FactoryService {
 
   findMany({ keyword, skip, limit }: FactoriesInput) {
     const filterQuery: FilterQuery<Factory> = {
-      name: { $regex: keyword, $options: 'i' },
+      name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
     };
     return this.factoryRepository.findMany({
       filterQuery,

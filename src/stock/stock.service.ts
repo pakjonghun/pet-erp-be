@@ -345,7 +345,7 @@ export class StockService {
     type CountAggregate = { _id: string; accCount: number };
 
     const filterQuery: Record<string, any> = {
-      name: { $regex: keyword, $options: 'i' },
+      name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
     };
 
     let stocks: Stock[] = [];

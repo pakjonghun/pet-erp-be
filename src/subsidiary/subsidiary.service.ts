@@ -46,7 +46,7 @@ export class SubsidiaryService {
       order: OrderEnum.DESC,
       sort: 'createdAt',
       filterQuery: {
-        name: { $regex: keyword, $options: 'i' },
+        name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
       },
     });
 

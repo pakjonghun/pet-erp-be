@@ -64,7 +64,10 @@ export class ClientService {
 
   findMany(query: ClientsInput) {
     const filterQuery: FilterQuery<Client> = {
-      name: { $regex: query.keyword, $options: 'i' },
+      name: {
+        $regex: this.utilService.escapeRegex(query.keyword),
+        $options: 'i',
+      },
     };
 
     if (query.clientType) {

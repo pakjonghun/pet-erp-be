@@ -209,15 +209,9 @@ export class ProductService {
     };
   }
 
-  async salesByProduct({
-    keyword,
-    keywordTarget,
-    from,
-    to,
-    ...query
-  }: ProductSaleInput) {
+  async salesByProduct({ keyword, from, to, ...query }: ProductSaleInput) {
     const productFilterQuery: FilterQuery<Product> = {
-      name: { $regex: keyword, $options: 'i' },
+      name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
     };
     const productListPipeLine: PipelineStage[] = [
       {
@@ -233,13 +227,28 @@ export class ProductService {
       },
       {
         $lookup: {
+          let: { productId: '$_id' },
           from: 'productorders',
           as: 'order_info',
           pipeline: [
             {
               $match: {
-                isDone: false,
-                products: { $exists: true, $ne: [] },
+                $expr: {
+                  $and: [
+                    { $eq: ['$isDone', false] },
+                    {
+                      $gt: [
+                        {
+                          $size: {
+                            $ifNull: ['$products', []],
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                    { $in: ['$$productId', '$products.product'] },
+                  ],
+                },
               },
             },
             {
@@ -262,104 +271,99 @@ export class ProductService {
             {
               $unwind: '$order_product_info',
             },
-            // {
-            //   $group: {
-            //     _id: '$_id',
-            //     createdAt: { $first: '$createdAt' },
-            //     maxLeadTime: { $max: '$order_product_info.leadTime' },
-            //     leadTimeCount: {
-            //       $sum: {
-            //         $cond: [
-            //           { $ne: ['$order_product_info.leadTime', null] },
-            //           1,
-            //           0,
-            //         ],
-            //       },
-            //     },
-            //   },
-            // },
-            // {
-            //   $addFields: {
-            //     maxLeadTime: {
-            //       $cond: {
-            //         if: { $eq: ['$leadTimeCount', 0] },
-            //         then: null,
-            //         else: '$maxLeadTime',
-            //       },
-            //     },
-            //     calculatedDate: {
-            //       $cond: {
-            //         if: { $eq: ['$maxLeadTime', null] },
-            //         then: '알 수 없음',
-            //         else: {
-            //           $dateToString: {
-            //             format: '%Y-%m-%d',
-            //             date: {
-            //               $dateAdd: {
-            //                 startDate: '$createdAt',
-            //                 unit: 'day',
-            //                 amount: '$maxLeadTime',
-            //               },
-            //             },
-            //           },
-            //         },
-            //       },
-            //     },
-            //   },
-            // },
-            // {
-            //   $group: {
-            //     _id: null,
-            //     recentCreateDate: { $min: '$calculatedDate' },
-            //   },
-            // },
+            {
+              $group: {
+                _id: '$_id',
+                createdAt: { $first: '$createdAt' },
+                maxLeadTime: { $max: '$order_product_info.leadTime' },
+                leadTimeCount: {
+                  $sum: {
+                    $cond: [
+                      { $ne: ['$order_product_info.leadTime', null] },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+            {
+              $addFields: {
+                maxLeadTime: {
+                  $cond: {
+                    if: { $eq: ['$leadTimeCount', 0] },
+                    then: null,
+                    else: '$maxLeadTime',
+                  },
+                },
+                calculatedDate: {
+                  $cond: {
+                    if: { $eq: ['$maxLeadTime', null] },
+                    then: '알 수 없음',
+                    else: {
+                      $dateToString: {
+                        format: '%Y-%m-%d',
+                        date: {
+                          $dateAdd: {
+                            startDate: '$createdAt',
+                            unit: 'day',
+                            amount: '$maxLeadTime',
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                recentCreateDate: { $min: '$calculatedDate' },
+              },
+            },
 
-            // {
-            //   $project: {
-            //     _id: 0,
-            //     recentCreateDate: 1,
-            //   },
-            // },
+            {
+              $project: {
+                _id: 0,
+                recentCreateDate: 1,
+              },
+            },
           ],
         },
       },
-      // {
-      //   $addFields: {
-      //     stock: {
-      //       $sum: '$stock_info.count',
-      //     },
-      //     recentCreateDate: {
-      //       $arrayElemAt: ['$order_info.recentCreateDate', 0],
-      //     },
-      //   },
-      // },
-      // {
-      //   $addFields: {
-      //     totalAssetCost: { $multiply: ['$wonPrice', '$stock'] },
-      //   },
-      // },
-      // {
-      //   $project: {
-      //     stock_info: 0,
-      //     order_info: 0,
-      //   },
-      // },
-      // {
-      //   $sort: {
-      //     totalAssetCost: -1,
-      //     _id: 1,
-      //   },
-      // },
-      // {
-      //   $skip: query.skip,
-      // },
-      // {
-      //   $limit: query.limit,
-      // },
+      {
+        $addFields: {
+          stock: {
+            $sum: '$stock_info.count',
+          },
+          recentCreateDate: {
+            $arrayElemAt: ['$order_info.recentCreateDate', 0],
+          },
+        },
+      },
+      {
+        $addFields: {
+          totalAssetCost: { $multiply: ['$wonPrice', '$stock'] },
+        },
+      },
       {
         $project: {
-          productorders: 1,
+          stock_info: 0,
+          order_info: 0,
         },
+      },
+      {
+        $sort: {
+          totalAssetCost: -1,
+          _id: 1,
+        },
+      },
+      {
+        $skip: query.skip,
+      },
+      {
+        $limit: query.limit,
       },
     ];
     const productList = await this.productRepository.model.aggregate<

@@ -12,11 +12,13 @@ import { Product } from 'src/product/entities/product.entity';
 import { OrdersInput } from './dto/orders.input';
 import { ProductOrder } from './entities/product-order.entity';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
+import { UtilService } from 'src/util/util.service';
 
 @Injectable()
 export class ProductOrderService {
   constructor(
     private readonly productOrderRepository: ProductOrderRepository,
+    private readonly utilService: UtilService,
     @InjectModel(Factory.name) private readonly factoryModel: Model<Factory>,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
   ) {}
@@ -73,7 +75,9 @@ export class ProductOrderService {
     sort = 'createdAt',
     order = OrderEnum.DESC,
   }: OrdersInput) {
-    const filterQuery = { name: { $regex: keyword, $options: 'i' } };
+    const filterQuery = {
+      name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
+    };
 
     const productList = await this.productModel
       .find(filterQuery)

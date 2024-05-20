@@ -49,7 +49,12 @@ export class ProductCategoryService {
       skip,
       limit,
       order: OrderEnum.DESC,
-      filterQuery: { name: { $regex: keyword, $options: 'i' } },
+      filterQuery: {
+        name: {
+          $regex: this.utilService.escapeRegex(keyword),
+          $options: 'i',
+        },
+      },
     });
   }
 

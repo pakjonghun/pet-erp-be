@@ -24,7 +24,7 @@ export class StorageService {
 
   findMany({ keyword, skip, limit }: StoragesInput) {
     const filterQuery: FilterQuery<Storage> = {
-      name: { $regex: keyword, $options: 'i' },
+      name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
     };
     return this.storageRepository.findMany({
       filterQuery,
