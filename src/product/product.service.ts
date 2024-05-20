@@ -209,7 +209,15 @@ export class ProductService {
     };
   }
 
-  async salesByProduct({ keyword, from, to, ...query }: ProductSaleInput) {
+  async salesByProduct({
+    keyword,
+    from,
+    to,
+    order,
+    sort,
+    skip,
+    limit,
+  }: ProductSaleInput) {
     const productFilterQuery: FilterQuery<Product> = {
       name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
     };
@@ -253,7 +261,7 @@ export class ProductService {
             },
             {
               $project: {
-                createdAt: 1,
+                orderDate: 1,
                 products: 1,
               },
             },
@@ -274,7 +282,7 @@ export class ProductService {
             {
               $group: {
                 _id: '$_id',
-                createdAt: { $first: '$createdAt' },
+                orderDate: { $first: '$orderDate' },
                 maxLeadTime: { $max: '$order_product_info.leadTime' },
                 leadTimeCount: {
                   $sum: {
@@ -305,7 +313,7 @@ export class ProductService {
                         format: '%Y-%m-%d',
                         date: {
                           $dateAdd: {
-                            startDate: '$createdAt',
+                            startDate: '$orderDate',
                             unit: 'day',
                             amount: '$maxLeadTime',
                           },
@@ -355,15 +363,15 @@ export class ProductService {
       },
       {
         $sort: {
-          totalAssetCost: -1,
+          [sort]: order ?? -1,
           _id: 1,
         },
       },
       {
-        $skip: query.skip,
+        $skip: skip,
       },
       {
-        $limit: query.limit,
+        $limit: limit,
       },
     ];
     const productList = await this.productRepository.model.aggregate<
@@ -374,7 +382,6 @@ export class ProductService {
       }
     >(productListPipeLine);
 
-    console.log('productList : ', productList);
     const totalCount =
       await this.productRepository.model.countDocuments(productFilterQuery);
 

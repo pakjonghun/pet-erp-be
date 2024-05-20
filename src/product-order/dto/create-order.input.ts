@@ -34,7 +34,7 @@ export class CreateOrderInput
 {
   @Field(() => Date)
   @IsDate({ message: '올바른 형식의 ISO 날짜를 입력해주세요.' })
-  createdAt: Date;
+  orderDate: Date;
 
   @IsString()
   @IsNotEmpty({ message: '제조 공장 아이디를 입력하세요.' })

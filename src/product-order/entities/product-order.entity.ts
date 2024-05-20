@@ -17,6 +17,7 @@ export interface ProductOrderInterface {
   notPayCost: number;
   totalPayCost: number;
   isDone: boolean;
+  orderDate: Date;
 }
 
 @ObjectType()
@@ -64,6 +65,10 @@ export class ProductOrder
   @Prop({ type: Boolean, default: false })
   @Field(() => Boolean)
   isDone: boolean;
+
+  @Prop({ type: Date })
+  @Field(() => Date)
+  orderDate: Date;
 
   @Field(() => Date)
   createdAt: Date;

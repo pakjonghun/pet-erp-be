@@ -140,6 +140,8 @@ export class ProductOrderService {
         factory,
       },
     );
+
+    console.log('body : ', body, result);
     return result;
   }
 

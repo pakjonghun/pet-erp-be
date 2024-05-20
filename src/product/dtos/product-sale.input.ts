@@ -1,20 +1,11 @@
-import { Field, InputType } from '@nestjs/graphql';
+import { Field, InputType, Int, OmitType } from '@nestjs/graphql';
 import { FindManyDTO } from 'src/common/dtos/find-many.input';
-import { ProductInterface } from '../entities/product.entity';
 import { IsOneOf } from 'src/common/validations/enum.validation';
 import { IsDateValidate } from 'src/common/validations/date.validation';
-
-const product: Pick<ProductInterface, 'code' | 'name'> = {
-  code: 'code',
-  name: 'name',
-};
+import { IsNumber, IsOptional } from 'class-validator';
 
 @InputType()
-export class ProductSaleInput extends FindManyDTO {
-  @Field(() => String)
-  @IsOneOf(product, { message: '검색할수 없는 키워드 입니다.' })
-  keywordTarget: keyof ProductInterface;
-
+export class ProductSaleInput extends OmitType(FindManyDTO, ['order', 'sort']) {
   @Field(() => Date)
   @IsDateValidate({ message: '올바른 날짜 형식을 입력하세요.' })
   from: Date;
@@ -22,4 +13,19 @@ export class ProductSaleInput extends FindManyDTO {
   @Field(() => Date)
   @IsDateValidate({ message: '올바른 날짜 형식을 입력하세요.' })
   to: Date;
+
+  @Field(() => String)
+  @IsOneOf(
+    {
+      totalAssetCost: 'totalAssetCost',
+      createdAt: 'createdAt',
+    },
+    { message: '정렬 할 수 있는 키 값을 입력하세요.' },
+  )
+  sort: string;
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsNumber()
+  order: 1 | -1 | null;
 }
