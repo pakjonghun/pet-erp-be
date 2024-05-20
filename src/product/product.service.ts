@@ -23,8 +23,6 @@ import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { InjectModel } from '@nestjs/mongoose';
 import { ProductOrder } from 'src/product-order/entities/product-order.entity';
 import { Stock } from 'src/stock/entities/stock.entity';
-import * as dayjs from 'dayjs';
-import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class ProductService {
@@ -218,81 +216,30 @@ export class ProductService {
     to,
     ...query
   }: ProductSaleInput) {
-    const { from: beforeFrom, to: beforeTo } = this.utilService.getBeforeDate({
-      from,
-      to,
-    });
-    const salePipeLine: PipelineStage[] = [
+    const productFilterQuery: FilterQuery<Product> = {
+      name: { $regex: keyword, $options: 'i' },
+    };
+    const productListPipeLine: PipelineStage[] = [
       {
-        $match: {
-          name: { $regex: keyword, $options: 'i' },
-        },
+        $match: productFilterQuery,
       },
       {
         $lookup: {
-          from: 'stocks',
-          localField: '_id',
-          foreignField: 'product',
-          // pipeline: [
-          //   {
-          //     $match: {},
-          //   },
-          // ],
           as: 'stock_info',
+          foreignField: 'product',
+          localField: '_id',
+          from: 'stocks',
         },
       },
       {
         $lookup: {
-          from: 'sales',
-          localField: 'code',
-          foreignField: 'productCode',
-          pipeline: [
-            {
-              $match: {
-                count: { $exists: true },
-                payCost: { $exists: true },
-                wonCost: { $exists: true },
-                saleAt: {
-                  $gte: from,
-                  $lte: to,
-                },
-              },
-            },
-          ],
-          as: 'sale_info',
-        },
-      },
-      {
-        $lookup: {
-          from: 'sales',
-          localField: 'code',
-          foreignField: 'productCode',
-          pipeline: [
-            {
-              $match: {
-                count: { $exists: true },
-                payCost: { $exists: true },
-                wonCost: { $exists: true },
-                saleAt: {
-                  $gte: beforeFrom,
-                  $lte: beforeTo,
-                },
-              },
-            },
-          ],
-          as: 'prev_sale_info',
-        },
-      },
-      {
-        $lookup: {
-          as: 'order_info',
           from: 'productorders',
-          let: { productId: '$_id' },
+          as: 'order_info',
           pipeline: [
             {
               $match: {
-                products: { $exists: true, $ne: [] },
                 isDone: false,
+                products: { $exists: true, $ne: [] },
               },
             },
             {
@@ -306,241 +253,134 @@ export class ProductService {
             },
             {
               $lookup: {
-                foreignField: '_id',
-                from: 'products',
-                localField: 'products.product',
                 as: 'order_product_info',
+                from: 'products',
+                foreignField: '_id',
+                localField: 'products.product',
               },
             },
             {
               $unwind: '$order_product_info',
             },
-            {
-              $group: {
-                _id: '$_id',
-                createdAt: { $first: '$createdAt' },
-                maxLeadTime: { $max: '$order_product_info.leadTime' },
-              },
-            },
-            {
-              $addFields: {
-                calculatedDate: {
-                  $dateAdd: {
-                    startDate: '$createdAt',
-                    unit: 'day',
-                    amount: { $ifNull: ['$maxLeadTime', 0] },
-                  },
-                },
-              },
-            },
-            {
-              $group: {
-                _id: null,
-                recentCreateDate: { $min: '$calculatedDate' },
-              },
-            },
-            {
-              $project: {
-                _id: 0,
-                recentCreateDate: 1,
-              },
-            },
+            // {
+            //   $group: {
+            //     _id: '$_id',
+            //     createdAt: { $first: '$createdAt' },
+            //     maxLeadTime: { $max: '$order_product_info.leadTime' },
+            //     leadTimeCount: {
+            //       $sum: {
+            //         $cond: [
+            //           { $ne: ['$order_product_info.leadTime', null] },
+            //           1,
+            //           0,
+            //         ],
+            //       },
+            //     },
+            //   },
+            // },
+            // {
+            //   $addFields: {
+            //     maxLeadTime: {
+            //       $cond: {
+            //         if: { $eq: ['$leadTimeCount', 0] },
+            //         then: null,
+            //         else: '$maxLeadTime',
+            //       },
+            //     },
+            //     calculatedDate: {
+            //       $cond: {
+            //         if: { $eq: ['$maxLeadTime', null] },
+            //         then: '알 수 없음',
+            //         else: {
+            //           $dateToString: {
+            //             format: '%Y-%m-%d',
+            //             date: {
+            //               $dateAdd: {
+            //                 startDate: '$createdAt',
+            //                 unit: 'day',
+            //                 amount: '$maxLeadTime',
+            //               },
+            //             },
+            //           },
+            //         },
+            //       },
+            //     },
+            //   },
+            // },
+            // {
+            //   $group: {
+            //     _id: null,
+            //     recentCreateDate: { $min: '$calculatedDate' },
+            //   },
+            // },
+
+            // {
+            //   $project: {
+            //     _id: 0,
+            //     recentCreateDate: 1,
+            //   },
+            // },
           ],
         },
       },
-      {
-        $addFields: {
-          recentCreateDate: {
-            $arrayElemAt: ['$order_info.recentCreateDate', 0],
-          },
-          stock: { $sum: '$stock_info.count' },
-          sales: {
-            accWonCost: { $sum: '$sale_info.wonCost' },
-            accPayCost: { $sum: '$sale_info.payCost' },
-            accCount: { $sum: '$sale_info.count' },
-            name: '$name',
-            prevAccWonCost: { $sum: '$prev_sale_info.wonCost' },
-            prevAccPayCost: { $sum: '$prev_sale_info.payCost' },
-            prevAccCount: { $sum: '$prev_sale_info.count' },
-          },
-        },
-      },
-      {
-        $addFields: {
-          'sales.accProfit': {
-            $subtract: ['$sales.accPayCost', '$sales.accWonCost'],
-          },
-          'sales.averagePayCost': {
-            $cond: {
-              if: { $gt: ['$sales.accCount', 0] },
-              then: {
-                $round: [
-                  { $divide: ['$sales.accPayCost', '$sales.accCount'] },
-                  2,
-                ],
-              },
-              else: 0,
-            },
-          },
-          'sales.prevAccProfit': {
-            $subtract: ['$sales.prevAccPayCost', '$sales.prevAccWonCost'],
-          },
-          'sales.prevAveragePayCost': {
-            $cond: {
-              if: { $gt: ['$sales.prevAccCount', 0] },
-              then: {
-                $round: [
-                  { $divide: ['$sales.prevAccPayCost', '$sales.prevAccCount'] },
-                  0,
-                ],
-              },
-              else: 0,
-            },
-          },
-        },
-      },
+      // {
+      //   $addFields: {
+      //     stock: {
+      //       $sum: '$stock_info.count',
+      //     },
+      //     recentCreateDate: {
+      //       $arrayElemAt: ['$order_info.recentCreateDate', 0],
+      //     },
+      //   },
+      // },
+      // {
+      //   $addFields: {
+      //     totalAssetCost: { $multiply: ['$wonPrice', '$stock'] },
+      //   },
+      // },
+      // {
+      //   $project: {
+      //     stock_info: 0,
+      //     order_info: 0,
+      //   },
+      // },
+      // {
+      //   $sort: {
+      //     totalAssetCost: -1,
+      //     _id: 1,
+      //   },
+      // },
+      // {
+      //   $skip: query.skip,
+      // },
+      // {
+      //   $limit: query.limit,
+      // },
       {
         $project: {
-          _id: 0,
-          code: 1,
-          recentCreateDate: 1,
-          stock: 1,
-          sales: 1,
-          sale_info: 1,
+          productorders: 1,
         },
       },
     ];
-
-    // 이 제품을 팔은 거래처
-    // const clientPipeLine:PipelineStage[]=[
-    //   {
-    //     $match:{
-    //       productCode:
-    //     }
-    //   }
-    // ]
-
-    // accPayCost
-    // accCount
-    // _id
-    // accProfit
-    // averagePayCost
-
-    // _id: new ObjectId('662f77533918fdaf2303fbc6'),
-    // code: '100026',
-    // barCode: '8809928840307',
-    // name: '데일리케얼_브레스(66g)',
-    // wonPrice: 2948,
-    // salePrice: 15800,
-    // maintainDate: 2,
-    // category: new ObjectId('662f77538f9e1b98bb0d67bf'),
-    // createdAt: 2024-04-29T10:32:51.642Z,
-    // updatedAt: 2024-04-29T10:32:51.642Z,
-    // sales: {},
-    //accPayCost
-    // accCount
-    // name
-    // accProfit
-    // averagePayCost
-    // prevAccPayCost
-    // prevAccCount
-    // prevAccProfit
-    // prevAveragePayCost
-    // clients: [],
-    // accPayCost
-    // accCount
-    // _id
-    // accProfit
-    // averagePayCost
-
-    // stock: 0,
-    // recentCreateDate: '제작중인 제품 없음'
-
-    const resul = await this.productRepository.model.aggregate(salePipeLine);
-    console.dir(resul, { depth: 10 });
-
-    const productFilterQuery: FilterQuery<Product> = {
-      [keywordTarget]: { $regex: keyword, $options: 'i' },
-    };
-
-    const productList = await this.productRepository.findMany({
-      ...query,
-      filterQuery: productFilterQuery,
-    });
-
-    const productIdList = productList.data.map((product) => product._id);
-    const stockList = await this.stockModel
-      .find({
-        product: { $in: productIdList },
-      })
-      .lean<Stock[]>();
-    const orderList = await this.productOrderModel
-      .find({
-        products: { $elemMatch: { product: { $in: productIdList } } },
-      })
-      .lean<ProductOrder[]>();
-
-    const getStockSum = (productId: ObjectId) => {
-      return stockList
-        .filter(
-          (stock) =>
-            (stock.product as unknown as ObjectId).toHexString() ===
-            productId.toHexString(),
-        )
-        .reduce((acc, cur) => acc + cur.count, 0);
-    };
-
-    const getRecentCreateDate = (productId: ObjectId) => {
-      const today = dayjs();
-
-      const filteredOrderList = orderList.filter((order) =>
-        order.products.some(
-          (item) =>
-            (item.product as unknown as ObjectId).toHexString() ===
-            productId.toHexString(),
-        ),
-      );
-
-      if (filteredOrderList.length == 0) {
-        return '제작중인 제품 없음';
+    const productList = await this.productRepository.model.aggregate<
+      Product & {
+        stock: number;
+        totalAssetCost: number;
+        recentCreateDate: string;
       }
+    >(productListPipeLine);
 
-      const targetProduct = productList.data.find(
-        (item) => item._id.toHexString() === productId.toHexString(),
-      );
+    console.log('productList : ', productList);
+    const totalCount =
+      await this.productRepository.model.countDocuments(productFilterQuery);
 
-      if (!targetProduct) {
-        return '해당 제품을 검색 할 수 없음.';
-      }
-
-      const leadTime = targetProduct.leadTime ?? 0;
-
-      const shortestDiff = filteredOrderList.reduce((acc, cur) => {
-        const curDiff = dayjs(today).diff(cur.createdAt, 'day');
-        return curDiff < acc //
-          ? curDiff
-          : acc;
-      }, Infinity);
-
-      if (shortestDiff == Infinity) {
-        return '알수 없음';
-      }
-
-      const recentCreateDate = today
-        .add(shortestDiff + 1 + leadTime, 'day')
-        .format('YYYY-MM-DD');
-      return recentCreateDate;
-    };
-
-    const productCodeList = productList.data.map((product) => product.code);
-
+    const productCodeList = productList.map((product) => product.code);
     const currentSaleFilterQuery = this.getSaleQueryByDate({
       productCodeList,
       from,
       to,
     });
     const current = (await this.saleService.saleBy(currentSaleFilterQuery))[0];
-
     const beforeRange = this.utilService.getBeforeDate({ from, to });
     const previousSaleFilterQuery = this.getSaleQueryByDate({
       productCodeList,
@@ -549,18 +389,14 @@ export class ProductService {
     const previous = (
       await this.saleService.saleBy(previousSaleFilterQuery)
     )[0];
-
-    const newProductList = productList.data.map((product) => {
+    const newProductList = productList.map((product) => {
       const productCode = product.code;
-
       const prevSales = previous.sales.filter((sale) => {
         return sale.name == productCode;
       });
-
       const sales = current.sales.filter((sale) => {
         return sale.name == productCode;
       });
-
       const newSales = sales.map((sale) => {
         const previousItem = prevSales.find(
           (prevSale) => prevSale._id === sale._id,
@@ -579,20 +415,14 @@ export class ProductService {
         (client) => client._id.productCode == productCode,
       );
 
-      const recentCreateDate = getRecentCreateDate(product._id);
-
-      const stock = getStockSum(product._id);
       return {
         ...product,
         sales: newSales[0],
         clients,
-        stock,
-        recentCreateDate,
       };
     });
-
     // console.log('newProductList : ', newProductList);
-    return { totalCount: productList.totalCount, data: newProductList };
+    return { totalCount, data: newProductList };
   }
 
   async saleProduct(productCode: string) {

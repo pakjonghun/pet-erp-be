@@ -17,6 +17,7 @@ import {
 } from 'src/product-order/entities/product-order.entity';
 import { ProductLoader } from './product.loader';
 import { Stock, StockSchema } from 'src/stock/entities/stock.entity';
+import { Sale, saleSchema } from 'src/sale/entities/sale.entity';
 
 @Module({
   exports: [ProductService, ProductLoader],
