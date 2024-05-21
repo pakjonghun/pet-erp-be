@@ -7,11 +7,14 @@ import { SubsidiariesInput } from './dto/subsidiaries.input';
 import { SubsidiariesOutput } from './dto/subsidiaries.output';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
+import { LogData } from 'src/common/decorators/log.decorator';
+import { LogTypeEnum } from 'src/log/entities/log.entity';
 
 @Resolver(() => Subsidiary)
 export class SubsidiaryResolver {
   constructor(private readonly subsidiaryService: SubsidiaryService) {}
 
+  @LogData({ description: '부자재생성', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Subsidiary)
   createSubsidiary(
@@ -29,6 +32,7 @@ export class SubsidiaryResolver {
     return result;
   }
 
+  @LogData({ description: '부자재업데이트', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Subsidiary)
   updateSubsidiary(
@@ -37,6 +41,7 @@ export class SubsidiaryResolver {
     return this.subsidiaryService.update(updateSubsidiaryInput);
   }
 
+  @LogData({ description: '부자재삭제', logType: LogTypeEnum.DELETE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Subsidiary)
   removeSubsidiary(@Args('_id') _id: string) {

@@ -7,11 +7,14 @@ import { CategoriesInput } from './dtos/find-category.input';
 import { CategoriesOutput } from './dtos/find-category.output';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
+import { LogData } from 'src/common/decorators/log.decorator';
+import { LogTypeEnum } from 'src/log/entities/log.entity';
 
 @Resolver(() => ProductCategory)
 export class ProductCategoryResolver {
   constructor(private readonly categoryService: ProductCategoryService) {}
 
+  @LogData({ description: '제품분류 생성', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => ProductCategory)
   createCategory(
@@ -27,6 +30,7 @@ export class ProductCategoryResolver {
     return result;
   }
 
+  @LogData({ description: '제품분류 업데이트', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => ProductCategory)
   updateCategory(
@@ -35,6 +39,7 @@ export class ProductCategoryResolver {
     return this.categoryService.update(updateCategoryInput);
   }
 
+  @LogData({ description: '제품분류 삭제', logType: LogTypeEnum.DELETE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => ProductCategory)
   async removeCategory(@Args('_id', { type: () => String }) _id: string) {

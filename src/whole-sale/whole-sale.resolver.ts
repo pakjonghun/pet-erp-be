@@ -15,6 +15,8 @@ import { WholeSalesInput } from './dto/whole-sales.input';
 import { CreateWholeSaleInput } from './dto/create-whole-sale.input';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
+import { LogData } from 'src/common/decorators/log.decorator';
+import { LogTypeEnum } from 'src/log/entities/log.entity';
 
 @Resolver(() => WholeSaleItem)
 export class WholeSaleResolver {
@@ -27,6 +29,7 @@ export class WholeSaleResolver {
     return result;
   }
 
+  @LogData({ description: '도매판매 업데이트', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
   @Mutation(() => [Sale], { nullable: true })
   updateWholeSale(
@@ -35,6 +38,7 @@ export class WholeSaleResolver {
     return this.wholeSaleService.update(updateWholeSaleInput);
   }
 
+  @LogData({ description: '도매판매생성', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
   @Mutation(() => [Sale], { nullable: true })
   createWholeSale(
@@ -43,6 +47,7 @@ export class WholeSaleResolver {
     return this.wholeSaleService.create(createWholeSaleInput);
   }
 
+  @LogData({ description: '도매판매삭제', logType: LogTypeEnum.DELETE })
   @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
   @Mutation(() => WholeSaleItem, { nullable: true })
   async removeWholeSale(@Args('_id', { type: () => String }) _id: string) {

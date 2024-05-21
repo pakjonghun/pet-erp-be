@@ -22,23 +22,28 @@ import { Types } from 'mongoose';
 import { ObjectId } from 'mongodb';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
+import { LogData } from 'src/common/decorators/log.decorator';
+import { LogTypeEnum } from 'src/log/entities/log.entity';
 
 @Resolver(() => ProductOrder)
 export class ProductOrderResolver {
   constructor(private readonly orderService: ProductOrderService) {}
 
+  @LogData({ description: '발주', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
   @Mutation(() => ProductOrder)
   createOrder(@Args('createOrderInput') createOrderInput: CreateOrderInput) {
     return this.orderService.create(createOrderInput);
   }
 
+  @LogData({ description: '발주편집', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
   @Mutation(() => ProductOrder)
   updateOrder(@Args('updateOrderInput') updateOrderInput: UpdateOrderInput) {
     return this.orderService.update(updateOrderInput);
   }
 
+  @LogData({ description: '발주삭제', logType: LogTypeEnum.DELETE })
   @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
   @Mutation(() => ProductOrder)
   removeOrder(@Args('_id', { type: () => String }) _id: string) {

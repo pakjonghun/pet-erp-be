@@ -7,6 +7,8 @@ import { SubsidiaryCategoriesInput } from './dto/subsidiary-categories.input';
 import { SubsidiaryCategoriesOutput } from './dto/subsidiary-categories.output';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
+import { LogData } from 'src/common/decorators/log.decorator';
+import { LogTypeEnum } from 'src/log/entities/log.entity';
 
 @Resolver(() => SubsidiaryCategory)
 export class SubsidiaryCategoryResolver {
@@ -14,6 +16,7 @@ export class SubsidiaryCategoryResolver {
     private readonly subsidiaryCategoryService: SubsidiaryCategoryService,
   ) {}
 
+  @LogData({ description: '부자재 분류생성', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => SubsidiaryCategory)
   createSubsidiaryCategory(
@@ -32,6 +35,7 @@ export class SubsidiaryCategoryResolver {
     return this.subsidiaryCategoryService.findMany(subsidiaryCategoriesInput);
   }
 
+  @LogData({ description: '부자재 분류업데이트', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => SubsidiaryCategory)
   updateSubsidiaryCategory(
@@ -41,6 +45,7 @@ export class SubsidiaryCategoryResolver {
     return this.subsidiaryCategoryService.update(updateSubsidiaryCategoryInput);
   }
 
+  @LogData({ description: '부자재 분류삭제', logType: LogTypeEnum.DELETE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => SubsidiaryCategory)
   removeSubsidiaryCategory(@Args('_id') _id: string) {

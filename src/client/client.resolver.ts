@@ -9,11 +9,14 @@ import { SaleInfos, TotalSaleInfo } from 'src/product/dtos/product-sale.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
+import { LogData } from 'src/common/decorators/log.decorator';
+import { LogTypeEnum } from 'src/log/entities/log.entity';
 
 @Resolver(() => Client)
 export class ClientResolver {
   constructor(private readonly clientService: ClientService) {}
 
+  @LogData({ description: '거래처생성', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Client)
   createClient(
@@ -40,6 +43,7 @@ export class ClientResolver {
     return this.clientService.findOne(_id);
   }
 
+  @LogData({ description: '거래처업데이트', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Client)
   updateClient(
@@ -48,6 +52,7 @@ export class ClientResolver {
     return this.clientService.update(updateClientInput);
   }
 
+  @LogData({ description: '거래처삭제', logType: LogTypeEnum.DELETE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Client)
   async removeClient(@Args('_id') _id: string) {

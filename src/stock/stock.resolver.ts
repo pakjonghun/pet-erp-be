@@ -9,17 +9,21 @@ import { ProductCountStocksInput } from './dto/product-count-stock.input';
 import { ProductCountStocksOutput } from './dto/product-count-stock.output';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
+import { LogData } from 'src/common/decorators/log.decorator';
+import { LogTypeEnum } from 'src/log/entities/log.entity';
 
 @Resolver(() => Stock)
 export class StockResolver {
   constructor(private readonly stockService: StockService) {}
 
+  @LogData({ description: '입고', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => [Stock], { nullable: true })
   addStock(@Args('addStocksInput') addStocksInput: CreateStockInput) {
     return this.stockService.add(addStocksInput);
   }
 
+  @LogData({ description: '출고', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => [Stock], { nullable: true })
   outStock(@Args('outStocksInput') addStocksInput: CreateStockInput) {

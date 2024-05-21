@@ -7,11 +7,14 @@ import { StoragesInput } from './dto/storages.input';
 import { StoragesOutput } from './dto/storages.output';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
+import { LogData } from 'src/common/decorators/log.decorator';
+import { LogTypeEnum } from 'src/log/entities/log.entity';
 
 @Resolver(() => Storage)
 export class StorageResolver {
   constructor(private readonly storageService: StorageService) {}
 
+  @LogData({ description: '창고생성', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Storage)
   createStorage(
@@ -26,6 +29,7 @@ export class StorageResolver {
     return this.storageService.findMany(storagesInput);
   }
 
+  @LogData({ description: '창고업데이트', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Storage)
   updateStorage(
@@ -34,6 +38,7 @@ export class StorageResolver {
     return this.storageService.update(updateStorageInput);
   }
 
+  @LogData({ description: '창고삭제', logType: LogTypeEnum.DELETE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Storage)
   removeStorage(@Args('_id', { type: () => String }) id: string) {

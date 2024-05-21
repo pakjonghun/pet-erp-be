@@ -7,11 +7,14 @@ import { FactoriesInput } from './dto/factories.input';
 import { FactoriesOutput } from './dto/factories.output';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
+import { LogTypeEnum } from 'src/log/entities/log.entity';
+import { LogData } from 'src/common/decorators/log.decorator';
 
 @Resolver(() => Factory)
 export class FactoryResolver {
   constructor(private readonly factoryService: FactoryService) {}
 
+  @LogData({ description: '공장생성', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Factory)
   createFactory(
@@ -27,6 +30,7 @@ export class FactoryResolver {
     return result;
   }
 
+  @LogData({ description: '공장업데이트', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Factory)
   updateFactory(
@@ -35,6 +39,7 @@ export class FactoryResolver {
     return this.factoryService.update(updateFactoryInput);
   }
 
+  @LogData({ description: '공장삭제', logType: LogTypeEnum.DELETE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Factory)
   removeFactory(@Args('_id', { type: () => String }) _id: string) {

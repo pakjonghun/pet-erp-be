@@ -15,11 +15,14 @@ import {
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
+import { LogData } from 'src/common/decorators/log.decorator';
+import { LogTypeEnum } from 'src/log/entities/log.entity';
 
 @Resolver(() => Product)
 export class ProductResolver {
   constructor(private readonly productService: ProductService) {}
 
+  @LogData({ description: '제품생성', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Product)
   async createProduct(
@@ -42,6 +45,7 @@ export class ProductResolver {
     return this.productService.findOne({ _id });
   }
 
+  @LogData({ description: '제품업데이트', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Product)
   updateProduct(
@@ -50,6 +54,7 @@ export class ProductResolver {
     return this.productService.update(updateProductInput);
   }
 
+  @LogData({ description: '제품삭제', logType: LogTypeEnum.DELETE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Product)
   removeProduct(@Args('_id', { type: () => String }) _id: string) {
