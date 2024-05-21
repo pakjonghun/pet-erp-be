@@ -11,6 +11,7 @@ import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
 import { LogData } from 'src/common/decorators/log.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
+import { SubsidiaryStocksOutput } from './dto/stocks-subsidiary.output';
 
 @Resolver(() => Stock)
 export class StockResolver {
@@ -34,6 +35,12 @@ export class StockResolver {
   @Query(() => StocksOutput)
   stocks(@Args('stocksInput') stockInput: StocksInput) {
     return this.stockService.findMany(stockInput);
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => SubsidiaryStocksOutput)
+  subsidiaryStocks(@Args('stocksInput') stockInput: StocksInput) {
+    return this.stockService.subsidiaryFindMany(stockInput);
   }
 
   @Roles([AuthRoleEnum.ANY])

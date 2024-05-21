@@ -29,6 +29,7 @@ import * as dayjs from 'dayjs';
 import { Factory } from 'src/factory/entities/factory.entity';
 import { ProductCountStocksInput } from './dto/product-count-stock.input';
 import { ProductCountColumn } from './dto/product-count-stock.output';
+import { SubsidiaryStockColumn } from './dto/stocks-subsidiary.output';
 
 @Injectable()
 export class StockService {
@@ -536,6 +537,128 @@ export class StockService {
         productName: item.name,
         stockCount: `${this.utilService.getNumberWithComma(stockItem)}(+${this.utilService.getNumberWithComma(orderItem)})`,
         leadTime: item.leadTime,
+      };
+
+      return newData;
+    });
+
+    const totalCount = await this.productModel.countDocuments(filterQuery);
+
+    return { totalCount, data };
+  }
+
+  async subsidiaryFindMany({
+    keyword,
+    limit,
+    order = OrderEnum.DESC,
+    sort = 'createdAt',
+    skip,
+    storageName,
+  }: StocksInput) {
+    type CountAggregate = { _id: string; accCount: number };
+
+    const filterQuery: Record<string, any> = {
+      name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
+    };
+
+    let stocks: Stock[] = [];
+
+    if (storageName) {
+      const storage = await this.storageModel.findOne({ name: storageName });
+      if (!storage) {
+        throw new NotFoundException(
+          `${storageName}은 존재하지 않는 창고 입니다.`,
+        );
+      }
+
+      stocks = await this.stockRepository.model
+        .find({
+          storage: storage._id,
+          isSubsidiary: true,
+        })
+        .lean<Stock[]>();
+
+      const initProductIds = stocks.map((stock) => stock.product);
+      filterQuery._id = { $in: initProductIds };
+    }
+
+    const productList = await this.subsidiaryModel
+      .find(filterQuery)
+      .select(['_id', 'name', 'leadTime', 'wonPrice'])
+      .limit(limit)
+      .skip(skip)
+      .sort({ [sort]: order == OrderEnum.DESC ? -1 : 1 })
+      .lean<Subsidiary[]>();
+
+    const productIdList = productList.map((item) => item._id);
+
+    let stockPipeLine: PipelineStage[] = [];
+    if (storageName && stocks.length) {
+      stockPipeLine = [
+        {
+          $match: {
+            _id: { $in: stocks.map((stock) => stock._id) },
+            count: {
+              $exists: true,
+              $gt: 0,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$product',
+            accCount: { $sum: '$count' },
+          },
+        },
+        {
+          $project: {
+            _id: { $toString: '$_id' },
+            accCount: 1,
+          },
+        },
+      ];
+    } else {
+      stockPipeLine = [
+        {
+          $match: {
+            product: { $in: productIdList },
+            count: {
+              $exists: true,
+              $gt: 0,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$product',
+            accCount: { $sum: '$count' },
+          },
+        },
+        {
+          $project: {
+            _id: { $toString: '$_id' },
+            accCount: 1,
+          },
+        },
+      ];
+    }
+
+    const stockList =
+      await this.stockRepository.model.aggregate<CountAggregate>(stockPipeLine);
+    const stockMap = new Map(
+      stockList.map((stock) => [stock._id, stock.accCount]),
+    );
+
+    const data = productList.map((item) => {
+      // const productList = item.productList.map((product) => product.name);
+      const projectId = item._id.toHexString();
+      const stockItem = stockMap.get(projectId) ?? 0;
+      const newData: SubsidiaryStockColumn = {
+        wonPrice: item.wonPrice,
+        productName: item.name,
+        stockCount: `${this.utilService.getNumberWithComma(stockItem)}`,
+        leadTime: item.leadTime,
+        productList: [],
       };
 
       return newData;
