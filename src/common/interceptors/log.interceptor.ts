@@ -39,8 +39,8 @@ export class LogInterceptor implements NestInterceptor {
 
         if (logData && user) {
           const description = data //
-            ? `${logData.description} ${JSON.stringify(data)}`
-            : logData.description;
+            ? JSON.stringify({ title: logData.description, ...data })
+            : JSON.stringify({ title: logData.description });
 
           await this.logService.create({
             logType: logData.logType,
