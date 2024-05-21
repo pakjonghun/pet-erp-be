@@ -664,7 +664,7 @@ export class StockService {
       return newData;
     });
 
-    const totalCount = await this.productModel.countDocuments(filterQuery);
+    const totalCount = await this.subsidiaryModel.countDocuments(filterQuery);
 
     return { totalCount, data };
   }
