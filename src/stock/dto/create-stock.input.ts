@@ -30,6 +30,7 @@ export class CreateSingleStockInput
 
   @IsBoolean()
   @IsNotEmpty({ message: '재고가 부자재 인지 여부를 입력하세요.' })
+  @Field(() => Boolean)
   isSubsidiary: boolean;
 }
 

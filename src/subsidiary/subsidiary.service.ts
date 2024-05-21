@@ -13,7 +13,6 @@ import { UtilService } from 'src/util/util.service';
 import { SubsidiariesInput } from './dto/subsidiaries.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-category.service';
-import { ObjectId } from 'mongodb';
 import { FilterQuery } from 'mongoose';
 import * as ExcelJS from 'exceljs';
 
@@ -52,14 +51,7 @@ export class SubsidiaryService {
 
     const newData = result.data.map((item) => {
       if (!item.productList || item.productList?.length === 0) {
-        item.productList = [
-          {
-            _id: new ObjectId(),
-            name: '',
-            code: '',
-            createdAt: new Date(),
-          },
-        ];
+        item.productList = [];
       }
       return item;
     });
