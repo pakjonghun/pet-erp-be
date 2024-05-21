@@ -101,7 +101,7 @@ export class ProductOrderService {
 
     const data = await this.productOrderRepository.model
       .find(orderFilterQuery)
-      .sort({ [sort]: order === OrderEnum.DESC ? -1 : 1, _id: 1 })
+      .sort({ isDone: 1, [sort]: order === OrderEnum.DESC ? -1 : 1, _id: 1 })
       .skip(skip)
       .limit(limit)
       .lean<ProductOrder[]>();
