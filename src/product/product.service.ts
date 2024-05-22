@@ -155,9 +155,6 @@ export class ProductService {
       19: {
         fieldName: 'category',
       },
-      20: {
-        fieldName: 'maintainDate',
-      },
     };
 
     const objectList = this.utilService.excelToObject(worksheet, colToField, 4);

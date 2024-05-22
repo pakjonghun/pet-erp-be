@@ -11,7 +11,6 @@ export interface ProductInterface {
   wonPrice?: number;
   salePrice?: number;
   leadTime?: number;
-  maintainDate?: number;
   category?: ProductCategory;
 }
 
@@ -55,10 +54,6 @@ export class Product extends AbstractEntity implements ProductInterface {
   @Field(() => Int, { nullable: true })
   @Prop({ type: Number })
   leadTime?: number;
-
-  @Field(() => Int, { nullable: true })
-  @Prop({ type: Number })
-  maintainDate?: number;
 
   @Field(() => ProductCategory, { nullable: true })
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: ProductCategory.name })
