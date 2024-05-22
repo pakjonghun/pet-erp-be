@@ -27,6 +27,7 @@ import { Sale, saleSchema } from 'src/sale/entities/sale.entity';
       { name: Subsidiary.name, schema: SubsidiarySchema },
       { name: ProductOrder.name, schema: ProductOrderSchema },
       { name: Stock.name, schema: StockSchema },
+      { name: Sale.name, schema: saleSchema },
     ]),
     SaleModule,
     forwardRef(() => ProductCategoryModule),

@@ -1,3 +1,4 @@
+import { Stock } from './../stock/entities/stock.entity';
 import {
   BadRequestException,
   Injectable,
@@ -13,12 +14,14 @@ import { UtilService } from 'src/util/util.service';
 import { SubsidiariesInput } from './dto/subsidiaries.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-category.service';
-import { FilterQuery } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 import * as ExcelJS from 'exceljs';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class SubsidiaryService {
   constructor(
+    @InjectModel(Stock.name) private readonly stockModel: Model<Stock>,
     private readonly productService: ProductService,
     private readonly utilService: UtilService,
     private readonly subsidiaryCategoryService: SubsidiaryCategoryService,
@@ -75,7 +78,16 @@ export class SubsidiaryService {
     return result;
   }
 
-  remove(_id: string) {
+  async remove(_id: string) {
+    const isStockExist = await this.stockModel.exists({
+      isSubsidiary: true,
+      product: _id,
+    });
+    if (isStockExist) {
+      throw new BadRequestException(
+        '해당 부자재는 재고 입출고 기록이 있습니다. 부자재를 삭제할 수 없습니다.',
+      );
+    }
     return this.subsidiaryRepository.remove({ _id });
   }
 
@@ -233,15 +245,20 @@ export class SubsidiaryService {
     const code = input.code;
     const name = input.name;
     const categoryName = input.category;
+
+    if (typeof input.productList !== 'string') {
+      throw new BadRequestException(
+        `${input.productList} 사용할수 있는 제품 리스트를 올바른 형태로(문자) 입력해주세요.)`,
+      );
+    }
+
     const productNameList = input.productList
       .split(',')
       .map((item) => item.trim());
 
     const hasCommaName = productNameList.some((item) => item.includes(','));
     if (hasCommaName) {
-      throw new BadRequestException(
-        `','{는 부자재 이름에 포함될 수 없습니다.}`,
-      );
+      throw new BadRequestException("',' 는 부자재 이름에 포함될 수 없습니다.");
     }
 
     let category;
@@ -268,7 +285,7 @@ export class SubsidiaryService {
         const notExistProductNameString = notExistProductList.join(',  ');
 
         throw new BadRequestException(
-          `선택한 제품 중 존재하지 않는 제품이 ${notExistProductList.length}개 있습니다. 존재하지 않는 제품의 아이디는 : (${notExistProductNameString}) 입니다.`,
+          `선택한 제품 중 존재하지 않는 제품이 ${notExistProductList.length}개 있습니다. 존재하지 않는 제품은 : (${notExistProductNameString}) 입니다.`,
         );
       }
     }

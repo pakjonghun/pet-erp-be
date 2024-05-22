@@ -60,9 +60,10 @@ export class SubsidiaryCategoryService {
 
   async remove(_id: string) {
     const isUsedItem = await this.subsidiaryService.exists({ category: _id });
+
     if (isUsedItem) {
       throw new ConflictException(
-        `${_id}부자재 분류는 사용중인 부자재 분류 입니다 삭제할 수 없습니다.`,
+        '해당 부자재 분류는 사용중인 부자재 분류 입니다. 삭제할 수 없습니다.',
       );
     }
 
@@ -89,6 +90,10 @@ export class SubsidiaryCategoryService {
 
     const documents =
       await this.subsidiaryCategoryRepository.objectToDocuments(newObjectList);
+
+    this.utilService.checkDuplicatedField(documents, 'name');
+    await this.subsidiaryCategoryRepository.docUniqueCheck(documents, 'name');
+
     await this.subsidiaryCategoryRepository.bulkWrite(documents);
   }
 

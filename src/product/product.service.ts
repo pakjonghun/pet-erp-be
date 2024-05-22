@@ -37,6 +37,9 @@ export class ProductService {
     @InjectModel(ProductOrder.name)
     private readonly productOrderModel: Model<ProductOrder>,
 
+    @InjectModel(Sale.name)
+    private readonly saleModel: Model<Sale>,
+
     @InjectModel(Stock.name)
     private readonly stockModel: Model<Stock>,
   ) {}
@@ -115,6 +118,38 @@ export class ProductService {
   }
 
   async remove(_id: string) {
+    const targetProduct = await this.findOne({ _id });
+    if (!targetProduct) {
+      throw new BadRequestException('해당 제품을 찾을 수 없습니다.');
+    }
+
+    const isOrderExist = await this.productOrderModel.exists({
+      'products.product': _id,
+    });
+    if (isOrderExist) {
+      throw new BadRequestException(
+        '발주된 기록이 있는 제품은 삭제할 수 없습니다.',
+      );
+    }
+
+    const isStockExist = await this.stockModel.exists({
+      product: _id,
+    });
+    if (isStockExist) {
+      throw new BadRequestException(
+        '재고 입출고 기록이 있는 제품은 삭제할 수 없습니다.',
+      );
+    }
+
+    const isSaleExist = await this.saleModel.exists({
+      productCode: targetProduct.code,
+    });
+    if (isSaleExist) {
+      throw new BadRequestException(
+        '판매된 기록이 있는 제품은 삭제할 수 없습니다.',
+      );
+    }
+
     const isUsedProduct = await this.productSubsidiaryRepository.exists({
       productList: { $in: [_id] },
     });
