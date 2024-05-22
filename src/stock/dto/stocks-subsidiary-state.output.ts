@@ -1,7 +1,7 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
-export class StockStateOutput {
+export class SubsidiaryStockStateOutput {
   @Field(() => String)
   productName: string;
 
@@ -13,7 +13,4 @@ export class StockStateOutput {
 
   @Field(() => String)
   state: string;
-
-  @Field(() => String, { nullable: true })
-  orderCompleteDate: string;
 }

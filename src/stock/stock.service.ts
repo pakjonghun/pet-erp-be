@@ -30,6 +30,8 @@ import { Factory } from 'src/factory/entities/factory.entity';
 import { ProductCountStocksInput } from './dto/product-count-stock.input';
 import { ProductCountColumn } from './dto/product-count-stock.output';
 import { SubsidiaryStockColumn } from './dto/stocks-subsidiary.output';
+import { SubsidiaryStockStateOutput } from './dto/stocks-subsidiary-state.output';
+import { SubsidiaryCountColumn } from './dto/subsidiary-count-stock.output';
 
 @Injectable()
 export class StockService {
@@ -47,13 +49,14 @@ export class StockService {
     private readonly factoryModel: Model<Factory>,
   ) {}
 
-  async productCountStocks({
+  async subsidiaryCountStocks({
     keyword: productName,
     limit,
     skip,
     storageName,
     order = OrderEnum.DESC,
     sort = 'createdAt',
+    isSubsidiary = true,
   }: ProductCountStocksInput) {
     //이 창고에 있는 모든 상품을 갯수와 함께 반환
     const storage = await this.checkStorageByName(storageName);
@@ -77,6 +80,88 @@ export class StockService {
           product: { $in: productIdList },
           storage: storage._id,
           count: { $gt: 0 },
+          isSubsidiary,
+        },
+      },
+      {
+        $facet: {
+          result: [
+            {
+              $sort: {
+                [sort]: order === OrderEnum.DESC ? -1 : 1,
+                _id: 1,
+              },
+            },
+            {
+              $skip: skip,
+            },
+            {
+              $limit: limit,
+            },
+          ],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+    ];
+
+    const stockList = await this.stockRepository.model.aggregate<{
+      result: Stock[];
+      totalCount: { count: number }[];
+    }>(stockPipeLine);
+
+    const result: SubsidiaryCountColumn[] = [];
+    stockList[0].result.forEach((stock) => {
+      const productItem = productMap.get(
+        (stock.product as unknown as ObjectId).toHexString(),
+      );
+      if (!productItem) return;
+
+      const newProduct: SubsidiaryCountColumn = {
+        name: productItem.name,
+        count: stock.count,
+      };
+
+      result.push(newProduct);
+
+      return {
+        data: result,
+        totalCount: stockList[0].totalCount[0]?.count ?? 0,
+      };
+    });
+  }
+
+  async productCountStocks({
+    keyword: productName,
+    limit,
+    skip,
+    storageName,
+    order = OrderEnum.DESC,
+    sort = 'createdAt',
+    isSubsidiary = false,
+  }: ProductCountStocksInput) {
+    //이 창고에 있는 모든 상품을 갯수와 함께 반환
+    const storage = await this.checkStorageByName(storageName);
+    const productList = await this.productModel
+      .find({
+        name: {
+          $regex: this.utilService.escapeRegex(productName),
+          $options: 'i',
+        },
+      })
+      .lean<Product[]>();
+
+    const productMap = new Map<string, Product>(
+      productList.map((product) => [product._id.toHexString(), product]),
+    );
+
+    const productIdList = productList.map((product) => product._id);
+    const stockPipeLine: PipelineStage[] = [
+      {
+        $match: {
+          product: { $in: productIdList },
+          storage: storage._id,
+          count: { $gt: 0 },
+          isSubsidiary,
         },
       },
       {
@@ -121,11 +206,12 @@ export class StockService {
       };
 
       result.push(newProduct);
+
+      return {
+        data: result,
+        totalCount: stockList[0].totalCount[0]?.count ?? 0,
+      };
     });
-    return {
-      data: result,
-      totalCount: stockList[0].totalCount[0]?.count ?? 0,
-    };
   }
 
   async findStockByState(productName: string) {
@@ -228,6 +314,41 @@ export class StockService {
     }
   }
 
+  async findSubsidiaryStockByState(productName: string) {
+    try {
+      const product = await this.checkSubsidiaryByName(productName);
+      const storageList = await this.storageModel.find({}).lean<Storage[]>();
+      const stockList = await this.stockRepository.model
+        .find({
+          product: product._id,
+          isSubsidiary: true,
+        })
+        .lean<Stock[]>();
+
+      const stockValues = stockList.map((stock) => {
+        const location = storageList.find(
+          (item) =>
+            item._id.toHexString() ==
+            (stock.storage as unknown as ObjectId).toHexString(),
+        );
+        if (!location) return;
+
+        const newItem: SubsidiaryStockStateOutput = {
+          productName: product.name,
+          count: stock.count,
+          location: location.name,
+          state: '보관중',
+        };
+
+        return newItem;
+      });
+
+      return stockValues;
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   async add({ stocks }: CreateStockInput, session?: ClientSession) {
     for await (const {
       productName,
@@ -235,11 +356,12 @@ export class StockService {
       count,
       isSubsidiary,
     } of stocks) {
-      const product = await this.productModel.findOne({ name: productName });
+      const product = isSubsidiary //
+        ? await this.subsidiaryModel.findOne({ name: productName })
+        : await this.productModel.findOne({ name: productName });
+
       if (!product) {
-        throw new NotFoundException(
-          `${productName}는 존재하지 않는 제품 입니다.`,
-        );
+        throw new NotFoundException(`${productName}는 존재하지 않습니다.`);
       }
 
       const storage = await this.checkStorageByName(storageName);
@@ -292,12 +414,17 @@ export class StockService {
   async out({ stocks }: CreateStockInput) {
     const newStock: AnyBulkWriteOperation<Stock>[] = [];
 
-    for await (const { productName, storageName, count } of stocks) {
-      const product = await this.productModel.findOne({ name: productName });
+    for await (const {
+      productName,
+      storageName,
+      count,
+      isSubsidiary,
+    } of stocks) {
+      const product = isSubsidiary //
+        ? await this.subsidiaryModel.findOne({ name: productName })
+        : await this.productModel.findOne({ name: productName });
       if (!product) {
-        throw new NotFoundException(
-          `${productName}는 존재하지 않는 제품 입니다.`,
-        );
+        throw new NotFoundException(`${productName}는 존재하지 않습니다.`);
       }
 
       const storage = await this.storageModel.findOne({ name: storageName });
@@ -680,10 +807,22 @@ export class StockService {
     return product;
   }
 
+  private async checkSubsidiaryByName(subsidiaryName: string) {
+    const product = await this.subsidiaryModel.findOne({
+      name: subsidiaryName,
+    });
+    if (!product) {
+      throw new NotFoundException(
+        `${subsidiaryName} 존재하지 않는 부자재입니다.`,
+      );
+    }
+    return product;
+  }
+
   private async checkStorageByName(storageName: string) {
     const storage = await this.storageModel.findOne({ name: storageName });
     if (!storage) {
-      throw new NotFoundException(`${storageName}은 존재하지 않는 제품입니다.`);
+      throw new NotFoundException(`${storageName} 존재하지 않는 제품입니다.`);
     }
     return storage;
   }

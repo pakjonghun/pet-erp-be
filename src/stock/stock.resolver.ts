@@ -12,6 +12,8 @@ import { AuthRoleEnum } from 'src/users/entities/user.entity';
 import { LogData } from 'src/common/decorators/log.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
 import { SubsidiaryStocksOutput } from './dto/stocks-subsidiary.output';
+import { SubsidiaryStockStateOutput } from './dto/stocks-subsidiary-state.output';
+import { SubsidiaryCountStocksOutput } from './dto/subsidiary-count-stock.output';
 
 @Resolver(() => Stock)
 export class StockResolver {
@@ -53,9 +55,28 @@ export class StockResolver {
   }
 
   @Roles([AuthRoleEnum.ANY])
+  @Query(() => SubsidiaryCountStocksOutput, { nullable: true })
+  subsidiaryCountStocks(
+    @Args('productCountStocksInput')
+    productCountStockInput: ProductCountStocksInput,
+  ) {
+    return this.stockService.subsidiaryCountStocks(productCountStockInput);
+  }
+
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => [StockStateOutput])
   async stocksState(@Args('productName') productName: string) {
     const result = await this.stockService.findStockByState(productName);
+    return result;
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => [SubsidiaryStockStateOutput])
+  async subsidiaryStocksState(@Args('productName') productName: string) {
+    const result =
+      await this.stockService.findSubsidiaryStockByState(productName);
+    console.log('result : ', result);
+
     return result;
   }
 }
