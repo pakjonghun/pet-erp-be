@@ -60,7 +60,7 @@ export class StockService {
   }: ProductCountStocksInput) {
     //이 창고에 있는 모든 상품을 갯수와 함께 반환
     const storage = await this.checkStorageByName(storageName);
-    const productList = await this.productModel
+    const productList = await this.subsidiaryModel
       .find({
         name: {
           $regex: this.utilService.escapeRegex(productName),
@@ -122,12 +122,11 @@ export class StockService {
       };
 
       result.push(newProduct);
-
-      return {
-        data: result,
-        totalCount: stockList[0].totalCount[0]?.count ?? 0,
-      };
     });
+    return {
+      data: result,
+      totalCount: stockList[0].totalCount[0]?.count ?? 0,
+    };
   }
 
   async productCountStocks({
@@ -206,12 +205,11 @@ export class StockService {
       };
 
       result.push(newProduct);
-
-      return {
-        data: result,
-        totalCount: stockList[0].totalCount[0]?.count ?? 0,
-      };
     });
+    return {
+      data: result,
+      totalCount: stockList[0].totalCount[0]?.count ?? 0,
+    };
   }
 
   async findStockByState(productName: string) {
