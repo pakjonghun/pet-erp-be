@@ -474,7 +474,6 @@ export class ProductService {
       { header: '', key: '', width: 10 },
       { header: '', key: '', width: 10 },
       { header: '분류', key: 'category', width: 40 },
-      { header: '유지시간', key: 'maintainDate', width: 40 },
     ];
 
     for await (const doc of allData) {

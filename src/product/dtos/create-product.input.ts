@@ -33,11 +33,6 @@ export class CreateProductInput implements Omit<ProductInterface, 'category'> {
   @Min(0, { message: '상품 리드타임은 0이상의 값을 입력해주세요.' })
   leadTime?: number;
 
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @Min(0, { message: '상품 최소 유지날짜는 0이상의 값을 입력해주세요.' })
-  maintainDate?: number;
-
   @Field(() => String, { nullable: true })
   @IsOptional()
   category?: string;
