@@ -52,7 +52,7 @@ export class FactoryService {
     });
     if (isFactoryUsedInOrder) {
       throw new ConflictException(
-        `${_id} 해당 공장은 발주기록이 존재하므로 삭제할 수 없습니다.`,
+        '해당 공장은 발주기록이 존재하므로 삭제할 수 없습니다.',
       );
     }
 

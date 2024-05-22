@@ -1,7 +1,11 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { CreateStorageInput } from './dto/create-storage.input';
 import { UpdateStorageInput } from './dto/update-storage.input';
-import { FilterQuery } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 import { UtilService } from 'src/util/util.service';
 import { ColumnOption } from 'src/client/types';
 import { StoragesInput } from './dto/storages.input';
@@ -9,10 +13,13 @@ import { OrderEnum } from 'src/common/dtos/find-many.input';
 import * as ExcelJS from 'exceljs';
 import { StorageRepository } from './storage.repository';
 import { Storage, StorageInterface } from './entities/storage.entity';
+import { InjectModel } from '@nestjs/mongoose';
+import { Stock } from 'src/stock/entities/stock.entity';
 
 @Injectable()
 export class StorageService {
   constructor(
+    @InjectModel(Stock.name) private readonly stockModel: Model<Stock>,
     private readonly storageRepository: StorageRepository,
     private readonly utilService: UtilService,
   ) {}
@@ -43,7 +50,12 @@ export class StorageService {
   }
 
   async remove(_id: string) {
-    //fixme:stock 확인 필요
+    const isStockExist = await this.stockModel.exists({ storage: _id });
+    if (isStockExist) {
+      throw new BadRequestException(
+        '해당 창고에 재고 입출고 기록이 존재합니다. 창고를 삭제할 수 없습니다.',
+      );
+    }
 
     const result = await this.storageRepository.remove({ _id });
     return result;

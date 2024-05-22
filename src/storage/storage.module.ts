@@ -5,6 +5,7 @@ import { DatabaseModule } from 'src/common/database/database.module';
 import { Storage, StorageSchema } from './entities/storage.entity';
 import { StorageRepository } from './storage.repository';
 import { StorageLoader } from './storage.loader';
+import { Stock, StockSchema } from 'src/stock/entities/stock.entity';
 
 @Module({
   imports: [
@@ -12,6 +13,10 @@ import { StorageLoader } from './storage.loader';
       {
         name: Storage.name,
         schema: StorageSchema,
+      },
+      {
+        name: Stock.name,
+        schema: StockSchema,
       },
     ]),
   ],
