@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -16,16 +17,17 @@ import {
   Connection,
   Model,
   PipelineStage,
+  Types,
 } from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
 import { Product } from 'src/product/entities/product.entity';
 import { Stock } from 'src/stock/entities/stock.entity';
-import * as uuid from 'uuid';
 import { WholeSalesInput } from './dto/whole-sales.input';
 import { UtilService } from 'src/util/util.service';
 import { WholeSaleItem } from './dto/whole-sales.output';
 import { StockService } from 'src/stock/stock.service';
 import { CreateSingleStockInput } from 'src/stock/dto/create-stock.input';
+import * as uuid from 'uuid';
 
 @Injectable()
 export class WholeSaleService {
@@ -138,7 +140,7 @@ export class WholeSaleService {
         mallId,
         wonCost: wonCost * count,
         wholeSaleId,
-        storageName,
+        storageId: targetStorage._id.toHexString(),
         isDone,
         // deliveryCost?: number,
       };
@@ -174,6 +176,7 @@ export class WholeSaleService {
   async findAll({ from, to, keyword, limit, skip }: WholeSalesInput) {
     const filterQuery: Record<string, any> = {
       wholeSaleId: { $exists: true },
+      storageId: { $exists: true },
       productName: {
         $regex: this.utilService.escapeRegex(keyword),
         $options: 'i',
@@ -207,6 +210,29 @@ export class WholeSaleService {
         $facet: {
           data: [
             {
+              $addFields: {
+                storageObjectId: {
+                  $convert: {
+                    input: '$storageId',
+                    to: 'objectId',
+                    onError: null,
+                    onNull: null,
+                  },
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: 'storages',
+                localField: 'storageObjectId',
+                foreignField: '_id',
+                as: 'storage_info',
+              },
+            },
+            {
+              $unwind: '$storage_info',
+            },
+            {
               $group: {
                 _id: '$wholeSaleId',
                 mallId: { $first: '$mallId' },
@@ -215,7 +241,7 @@ export class WholeSaleService {
                 isDone: { $first: '$isDone' },
                 productList: {
                   $push: {
-                    storageName: '$storageName',
+                    storageName: '$storage_info.name',
                     productName: '$productName',
                     productCode: '$productCode',
                     count: '$count',
@@ -259,6 +285,9 @@ export class WholeSaleService {
       data: WholeSaleItem[];
       totalCount: { count: number }[];
     }>(salePipeLine);
+
+    console.log('sales : ', sales);
+
     return {
       data: sales[0].data,
       totalCount: sales[0].totalCount[0]?.count ?? 0,
@@ -338,10 +367,27 @@ export class WholeSaleService {
 
   private async salesToStocks(wholeSaleId: string) {
     const wholeSaleList = await this.wholeSales(wholeSaleId);
+    const storageIdList = wholeSaleList.map((sale) => sale.storageId);
+
+    const storageList = await this.storageModel
+      .find({
+        _id: { $in: storageIdList.map((item) => new Types.ObjectId(item)) },
+      })
+      .lean<Storage[]>();
+    const storageById = new Map<string, Storage>(
+      storageList.map((storage) => [storage._id.toHexString(), storage]),
+    );
+
+    if (storageList.length !== new Set(storageIdList).size) {
+      throw new BadRequestException(
+        '존재하지 않는 창고가 있습니다. 입력된 창고 현황을 확인해 주세요.',
+      );
+    }
+
     const stockList = wholeSaleList.map((item) => {
       const createStock: CreateSingleStockInput = {
         productName: item.productName,
-        storageName: item.storageName,
+        storageName: storageById.get(item.storageId).name,
         count: item.count,
         isSubsidiary: false,
       };

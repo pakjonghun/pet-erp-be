@@ -56,38 +56,23 @@ export class ClientService {
   }
 
   private async beforeUpdate(input: UpdateClientInput) {
+    const updateTarget = await this.clientRepository.model
+      .findOne({
+        _id: input._id,
+      })
+      .lean<Client>();
+    if (!updateTarget) {
+      throw new BadRequestException('해당 거래처를 찾을 수 없습니다.');
+    }
+
     if (input.code) {
       throw new BadRequestException('거래처 코드는 수정할 수 없습니다.');
     }
 
     if (input.name) {
-      const isSaleRecordExist = await this.saleModel.exists({
-        mallId: input.name,
-      });
-
-      if (isSaleRecordExist) {
-        throw new BadRequestException(
-          `${input.name} 판매기록이 있는 제품이름 입니다. 사방넷 전산과 동기화를 위해 이름을 수정할 수 없습니다.`,
-        );
-      }
-
-      const isNameExist = await this.clientRepository.exists({
-        _id: { $ne: input._id },
-        name: input.name,
-      });
-
-      if (isNameExist) {
-        throw new BadRequestException(
-          `${input.name}는 이미 사용중인 이름 입니다.`,
-        );
-      }
-    }
-
-    const updateTarget = await this.clientRepository.model.find({
-      _id: input._id,
-    });
-    if (!updateTarget) {
-      throw new BadRequestException('해당 거래처를 찾을 수 없습니다.');
+      throw new BadRequestException(
+        `${input.name} 판매기록이 있는 제품이름 입니다. 사방넷 전산과 동기화를 위해 이름을 수정할 수 없습니다.`,
+      );
     }
   }
 
