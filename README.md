@@ -7,7 +7,9 @@
 ### 사용기술
 - front : nextjs, react, graphql, apollo-client, materialUI
 - backend : nestjs, graphql, apollo-server, mongodb
-- devops : aws beanstalk, cloudfront
+- devops & deploy 
+  - 실배포 : aws beanstalk, cloudfront, codepipeline
+  - 테스트 배포 : vercel, heroku
 
 ### 주안점
 - 최적화
