@@ -6,6 +6,6 @@ export class AppService {
   constructor(private readonly productService: ProductService) {}
 
   getHello(): string {
-    return 'Good Healthy';
+    return 'Good Healthy!';
   }
 }
