@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDTO } from './dtos/create-user.input';
@@ -57,11 +58,18 @@ export class UsersService {
 
   async validate(id: string, originPassword: string) {
     const account = await this.userRepository.findOne({ id });
-    if (!account) this.throwUnAuthorize();
+
+    if (!account) {
+      throw new NotFoundException(`${id}_로 계정 검색 실패`);
+    }
 
     const { password, ...rest } = account;
     const isAuthorized = await bcrypt.compare(originPassword, password);
-    if (!isAuthorized) this.throwUnAuthorize();
+    if (!isAuthorized) {
+      throw new UnauthorizedException(
+        `받은 비밀번호 : ${originPassword},해쉬 비밀번호 : ${password} 비번 틀림`,
+      );
+    }
 
     return rest;
   }
