@@ -707,15 +707,26 @@ export class StockService {
       filterQuery._id = { $in: initProductIds };
     }
 
-    const productList = await this.subsidiaryModel
+    const subsidiaryList = await this.subsidiaryModel
       .find(filterQuery)
-      .select(['_id', 'name', 'leadTime', 'wonPrice'])
+      .select(['_id', 'name', 'leadTime', 'wonPrice', 'productList'])
       .limit(limit)
       .skip(skip)
       .sort({ [sort]: order == OrderEnum.DESC ? -1 : 1 })
       .lean<Subsidiary[]>();
 
-    const productIdList = productList.map((item) => item._id);
+    const subsidiaryIdList = subsidiaryList.map((item) => item._id);
+    const subsidiaryProductIdList = subsidiaryList.flatMap(
+      (subsidiary) => subsidiary.productList,
+    );
+    const productList = await this.productModel
+      .find({
+        _id: subsidiaryProductIdList,
+      })
+      .lean<Product[]>();
+    const productById = new Map<string, Product>(
+      productList.map((item) => [item._id.toHexString(), item]),
+    );
 
     let stockPipeLine: PipelineStage[] = [];
     if (storageName && stocks.length) {
@@ -746,7 +757,7 @@ export class StockService {
       stockPipeLine = [
         {
           $match: {
-            product: { $in: productIdList },
+            product: { $in: subsidiaryIdList },
             count: {
               $exists: true,
               $gt: 0,
@@ -774,21 +785,27 @@ export class StockService {
       stockList.map((stock) => [stock._id, stock.accCount]),
     );
 
-    const data = productList.map((item) => {
-      // const productList = item.productList.map((product) => product.name);
-      const projectId = item._id.toHexString();
-      const stockItem = stockMap.get(projectId) ?? 0;
+    const data = subsidiaryList.map((item) => {
+      const productList = (item.productList ?? [])
+        .map((product) => {
+          const stringId = (product as unknown as ObjectId).toHexString();
+          const productName = productById.get(stringId)?.name;
+          return productName;
+        })
+        .filter((item) => !!item);
+
+      const subsidiaryId = item._id.toHexString();
+      const stockItem = stockMap.get(subsidiaryId) ?? 0;
       const newData: SubsidiaryStockColumn = {
         wonPrice: item.wonPrice,
         productName: item.name,
         stockCount: `${this.utilService.getNumberWithComma(stockItem)}`,
         leadTime: item.leadTime,
-        productList: [],
+        productList,
       };
 
       return newData;
     });
-
     const totalCount = await this.subsidiaryModel.countDocuments(filterQuery);
 
     return { totalCount, data };
