@@ -38,11 +38,19 @@ export class ProductOrderService {
             product: product._id,
           },
         },
+        isDone: false,
       })
       .sort({ isDone: 1, createdAt: -1 })
       .lean<ProductOrder[]>();
 
-    return orderList;
+    return orderList.map((item) => {
+      return {
+        ...item,
+        products: item.products.filter(
+          (p) => product._id.toHexString() == p.product._id.toHexString(),
+        ),
+      };
+    });
   }
 
   async create({ factory, products, ...body }: CreateOrderInput) {
