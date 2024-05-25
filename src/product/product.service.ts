@@ -192,7 +192,7 @@ export class ProductService {
       },
     };
 
-    const objectList = this.utilService.excelToObject(worksheet, colToField, 4);
+    const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
 
     for await (const object of objectList) {
       if (object.name && typeof object.name == 'string') {
