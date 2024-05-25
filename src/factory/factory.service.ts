@@ -47,9 +47,37 @@ export class FactoryService {
     return this.factoryRepository.create(createFactoryInput);
   }
 
-  findMany({ keyword, skip, limit }: FactoriesInput) {
+  async findMany({ keyword, skip, limit }: FactoriesInput) {
+    const productList = await this.productModel
+      .find({
+        name: {
+          $regex: keyword,
+          $options: 'i',
+        },
+      })
+      .select(['name', '_id'])
+      .lean<{ _id: ObjectId; name: string }[]>();
+    const productIds = productList.map((product) => {
+      return product._id.toHexString();
+    });
+
     const filterQuery: FilterQuery<Factory> = {
-      name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
+      $or: [
+        {
+          name: {
+            $regex: this.utilService.escapeRegex(keyword),
+            $options: 'i',
+          },
+        },
+        {
+          productList: {
+            $exists: true,
+            $elemMatch: {
+              $in: productIds,
+            },
+          },
+        },
+      ],
     };
     return this.factoryRepository.findMany({
       filterQuery,
@@ -63,6 +91,11 @@ export class FactoryService {
   async update({ _id, ...body }: UpdateFactoryInput) {
     if (body.name) {
       await this.beforeUpdate({ _id, name: body.name });
+    }
+
+    if (body.productList) {
+      const productIdList = await this.getProductListByName(body.productList);
+      body.productList = productIdList;
     }
 
     return this.factoryRepository.update({ _id }, body);
