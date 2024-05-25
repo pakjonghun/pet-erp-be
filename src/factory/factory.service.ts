@@ -173,12 +173,17 @@ export class FactoryService {
       await this.beforeUpload(object);
     }
 
-    const documents =
-      await this.factoryRepository.objectToDocuments(objectList);
+    const newObjectList = objectList.map((obj) => {
+      if (!obj.productList) {
+        obj.productList = [];
+      }
+      return obj;
+    });
 
+    const documents =
+      await this.factoryRepository.objectToDocuments(newObjectList);
     this.utilService.checkDuplicatedField(documents, 'name');
     await this.factoryRepository.docUniqueCheck(documents, 'name');
-
     await this.factoryRepository.bulkWrite(documents);
   }
 

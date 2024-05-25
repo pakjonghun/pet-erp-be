@@ -65,10 +65,8 @@ export class FactoryResolver {
   ) {
     const productIds = factory.productList;
     if (!productIds) return [];
-    console.log('productIds : ', productIds);
 
     const products = (await productLoader.loadMany(productIds)) as Product[];
-    console.log('products : ', productIds);
     if (products.some((item) => item instanceof Error)) {
       throw new InternalServerErrorException(
         '제품 리스트를 검색하는 도중에 오류가 발생했습니다.',

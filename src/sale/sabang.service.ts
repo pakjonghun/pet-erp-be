@@ -23,11 +23,27 @@ export class SabandService {
     private readonly saleRepository: SaleRepository,
   ) {}
 
-  @Cron('0 59 19 * * *')
+  @Cron('0 0 7 * * *')
+  async runMorningSale() {
+    await this.run();
+  }
+
+  @Cron('0 0 12 * * *')
+  async runAfternoonSale() {
+    await this.run();
+  }
+
+  @Cron('0 0 19 * * *')
+  async runEveningSale() {
+    await this.run();
+  }
+
   async run() {
     const startDate = this.utilService.yesterdayDayjs().format(DATE_FORMAT);
-    // const startDate = dayjs().subtract(1, 'year').format(DATE_FORMAT);
+
+    // const startDate = dayjs().subtract(2, 'year').format(DATE_FORMAT);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
+
     const xmlBuffer = await this.createXmlBuffer({ startDate, endDate });
     const params = {
       Bucket: this.configService.get('AWS_BUCKET'),

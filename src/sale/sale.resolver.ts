@@ -4,10 +4,14 @@ import { SetDeliveryCostInput } from './dto/delivery-cost.Input';
 import { SaleService } from './sale.service';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
+import { SabandService } from './sabang.service';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
-  constructor(private readonly saleService: SaleService) {}
+  constructor(
+    private readonly saleService: SaleService,
+    private readonly sabangService: SabandService,
+  ) {}
 
   @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
   @Mutation(() => DeliveryCost)
@@ -22,5 +26,11 @@ export class SaleResolver {
   async deliveryCost() {
     const result = await this.saleService.deliveryCost();
     return result;
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Mutation(() => DeliveryCost, { nullable: true })
+  async loadSabangData() {
+    await this.sabangService.run();
   }
 }
