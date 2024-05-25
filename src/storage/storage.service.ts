@@ -10,11 +10,11 @@ import { UtilService } from 'src/util/util.service';
 import { ColumnOption } from 'src/client/types';
 import { StoragesInput } from './dto/storages.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
-import * as ExcelJS from 'exceljs';
 import { StorageRepository } from './storage.repository';
 import { Storage, StorageInterface } from './entities/storage.entity';
 import { InjectModel } from '@nestjs/mongoose';
 import { Stock } from 'src/stock/entities/stock.entity';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class StorageService {
@@ -38,6 +38,7 @@ export class StorageService {
       skip,
       limit,
       order: OrderEnum.DESC,
+      sort: 'updatedAt',
     });
   }
 

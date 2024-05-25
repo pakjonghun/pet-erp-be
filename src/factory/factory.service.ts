@@ -1,27 +1,43 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { CreateFactoryInput } from './dto/create-factory.input';
 import { UpdateFactoryInput } from './dto/update-factory.input';
 import { FactoryRepository } from './factory.repository';
 import { InjectModel } from '@nestjs/mongoose';
 import { ProductOrder } from 'src/product-order/entities/product-order.entity';
-import { FilterQuery, Model } from 'mongoose';
+import { FilterQuery, Model, Types } from 'mongoose';
 import { UtilService } from 'src/util/util.service';
 import { ColumnOption } from 'src/client/types';
 import { Factory, FactoryInterface } from './entities/factory.entity';
 import { FactoriesInput } from './dto/factories.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import * as ExcelJS from 'exceljs';
+import { Product } from 'src/product/entities/product.entity';
 
 @Injectable()
 export class FactoryService {
   constructor(
     private readonly factoryRepository: FactoryRepository,
+    private readonly utilService: UtilService,
+
     @InjectModel(ProductOrder.name)
     private readonly productOrderModel: Model<ProductOrder>,
-    private readonly utilService: UtilService,
+
+    @InjectModel(Product.name)
+    private readonly productModel: Model<Product>,
   ) {}
 
   async create(createFactoryInput: CreateFactoryInput) {
+    if (
+      createFactoryInput.productList &&
+      createFactoryInput.productList.length
+    ) {
+      await this.getProductListByIds(createFactoryInput.productList);
+    }
+
     await this.beforeCreate(createFactoryInput.name);
     return this.factoryRepository.create(createFactoryInput);
   }
@@ -35,6 +51,7 @@ export class FactoryService {
       skip,
       limit,
       order: OrderEnum.DESC,
+      sort: 'updatedAt',
     });
   }
 
@@ -58,6 +75,22 @@ export class FactoryService {
 
     const result = await this.factoryRepository.remove({ _id });
     return result;
+  }
+
+  private async getProductListByIds(productList: string[]) {
+    const productIsList = productList.map((item) => new Types.ObjectId(item));
+    const productDocList = await this.productModel
+      .find({ _id: { $in: productIsList } })
+      .select(['name'])
+      .lean<{ name: string }[]>();
+
+    if (productList.length !== productDocList.length) {
+      throw new BadRequestException(
+        '제품 리스트 중에서 존재하지 않는 제품이 있습니다. 제품리스트를 확인해주세요.',
+      );
+    }
+
+    return productDocList;
   }
 
   private async beforeCreate(name: string) {

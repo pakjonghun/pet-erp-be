@@ -7,6 +7,7 @@ export interface FactoryInterface {
   phoneNumber: string;
   address: string;
   note: string;
+  productList?: string[];
 }
 
 @Schema({ versionKey: false, timestamps: { createdAt: false } })
@@ -27,6 +28,10 @@ export class Factory extends AbstractEntity implements FactoryInterface {
   @Prop({ type: String })
   @Field(() => String, { nullable: true })
   note: string;
+
+  @Prop({ type: [String] })
+  @Field(() => [String])
+  productList?: string[];
 }
 
 export const FactorySchema = SchemaFactory.createForClass(Factory);
