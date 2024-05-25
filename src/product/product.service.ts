@@ -60,6 +60,10 @@ export class ProductService {
       category = await this.categoryService.upsert({ name: categoryName });
     }
 
+    if (createProductInput.name.includes(',')) {
+      throw new BadRequestException('제품이름에 , 는 포함될 수 없습니다.');
+    }
+
     await this.productRepository.uniqueCheck({
       code: createProductInput.code,
     });
@@ -94,6 +98,10 @@ export class ProductService {
   }
 
   async update({ _id, ...body }: UpdateProductInput) {
+    if (body.name.includes(',')) {
+      throw new BadRequestException('제품이름에 , 는 포함될 수 없습니다.');
+    }
+
     if (body.category) {
       const productCategory = await this.categoryService.findOne({
         name: body.category,
@@ -198,7 +206,7 @@ export class ProductService {
       if (object.name && typeof object.name == 'string') {
         if (object.name.includes(',')) {
           throw new BadRequestException(
-            '제품이름에는 , 를 포함할 수 없습니다.',
+            '제품 이름에는 , 를 포함할 수 없습니다.',
           );
         }
       }

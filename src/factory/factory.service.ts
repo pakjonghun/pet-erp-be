@@ -163,13 +163,22 @@ export class FactoryService {
       4: {
         fieldName: 'note',
       },
+      5: {
+        fieldName: 'productList',
+      },
     };
 
     const objectList = this.utilService.excelToObject(worksheet, colToField, 1);
+    for await (const object of objectList) {
+      await this.beforeUpload(object);
+    }
+
     const documents =
       await this.factoryRepository.objectToDocuments(objectList);
+
     this.utilService.checkDuplicatedField(documents, 'name');
     await this.factoryRepository.docUniqueCheck(documents, 'name');
+
     await this.factoryRepository.bulkWrite(documents);
   }
 
@@ -197,5 +206,54 @@ export class FactoryService {
 
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;
+  }
+
+  private async beforeUpload(
+    input: Pick<Factory, 'name'> & { productList: string },
+  ) {
+    if (input.name.includes(',')) {
+      throw new BadRequestException("',' 는 공장 이름에 포함될 수 없습니다.");
+    }
+
+    if (!input.productList) {
+      input.productList = '';
+    }
+
+    const productNameList = input.productList
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item) => item);
+
+    const productNameSet = new Set(productNameList);
+
+    let productList: Product[] = [];
+
+    if (productNameList.length) {
+      productList = await this.productModel
+        .find({
+          name: { $in: productNameList },
+        })
+        .lean<Product[]>();
+
+      const productDocMapByName = new Map(
+        productList.map((item) => [item.name, item]),
+      );
+
+      if (productNameList.length !== productList.length) {
+        const notExistProductList: string[] = [];
+        productNameSet.forEach((productName) => {
+          const hasProductNameDoc = productDocMapByName.has(productName);
+          if (!hasProductNameDoc) {
+            notExistProductList.push(productName);
+          }
+        });
+
+        const notExistProductNameString = notExistProductList.join(',  ');
+
+        throw new BadRequestException(
+          `선택한 제품 중 존재하지 않는 제품이 ${notExistProductList.length}개 있습니다. 존재하지 않는 제품은 : (${notExistProductNameString}) 입니다.`,
+        );
+      }
+    }
   }
 }
