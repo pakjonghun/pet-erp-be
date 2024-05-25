@@ -248,7 +248,7 @@ export class StockService {
                 .format('YYYY-MM-DD');
         order.products.forEach((item) => {
           const productId = (item.product as unknown as ObjectId).toHexString();
-          if (productId !== productId) return;
+          if (productId !== product._id.toHexString()) return;
 
           const locationDoc = factoryList.find(
             (factory) =>
