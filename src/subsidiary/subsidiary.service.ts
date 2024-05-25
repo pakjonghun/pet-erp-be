@@ -112,6 +112,7 @@ export class SubsidiaryService {
         fieldName: 'leadTime',
       },
     };
+
     const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
     const newObjectList = [];
 
@@ -119,7 +120,6 @@ export class SubsidiaryService {
       const createBody = await this.beforeUpload(object);
       newObjectList.push(createBody);
     }
-
     const documents =
       await this.subsidiaryRepository.objectToDocuments(newObjectList);
     this.utilService.checkDuplicatedField(documents, 'code');
@@ -247,14 +247,13 @@ export class SubsidiaryService {
     const categoryName = input.category;
 
     if (typeof input.productList !== 'string') {
-      throw new BadRequestException(
-        `${input.productList} 사용할수 있는 제품 리스트를 올바른 형태로(문자) 입력해주세요.)`,
-      );
+      input.productList = '';
     }
 
     const productNameList = input.productList
       .split(',')
-      .map((item) => item.trim());
+      .map((item) => item.trim())
+      .filter((item) => item);
 
     const hasCommaName = productNameList.some((item) => item.includes(','));
     if (hasCommaName) {

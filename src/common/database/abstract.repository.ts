@@ -181,6 +181,7 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
 
     for await (const object of objectList) {
       const document = new this.model(object);
+
       await document.validate();
       documents.push(document);
     }
