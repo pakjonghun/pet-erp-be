@@ -8,7 +8,7 @@ import { UpdateFactoryInput } from './dto/update-factory.input';
 import { FactoryRepository } from './factory.repository';
 import { InjectModel } from '@nestjs/mongoose';
 import { ProductOrder } from 'src/product-order/entities/product-order.entity';
-import { FilterQuery, Model, Types } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 import { UtilService } from 'src/util/util.service';
 import { ColumnOption } from 'src/client/types';
 import { Factory, FactoryInterface } from './entities/factory.entity';
@@ -16,6 +16,7 @@ import { FactoriesInput } from './dto/factories.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import * as ExcelJS from 'exceljs';
 import { Product } from 'src/product/entities/product.entity';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class FactoryService {
@@ -35,7 +36,11 @@ export class FactoryService {
       createFactoryInput.productList &&
       createFactoryInput.productList.length
     ) {
-      await this.getProductListByIds(createFactoryInput.productList);
+      const productIdList = await this.getProductListByName(
+        createFactoryInput.productList,
+      );
+
+      createFactoryInput.productList = productIdList;
     }
 
     await this.beforeCreate(createFactoryInput.name);
@@ -77,20 +82,19 @@ export class FactoryService {
     return result;
   }
 
-  private async getProductListByIds(productList: string[]) {
-    const productIsList = productList.map((item) => new Types.ObjectId(item));
+  private async getProductListByName(productNameList: string[]) {
     const productDocList = await this.productModel
-      .find({ _id: { $in: productIsList } })
-      .select(['name'])
-      .lean<{ name: string }[]>();
+      .find({ name: { $in: productNameList } })
+      .select(['name', '_id'])
+      .lean<{ name: string; _id: ObjectId }[]>();
 
-    if (productList.length !== productDocList.length) {
+    if (productNameList.length !== productDocList.length) {
       throw new BadRequestException(
         '제품 리스트 중에서 존재하지 않는 제품이 있습니다. 제품리스트를 확인해주세요.',
       );
     }
 
-    return productDocList;
+    return productDocList.map((product) => product._id.toHexString());
   }
 
   private async beforeCreate(name: string) {

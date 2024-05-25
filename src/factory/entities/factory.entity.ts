@@ -30,7 +30,7 @@ export class Factory extends AbstractEntity implements FactoryInterface {
   note: string;
 
   @Prop({ type: [String] })
-  @Field(() => [String])
+  @Field(() => [String], { nullable: true })
   productList?: string[];
 }
 
