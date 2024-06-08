@@ -387,8 +387,6 @@ export class WholeSaleService {
         throw new BadRequestException('해당 도매판매는 존재하지 않습니다.');
       }
 
-      console.log('prevWholeSale : ', prevWholeSale);
-
       const prevProductMapByCode = new Map<string, CreateWholeSaleProduct>();
       const prevProductList = prevWholeSale[0].productList;
       prevProductList.forEach((item) => {
