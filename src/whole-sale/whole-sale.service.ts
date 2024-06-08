@@ -155,6 +155,7 @@ export class WholeSaleService {
 
     await this.wholeSaleRepository.model.bulkWrite(saleDocList, { session });
     await this.stockModel.bulkWrite(stockDocList, { session });
+    return wholeSaleId;
   }
 
   async create(createWholeSaleInput: CreateWholeSaleInput) {
@@ -286,12 +287,82 @@ export class WholeSaleService {
       totalCount: { count: number }[];
     }>(salePipeLine);
 
-    console.log('sales : ', sales);
-
     return {
       data: sales[0].data,
       totalCount: sales[0].totalCount[0]?.count ?? 0,
     };
+  }
+
+  async findOne(wholeSaleId: string) {
+    const filterQuery: Record<string, any> = {
+      wholeSaleId,
+    };
+
+    const salePipeLine: PipelineStage[] = [
+      {
+        $match: filterQuery,
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $addFields: {
+                storageObjectId: {
+                  $convert: {
+                    input: '$storageId',
+                    to: 'objectId',
+                    onError: null,
+                    onNull: null,
+                  },
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: 'storages',
+                localField: 'storageObjectId',
+                foreignField: '_id',
+                as: 'storage_info',
+              },
+            },
+            {
+              $unwind: '$storage_info',
+            },
+            {
+              $group: {
+                _id: '$wholeSaleId',
+                mallId: { $first: '$mallId' },
+                saleAt: { $first: '$saleAt' },
+                telephoneNumber1: { $first: '$telephoneNumber1' },
+                isDone: { $first: '$isDone' },
+                productList: {
+                  $push: {
+                    storageName: '$storage_info.name',
+                    productName: '$productName',
+                    productCode: '$productCode',
+                    count: '$count',
+                    payCost: '$payCost',
+                    wonCost: '$wonCost',
+                  },
+                },
+              },
+            },
+            {
+              $sort: {
+                createdAt: -1,
+                _id: 1,
+              },
+            },
+          ],
+        },
+      },
+    ];
+
+    const sales = await this.wholeSaleRepository.model.aggregate<{
+      data: WholeSaleItem[];
+    }>(salePipeLine);
+
+    return sales[0].data;
   }
 
   async update({
@@ -308,7 +379,7 @@ export class WholeSaleService {
       // 제품 코드 제품 이름 날짜 모든게 다 바뀔수 있음. 생성, 삭제 업데이트 할 것을 구분 할 수 없음.
       // 모두 지우고 새로 온 아이템으로 새로 만들어야 함.
       await this.remove(wholeSaleId, session);
-      await this.createWholeSale(
+      const newWholeSaleId = await this.createWholeSale(
         {
           isDone,
           saleAt,
@@ -319,6 +390,9 @@ export class WholeSaleService {
         session,
       );
       await session.commitTransaction();
+      const updateOne = await this.findOne(newWholeSaleId);
+      console.log('updateOne', updateOne);
+      return updateOne;
     } catch (err) {
       await session.abortTransaction();
     } finally {

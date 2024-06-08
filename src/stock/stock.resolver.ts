@@ -75,7 +75,6 @@ export class StockResolver {
   async subsidiaryStocksState(@Args('productName') productName: string) {
     const result =
       await this.stockService.findSubsidiaryStockByState(productName);
-    console.log('result : ', result);
 
     return result;
   }

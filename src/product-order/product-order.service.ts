@@ -149,7 +149,6 @@ export class ProductOrderService {
       },
     );
 
-    console.log('body : ', body, result);
     return result;
   }
 

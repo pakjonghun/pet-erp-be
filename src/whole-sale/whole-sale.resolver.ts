@@ -31,11 +31,12 @@ export class WholeSaleResolver {
 
   @LogData({ description: '도매판매 업데이트', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
-  @Mutation(() => [Sale], { nullable: true })
-  updateWholeSale(
+  @Mutation(() => [WholeSaleItem], { nullable: true })
+  async updateWholeSale(
     @Args('updateWholeSaleInput') updateWholeSaleInput: UpdateWholeSaleInput,
   ) {
-    return this.wholeSaleService.update(updateWholeSaleInput);
+    const result = await this.wholeSaleService.update(updateWholeSaleInput);
+    return result;
   }
 
   @LogData({ description: '도매판매생성', logType: LogTypeEnum.CREATE })
