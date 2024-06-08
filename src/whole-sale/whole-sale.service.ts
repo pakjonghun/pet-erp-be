@@ -5,7 +5,10 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateWholeSaleInput } from './dto/create-whole-sale.input';
+import {
+  CreateWholeSaleInput,
+  CreateWholeSaleProduct,
+} from './dto/create-whole-sale.input';
 import { UpdateWholeSaleInput } from './dto/update-whole-sale.input';
 import { WholeSaleRepository } from './whole-sale.repository';
 import { Sale, SaleInterface } from 'src/sale/entities/sale.entity';
@@ -51,6 +54,7 @@ export class WholeSaleService {
       isDone,
     }: CreateWholeSaleInput,
     session: ClientSession,
+    isEdit = false,
   ) {
     const client = await this.clientModel.findOne({ name: mallId });
     if (!client) {
@@ -112,7 +116,7 @@ export class WholeSaleService {
         );
       }
 
-      if (stockDoc.count < count) {
+      if (!isEdit && stockDoc.count < count) {
         throw new ConflictException(
           `${storageName}에 ${productName}재고가 부족합니다. 남은재고 ${stockDoc.count}`,
         );
@@ -378,6 +382,89 @@ export class WholeSaleService {
     try {
       // 제품 코드 제품 이름 날짜 모든게 다 바뀔수 있음. 생성, 삭제 업데이트 할 것을 구분 할 수 없음.
       // 모두 지우고 새로 온 아이템으로 새로 만들어야 함.
+      const prevWholeSale = await this.findOne(wholeSaleId);
+      if (!Array.isArray(prevWholeSale) || !prevWholeSale[0]) {
+        throw new BadRequestException('해당 도매판매는 존재하지 않습니다.');
+      }
+
+      console.log('prevWholeSale : ', prevWholeSale);
+
+      const prevProductMapByCode = new Map<string, CreateWholeSaleProduct>();
+      const prevProductList = prevWholeSale[0].productList;
+      prevProductList.forEach((item) => {
+        prevProductMapByCode.set(item.productCode, item);
+      });
+
+      //창고가 같고 제품도 같은 것들만 추려내서
+      //count 가 줄었으면 통과
+      //count 가 늘었으면 현재 재고를 찾아서 현재 재고 + 이전 count 보다 새로운 count 가 크면 오류를 띄운다.
+      const shouldCheckList = curProductList.filter((item) => {
+        const prevProduct = prevProductMapByCode.get(item.productCode);
+        if (!prevProduct) return;
+
+        const isSameStorage = prevProduct.storageName == item.storageName;
+        const isIncrease = prevProduct.count < item.count;
+        return isIncrease && isSameStorage;
+      });
+
+      if (shouldCheckList.length) {
+        const storageNameList = shouldCheckList.map((item) => item.storageName);
+        const storageList = await this.storageModel
+          .find({
+            name: { $in: storageNameList },
+          })
+          .lean<Storage[]>();
+
+        const storageMapByName = new Map<string, Storage>();
+        storageList.forEach((item) => {
+          storageMapByName.set(item.name, item);
+        });
+
+        const productNameList = shouldCheckList.map((item) => item.productName);
+        const productList = await this.productModel
+          .find({
+            name: { $in: productNameList },
+          })
+          .lean<Product[]>();
+        const productMapByName = new Map<string, Product>();
+        productList.forEach((item) => productMapByName.set(item.name, item));
+
+        for await (const product of shouldCheckList) {
+          const targetStorage = storageMapByName.get(product.storageName)._id;
+          if (!targetStorage) {
+            throw new BadRequestException(
+              `${product.storageName}은 존재하지 않는 창고입니다.`,
+            );
+          }
+
+          const targetProduct = productMapByName.get(product.productName)._id;
+          if (!targetProduct) {
+            throw new BadRequestException(
+              `${product.productName}은 존재하지 않는 제품입니다.`,
+            );
+          }
+
+          const stock = await this.stockModel
+            .findOne({
+              storage: targetStorage,
+              product: targetProduct,
+            })
+            .lean<Stock>();
+
+          if (!stock) {
+            throw new BadRequestException('재고가 존재하지 않습니다.');
+          }
+
+          const prevProduct = prevProductMapByCode.get(product.productCode);
+
+          if (stock.count + prevProduct.count < product.count) {
+            throw new BadRequestException(
+              `${product.productName} 제품의 판매가능 재고는 ${stock.count + prevProduct.count}이하입니다.`,
+            );
+          }
+        }
+      }
+
       await this.remove(wholeSaleId, session);
       const newWholeSaleId = await this.createWholeSale(
         {
@@ -388,13 +475,18 @@ export class WholeSaleService {
           productList: curProductList,
         },
         session,
+        true,
       );
+
       await session.commitTransaction();
       const updateOne = await this.findOne(newWholeSaleId);
-      console.log('updateOne', updateOne);
       return updateOne;
     } catch (err) {
+      const errorMessage = err.message;
       await session.abortTransaction();
+      throw new BadRequestException(
+        errorMessage ?? '서버에서 오류가 발생 했습니다.',
+      );
     } finally {
       await session.endSession();
     }

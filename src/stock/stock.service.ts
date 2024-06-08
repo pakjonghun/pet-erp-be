@@ -159,7 +159,7 @@ export class StockService {
         $match: {
           product: { $in: productIdList },
           storage: storage._id,
-          count: { $gt: 0 },
+          // count: { $gt: 0 },
           isSubsidiary,
         },
       },
