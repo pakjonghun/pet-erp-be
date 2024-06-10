@@ -26,7 +26,6 @@ export class WholeSaleResolver {
   @Query(() => WholeSaleOutput)
   async wholeSales(@Args('wholeSalesInput') wholeSalesInput: WholeSalesInput) {
     const result = await this.wholeSaleService.findAll(wholeSalesInput);
-    console.log('result : ', result);
     return result;
   }
 

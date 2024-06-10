@@ -367,6 +367,24 @@ export class WholeSaleService {
                 saleAt: { $first: '$saleAt' },
                 telephoneNumber1: { $first: '$telephoneNumber1' },
                 isDone: { $first: '$isDone' },
+                deliveryCost: {
+                  $sum: {
+                    $cond: {
+                      if: { $ifNull: ['$deliveryBoxCount', false] },
+                      then: '$deliveryCost',
+                      else: 0,
+                    },
+                  },
+                },
+                deliveryBoxCount: {
+                  $first: {
+                    $cond: {
+                      if: { $ifNull: ['$deliveryBoxCount', false] },
+                      then: '$deliveryBoxCount',
+                      else: 1,
+                    },
+                  },
+                },
                 productList: {
                   $push: {
                     storageName: '$storage_info.name',
@@ -404,6 +422,7 @@ export class WholeSaleService {
     saleAt,
     telephoneNumber1,
     isDone,
+    deliveryBoxCount = 1,
   }: UpdateWholeSaleInput) {
     const session = await this.connection.startSession();
     session.startTransaction();
@@ -499,6 +518,7 @@ export class WholeSaleService {
           mallId,
           telephoneNumber1,
           productList: curProductList,
+          deliveryBoxCount,
         },
         session,
         true,
