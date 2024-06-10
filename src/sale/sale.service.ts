@@ -242,16 +242,7 @@ export class SaleService {
       {
         $addFields: {
           accProfit: {
-            $cond: {
-              if: { $ne: ['$wholeSaleId', null] },
-              then: {
-                $subtract: [
-                  '$accPayCost',
-                  { $add: ['$accWonCost', '$deliveryCost'] },
-                ],
-              },
-              else: { $subtract: ['$accPayCost', '$accWonCost'] },
-            },
+            $subtract: ['$accPayCost', '$accWonCost'],
           },
           averagePayCost: {
             $round: [
