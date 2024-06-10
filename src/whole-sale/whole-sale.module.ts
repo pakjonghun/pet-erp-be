@@ -10,10 +10,15 @@ import { Storage, StorageSchema } from 'src/storage/entities/storage.entity';
 import { Client, clientSchema } from 'src/client/entities/client.entity';
 import { Stock, StockSchema } from 'src/stock/entities/stock.entity';
 import { StockModule } from 'src/stock/stock.module';
+import {
+  DeliveryCost,
+  DeliveryCostSchema,
+} from 'src/sale/entities/delivery.entity';
 
 @Module({
   imports: [
     DatabaseModule.forFeature([
+      { name: DeliveryCost.name, schema: DeliveryCostSchema },
       { name: Sale.name, schema: saleSchema },
       { name: Client.name, schema: clientSchema },
       { name: Product.name, schema: productSchema },

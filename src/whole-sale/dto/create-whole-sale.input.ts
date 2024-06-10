@@ -48,6 +48,12 @@ export class CreateWholeSaleProduct {
 }
 @InputType()
 export class CreateWholeSaleInput {
+  @IsOptional()
+  @IsNumber()
+  @Min(1, { message: '송강 개수는 1 이상의 값을 입력해주세요.' })
+  @Field(() => Int, { nullable: true })
+  deliveryBoxCount?: number;
+
   @IsBoolean()
   @Field(() => Boolean, { nullable: true })
   isDone: boolean;

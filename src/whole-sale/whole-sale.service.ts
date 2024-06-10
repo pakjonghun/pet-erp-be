@@ -31,6 +31,7 @@ import { WholeSaleItem } from './dto/whole-sales.output';
 import { StockService } from 'src/stock/stock.service';
 import { CreateSingleStockInput } from 'src/stock/dto/create-stock.input';
 import * as uuid from 'uuid';
+import { DeliveryCost } from 'src/sale/entities/delivery.entity';
 
 @Injectable()
 export class WholeSaleService {
@@ -38,6 +39,8 @@ export class WholeSaleService {
     private readonly utilService: UtilService,
     private readonly wholeSaleRepository: WholeSaleRepository,
     private readonly stockService: StockService,
+    @InjectModel(DeliveryCost.name)
+    private readonly deliveryCostModel: Model<DeliveryCost>,
     @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Client.name) private readonly clientModel: Model<Client>,
@@ -52,6 +55,7 @@ export class WholeSaleService {
       saleAt,
       telephoneNumber1,
       isDone,
+      deliveryBoxCount = 1,
     }: CreateWholeSaleInput,
     session: ClientSession,
     isEdit = false,
@@ -86,6 +90,11 @@ export class WholeSaleService {
     const saleDocList: AnyBulkWriteOperation<Sale>[] = [];
     const stockDocList: AnyBulkWriteOperation<Stock>[] = [];
     const wholeSaleId = uuid.v4();
+
+    const deliveryCostDocs = await this.deliveryCostModel
+      .find({})
+      .lean<DeliveryCost[]>();
+    const deliveryCost = deliveryCostDocs?.[0]?.deliveryCost ?? 0;
 
     for await (const {
       count,
@@ -146,9 +155,8 @@ export class WholeSaleService {
         wholeSaleId,
         storageId: targetStorage._id.toHexString(),
         isDone,
-        // deliveryCost?: number,
+        deliveryCost: (deliveryCost * deliveryCost) / productList.length,
       };
-
       const saleItem = new this.wholeSaleRepository.model(newWholeSale);
       saleDocList.push({
         insertOne: {
