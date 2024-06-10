@@ -235,12 +235,23 @@ export class SaleService {
           accPayCost: { $sum: '$payCost' },
           accCount: { $sum: '$count' },
           accWonCost: { $sum: '$wonCost' },
+          wholeSaleId: { $first: '$wholeSaleId' },
+          deliveryCost: { $sum: { $ifNull: ['$deliveryCost', 0] } },
         },
       },
       {
         $addFields: {
           accProfit: {
-            $subtract: ['$accPayCost', '$accWonCost'],
+            $cond: {
+              if: { $ne: ['$wholeSaleId', null] },
+              then: {
+                $subtract: [
+                  '$accPayCost',
+                  { $add: ['$accWonCost', '$deliveryCost'] },
+                ],
+              },
+              else: { $subtract: ['$accPayCost', '$accWonCost'] },
+            },
           },
           averagePayCost: {
             $round: [
