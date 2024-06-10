@@ -27,6 +27,7 @@ export interface SaleInterface {
   wholeSaleId?: string;
   storageId?: string;
   isDone?: boolean;
+  deliveryBoxCount?: number;
 }
 
 @ObjectType()
@@ -118,6 +119,10 @@ export class Sale extends AbstractEntity implements SaleInterface {
   @Prop({ default: 0 })
   @Field(() => Int, { nullable: true })
   deliveryCost?: number;
+
+  @Prop({ default: 1 })
+  @Field(() => Int, { nullable: true })
+  deliveryBoxCount?: number;
 
   @Prop({ type: String })
   @Field(() => String, { nullable: true })

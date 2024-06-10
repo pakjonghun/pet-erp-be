@@ -1,4 +1,4 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType, Float } from '@nestjs/graphql';
 import { FindManyOutput } from 'src/common/dtos/find-many.output';
 
 @ObjectType()
@@ -50,6 +50,12 @@ export class WholeSaleItem {
 
   @Field(() => [WholeSaleProduct])
   productList: WholeSaleProduct[];
+
+  @Field(() => Float, { nullable: true })
+  deliveryCost?: number;
+
+  @Field(() => Int, { nullable: true })
+  deliveryBoxCount?: number;
 }
 
 @ObjectType()

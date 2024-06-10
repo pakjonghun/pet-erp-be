@@ -155,6 +155,7 @@ export class WholeSaleService {
         wholeSaleId,
         storageId: targetStorage._id.toHexString(),
         isDone,
+        deliveryBoxCount,
         deliveryCost: (deliveryCost * deliveryCost) / productList.length,
       };
       const saleItem = new this.wholeSaleRepository.model(newWholeSale);
@@ -252,6 +253,25 @@ export class WholeSaleService {
                 saleAt: { $first: '$saleAt' },
                 telephoneNumber1: { $first: '$telephoneNumber1' },
                 isDone: { $first: '$isDone' },
+                deliveryCost: {
+                  $sum: {
+                    $cond: {
+                      if: { $ifNull: ['$deliveryBoxCount', false] },
+                      then: '$deliveryCost',
+                      else: 0,
+                    },
+                  },
+                },
+                deliveryBoxCount: {
+                  $first: {
+                    $cond: {
+                      if: { $ifNull: ['$deliveryBoxCount', false] },
+                      then: '$deliveryBoxCount',
+                      else: 1,
+                    },
+                  },
+                },
+
                 productList: {
                   $push: {
                     storageName: '$storage_info.name',
