@@ -7,11 +7,13 @@ import { SaleRepository } from './sale.repository';
 import { SabandService } from './sabang.service';
 import { SaleResolver } from './sale.resolver';
 import { DeliveryCost, DeliveryCostSchema } from './entities/delivery.entity';
+import { Client, clientSchema } from 'src/client/entities/client.entity';
 
 @Module({
   exports: [SaleService],
   imports: [
     DatabaseModule.forFeature([
+      { name: Client.name, schema: clientSchema },
       { name: Sale.name, schema: saleSchema },
       { name: DeliveryCost.name, schema: DeliveryCostSchema },
     ]),

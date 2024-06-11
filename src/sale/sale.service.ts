@@ -11,14 +11,17 @@ import { SaleInfo, SaleInfoList } from 'src/product/dtos/product-sale.output';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { SetDeliveryCostInput } from './dto/delivery-cost.Input';
-import * as dayjs from 'dayjs';
 import { InjectModel } from '@nestjs/mongoose';
 import { DeliveryCost } from './entities/delivery.entity';
+import { Client } from 'src/client/entities/client.entity';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class SaleService {
   private readonly logger = new Logger(SaleService.name);
   constructor(
+    @InjectModel(Client.name)
+    private readonly clientModel: Model<Client>,
     @InjectModel(DeliveryCost.name)
     private readonly deliveryCostModel: Model<DeliveryCost>,
     private readonly utilService: UtilService,
@@ -89,7 +92,34 @@ export class SaleService {
       name,
     });
 
-    return this.saleRepository.saleModel.aggregate<SaleInfo>(pipeline);
+    const result =
+      await this.saleRepository.saleModel.aggregate<SaleInfo>(pipeline);
+    const mallIdList = result.map((item) => item._id).filter((item) => !!item);
+    type ClientFee = { feeRate: number; name: string };
+    const clientList = await this.clientModel
+      .find({
+        name: { $in: mallIdList },
+      })
+      .select(['name', 'feeRate'])
+      .lean<ClientFee[]>();
+
+    const clientListByName = new Map<string, ClientFee>();
+    clientList.forEach((client) => {
+      clientListByName.set(client.name, client);
+    });
+
+    return result.map((item) => {
+      const client = clientListByName.get(item._id);
+      if (!client || !client.feeRate) return item;
+
+      const accPayCostWithFee = item.accPayCost * (1 - client.feeRate);
+      const accProfitWitFee = item.accProfit * (1 - client.feeRate);
+      return {
+        ...item,
+        accPayCost: Math.floor(accPayCostWithFee),
+        accProfit: Math.floor(accProfitWitFee),
+      };
+    });
   }
 
   async saleBy(filterQuery: FilterQuery<Sale>) {
