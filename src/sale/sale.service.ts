@@ -82,24 +82,29 @@ export class SaleService {
     { from, to }: FindDateInput,
     groupId?: string,
     originName: string = 'productName',
+    productCodeList?: string[],
   ) {
     const _id = groupId ? `$${groupId}` : null;
     const name = `$${originName}`;
+
     const pipeline = this.getTotalSalePipeline({
       from,
       to,
       _id,
       name,
+      productCodeList,
     });
 
     const result =
       await this.saleRepository.saleModel.aggregate<SaleInfo>(pipeline);
     const mallIdList = result.map((item) => item._id).filter((item) => !!item);
     type ClientFee = { feeRate: number; name: string };
+
+    const clientQuery: FilterQuery<Client> = {
+      name: { $in: mallIdList },
+    };
     const clientList = await this.clientModel
-      .find({
-        name: { $in: mallIdList },
-      })
+      .find(clientQuery)
       .select(['name', 'feeRate'])
       .lean<ClientFee[]>();
 
@@ -237,72 +242,137 @@ export class SaleService {
     to,
     _id,
     name,
+    productCodeList,
   }: {
     from: Date;
     to: Date;
     _id: string;
     name: string;
+    productCodeList?: string[];
   }): PipelineStage[] {
-    return [
-      {
-        $match: {
-          productCode: { $exists: true },
-          mallId: { $exists: true },
-          count: { $exists: true },
-          payCost: { $exists: true },
-          wonCost: { $exists: true },
-          saleAt: {
-            $exists: true,
-            $gte: from,
-            $lte: to,
+    if (productCodeList) {
+      return [
+        {
+          $match: {
+            productCode: { $exists: true, $in: productCodeList },
+            mallId: { $exists: true },
+            count: { $exists: true },
+            payCost: { $exists: true },
+            wonCost: { $exists: true },
+            saleAt: {
+              $exists: true,
+              $gte: from,
+              $lte: to,
+            },
           },
         },
-      },
-      {
-        $group: {
-          _id,
-          name: { $first: name },
-          accPayCost: { $sum: '$payCost' },
-          accCount: { $sum: '$count' },
-          accWonCost: { $sum: '$wonCost' },
-          wholeSaleId: { $first: '$wholeSaleId' },
-          deliveryCost: { $sum: { $ifNull: ['$deliveryCost', 0] } },
-        },
-      },
-      {
-        $addFields: {
-          accProfit: {
-            $subtract: ['$accPayCost', '$accWonCost'],
+        {
+          $group: {
+            _id,
+            name: { $first: name },
+            accPayCost: { $sum: '$payCost' },
+            accCount: { $sum: '$count' },
+            accWonCost: { $sum: '$wonCost' },
+            wholeSaleId: { $first: '$wholeSaleId' },
+            deliveryCost: { $sum: { $ifNull: ['$deliveryCost', 0] } },
           },
-          averagePayCost: {
-            $round: [
-              {
-                $cond: {
-                  if: { $ne: ['$accCount', 0] },
-                  then: { $divide: ['$accPayCost', '$accCount'] },
-                  else: 0,
+        },
+        {
+          $addFields: {
+            accProfit: {
+              $subtract: ['$accPayCost', '$accWonCost'],
+            },
+            averagePayCost: {
+              $round: [
+                {
+                  $cond: {
+                    if: { $ne: ['$accCount', 0] },
+                    then: { $divide: ['$accPayCost', '$accCount'] },
+                    else: 0,
+                  },
                 },
-              },
-              2,
-            ],
+                2,
+              ],
+            },
           },
         },
-      },
-      {
-        $sort: {
-          accPayCost: -1,
-          accCount: -1,
+        {
+          $sort: {
+            accPayCost: -1,
+            accCount: -1,
+          },
         },
-      },
-      {
-        $limit: 10,
-      },
-      {
-        $project: {
-          wonCost: 0,
+        {
+          $limit: 10,
         },
-      },
-    ];
+        {
+          $project: {
+            wonCost: 0,
+          },
+        },
+      ];
+    } else {
+      return [
+        {
+          $match: {
+            productCode: { $exists: true },
+            mallId: { $exists: true },
+            count: { $exists: true },
+            payCost: { $exists: true },
+            wonCost: { $exists: true },
+            saleAt: {
+              $exists: true,
+              $gte: from,
+              $lte: to,
+            },
+          },
+        },
+        {
+          $group: {
+            _id,
+            name: { $first: name },
+            accPayCost: { $sum: '$payCost' },
+            accCount: { $sum: '$count' },
+            accWonCost: { $sum: '$wonCost' },
+            wholeSaleId: { $first: '$wholeSaleId' },
+            deliveryCost: { $sum: { $ifNull: ['$deliveryCost', 0] } },
+          },
+        },
+        {
+          $addFields: {
+            accProfit: {
+              $subtract: ['$accPayCost', '$accWonCost'],
+            },
+            averagePayCost: {
+              $round: [
+                {
+                  $cond: {
+                    if: { $ne: ['$accCount', 0] },
+                    then: { $divide: ['$accPayCost', '$accCount'] },
+                    else: 0,
+                  },
+                },
+                2,
+              ],
+            },
+          },
+        },
+        {
+          $sort: {
+            accPayCost: -1,
+            accCount: -1,
+          },
+        },
+        {
+          $limit: 10,
+        },
+        {
+          $project: {
+            wonCost: 0,
+          },
+        },
+      ];
+    }
   }
 
   async setDeliveryCost({

@@ -44,12 +44,23 @@ export class ProductService {
     private readonly stockModel: Model<Stock>,
   ) {}
 
-  async totalSaleBy(range: FindDateInput, groupId?: string) {
+  async totalSaleBy(
+    { productCodeList, ...range }: FindDateInput,
+    groupId?: string,
+  ) {
     const prevRange = this.utilService.getBeforeDate(range);
-
-    const current = await this.saleService.totalSale(range, groupId);
-    const previous = await this.saleService.totalSale(prevRange, groupId);
-
+    const current = await this.saleService.totalSale(
+      range,
+      groupId,
+      undefined,
+      productCodeList,
+    );
+    const previous = await this.saleService.totalSale(
+      prevRange,
+      groupId,
+      undefined,
+      productCodeList,
+    );
     return { current, previous };
   }
 

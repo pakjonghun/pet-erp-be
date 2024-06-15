@@ -41,6 +41,9 @@ export class TotalSaleInfo {
 
 @ObjectType()
 export class SaleInfos {
+  @Field(() => String, { nullable: true })
+  _id?: string;
+
   @Field(() => Int, { nullable: true })
   accPayCost: number;
 
