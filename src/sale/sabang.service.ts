@@ -1,3 +1,4 @@
+import { Product } from 'src/product/entities/product.entity';
 //
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { UtilService } from 'src/util/util.service';
@@ -13,16 +14,23 @@ import { DATE_FORMAT, FULL_DATE_FORMAT } from 'src/common/constants';
 import * as https from 'https';
 import * as crypto from 'crypto';
 import * as dayjs from 'dayjs';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Client } from 'src/client/entities/client.entity';
 
 @Injectable()
 export class SabandService {
   private readonly logger = new Logger(SabandService.name);
   constructor(
+    @InjectModel(Product.name) private readonly productModel: Model<Product>,
+    @InjectModel(Client.name) private readonly clientModel: Model<Client>,
     private readonly configService: ConfigService,
     private readonly utilService: UtilService,
     private readonly awsS3Service: AwsS3Service,
     private readonly saleRepository: SaleRepository,
-  ) {}
+  ) {
+    this.run();
+  }
 
   @Cron('0 0 7 * * *')
   async runMorningSale() {
@@ -40,9 +48,7 @@ export class SabandService {
   }
 
   async run() {
-    const startDate = this.utilService.yesterdayDayjs().format(DATE_FORMAT);
-
-    // const startDate = dayjs().subtract(2, 'year').format(DATE_FORMAT);
+    const startDate = dayjs().subtract(2, 'week').format(DATE_FORMAT);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
 
     const xmlBuffer = await this.createXmlBuffer({ startDate, endDate });
@@ -84,16 +90,39 @@ export class SabandService {
     const result = await parseStringPromise(xmlData);
 
     const list = result?.SABANG_ORDER_LIST?.DATA ?? [];
-    const newList = (list as any[]).map((item) => {
+    const newList: any[] = [];
+
+    for await (const item of list) {
       const document = this.saleRepository.emptyDocument;
-      const saleAt = item['ORDER_DATE']?.[0] //
-        ? dayjs(item['ORDER_DATE']?.[0], { format: FULL_DATE_FORMAT }).toDate()
+      const saleAt = item['DELIVERY_CONFIRM_DATE']?.[0] //
+        ? dayjs(item['DELIVERY_CONFIRM_DATE']?.[0], {
+            format: FULL_DATE_FORMAT,
+          }).toDate()
         : null;
+
+      const orderConfirmedAt = item['ORD_CONFIRM_DATE']?.[0] //
+        ? dayjs(item['ORD_CONFIRM_DATE']?.[0], {
+            format: FULL_DATE_FORMAT,
+          }).toDate()
+        : null;
+
+      const mallId = item['MALL_ID']?.[0];
+      const payCost = item['PAY_COST']?.[0];
+      const productCode = item['PRODUCT_ID']?.[0];
+      const count = item['P_EA']?.[0];
+      let mallWonCost = item['MALL_WON_COST']?.[0];
+      if (!mallWonCost) {
+        const product = await this.productModel.findOne({ code: productCode });
+        const client = await this.clientModel.findOne({ name: mallId });
+        mallWonCost =
+          (product?.wonPrice ?? 0) * (count ?? 0) +
+          (payCost ?? 0) * (client?.feeRate ?? 0);
+      }
 
       document['code'] = item.IDX.join('_');
       document['shoppingMall'] = item.ORDER_ID?.[0];
       document['consignee'] = item['RECEIVE_NAME'][0];
-      document['count'] = item['P_EA']?.[0];
+      document['count'] = count;
       document['barCode'] = item.BARCODE?.[0];
       document['address1'] = item.RECEIVE_ADDR?.[0];
       document['postalCode'] = item.RECEIVE_ZIPCODE?.[0];
@@ -104,16 +133,18 @@ export class SabandService {
       document['invoiceNumber'] = item.INVOICE_NO?.[0];
       document['originOrderNumber'] = item['copy_idx']?.[0];
       document['orderNumber'] = item.IDX?.[0];
-      document['productCode'] = item['PRODUCT_ID']?.[0];
-      document['saleAt'] = saleAt;
-      document['payCost'] = item['PAY_COST']?.[0];
+      document['productCode'] = productCode;
+      document['payCost'] = payCost;
       document['orderStatus'] = item['ORDER_STATUS']?.[0];
-      document['mallId'] = item['MALL_ID']?.[0];
-      document['wonCost'] = item['MALL_WON_COST']?.[0];
+      document['mallId'] = mallId;
+      document['wonCost'] = mallWonCost;
       document['deliveryCost'] = 0;
+      document['saleAt'] = saleAt;
+      document['orderConfirmedAt'] = orderConfirmedAt;
 
-      return document;
-    });
+      newList.push(document);
+    }
+
     return newList;
   }
 
@@ -133,7 +164,7 @@ export class SabandService {
             <LANG>UTF-8</LANG>	
             <ORD_ST_DATE>${startDate}</ORD_ST_DATE>
             <ORD_ED_DATE>${endDate}</ORD_ED_DATE>
-            <ORD_FIELD><![CDATA[IDX|ORDER_ID|P_EA|BARCODE|RECEIVE_NAME|RECEIVE_ADDR|RECEIVE_ZIPCODE|RECEIVE_TEL|DELV_MSG1|GOODS_KEYWORD|DELIVERY_ID|INVOICE_NO|RECEIVE_CEL|copy_idx|IDX|PRODUCT_ID|ORDER_DATE|PAY_COST|ORDER_STATUS|MALL_ID|MALL_WON_COST]]></ORD_FIELD>		
+            <ORD_FIELD><![CDATA[IDX|ORDER_ID|P_EA|BARCODE|RECEIVE_NAME|RECEIVE_ADDR|RECEIVE_ZIPCODE|RECEIVE_TEL|DELV_MSG1|GOODS_KEYWORD|DELIVERY_ID|INVOICE_NO|RECEIVE_CEL|copy_idx|IDX|PRODUCT_ID|ORDER_DATE|PAY_COST|ORDER_STATUS|MALL_ID|MALL_WON_COST|ORD_CONFIRM_DATE|DELIVERY_CONFIRM_DATE]]></ORD_FIELD>		
         </DATA>
     </SABANG_CS_LIST>
     `;

@@ -33,6 +33,7 @@ export class SaleService {
     const pipeLine: PipelineStage[] = [
       {
         $match: {
+          orderStatus: '출고완료',
           productCode,
           count: { $exists: true },
           payCost: { $exists: true },
@@ -97,40 +98,42 @@ export class SaleService {
 
     const result =
       await this.saleRepository.saleModel.aggregate<SaleInfo>(pipeline);
-    const mallIdList = result.map((item) => item._id).filter((item) => !!item);
-    type ClientFee = { feeRate: number; name: string };
+    // const mallIdList = result.map((item) => item._id).filter((item) => !!item);
+    // type ClientFee = { feeRate: number; name: string };
 
-    const clientQuery: FilterQuery<Client> = {
-      name: { $in: mallIdList },
-    };
-    const clientList = await this.clientModel
-      .find(clientQuery)
-      .select(['name', 'feeRate'])
-      .lean<ClientFee[]>();
+    // const clientQuery: FilterQuery<Client> = {
+    //   name: { $in: mallIdList },
+    // };
+    // const clientList = await this.clientModel
+    //   .find(clientQuery)
+    //   .select(['name', 'feeRate'])
+    //   .lean<ClientFee[]>();
 
-    const clientListByName = new Map<string, ClientFee>();
-    clientList.forEach((client) => {
-      clientListByName.set(client.name, client);
-    });
+    // const clientListByName = new Map<string, ClientFee>();
+    // clientList.forEach((client) => {
+    //   clientListByName.set(client.name, client);
+    // });
 
-    return result.map((item) => {
-      const client = clientListByName.get(item._id);
-      if (!client || !client.feeRate) return item;
+    return result;
+    // return result.map((item) => {
+    //   const client = clientListByName.get(item._id);
+    //   if (!client || !client.feeRate) return item;
 
-      const accPayCostWithFee = item.accPayCost * (1 - client.feeRate);
-      const accProfitWitFee = item.accProfit * (1 - client.feeRate);
-      return {
-        ...item,
-        accPayCost: Math.floor(accPayCostWithFee),
-        accProfit: Math.floor(accProfitWitFee),
-      };
-    });
+    //   const accPayCostWithFee = item.accPayCost * (1 - client.feeRate);
+    //   const accProfitWitFee = item.accProfit * (1 - client.feeRate);
+    //   return {
+    //     ...item,
+    //     accPayCost: Math.floor(accPayCostWithFee),
+    //     accProfit: Math.floor(accProfitWitFee),
+    //   };
+    // });
   }
 
   async saleBy(filterQuery: FilterQuery<Sale>) {
     const pipeLine: PipelineStage[] = [
       {
         $match: {
+          orderStatus: '출고완료',
           productCode: { $exists: true },
           mallId: { $exists: true },
           count: { $exists: true },
@@ -254,6 +257,7 @@ export class SaleService {
       return [
         {
           $match: {
+            orderStatus: '출고완료',
             productCode: { $exists: true, $in: productCodeList },
             mallId: { $exists: true },
             count: { $exists: true },
@@ -315,6 +319,7 @@ export class SaleService {
       return [
         {
           $match: {
+            orderStatus: '출고완료',
             productCode: { $exists: true },
             mallId: { $exists: true },
             count: { $exists: true },

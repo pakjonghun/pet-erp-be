@@ -18,7 +18,6 @@ export interface SaleInterface {
   originOrderNumber?: string;
   orderNumber?: string;
   productCode?: string;
-  saleAt?: Date;
   payCost?: number;
   orderStatus?: string;
   mallId?: string;
@@ -28,6 +27,8 @@ export interface SaleInterface {
   storageId?: string;
   isDone?: boolean;
   deliveryBoxCount?: number;
+  saleAt?: Date;
+  orderConfirmedAt?: Date;
 }
 
 @ObjectType()
