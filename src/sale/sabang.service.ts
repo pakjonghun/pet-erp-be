@@ -28,9 +28,7 @@ export class SabandService {
     private readonly utilService: UtilService,
     private readonly awsS3Service: AwsS3Service,
     private readonly saleRepository: SaleRepository,
-  ) {
-    this.run();
-  }
+  ) {}
 
   @Cron('0 0 7 * * *')
   async runMorningSale() {
