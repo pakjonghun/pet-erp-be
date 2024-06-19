@@ -36,7 +36,7 @@ export enum AuthRoleEnum {
   ADMIN_IP = 'ADMIN_IP',
   ADMIN_ACCOUNT = 'ADMIN_ACCOUNT',
   ADMIN_DELIVERY = 'ADMIN_DELIVERY',
-  ADMIN_LOG = '  ADMIN_LOG',
+  ADMIN_LOG = 'ADMIN_LOG',
 }
 
 export interface UserInterface {
