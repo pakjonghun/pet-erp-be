@@ -18,14 +18,14 @@ export class UsersResolver {
     private readonly authService: AuthService,
   ) {}
 
-  @Roles([AuthRoleEnum.ADMIN])
+  @Roles([AuthRoleEnum.ADMIN_ACCOUNT])
   @Mutation(() => User)
   @LogData({ description: '회원가입', logType: LogTypeEnum.CREATE })
   async createUser(@Args('createUserInput') createUserInput: CreateUserDTO) {
     return this.usersService.create(createUserInput);
   }
 
-  @Roles([AuthRoleEnum.ADMIN])
+  @Roles([AuthRoleEnum.ADMIN_ACCOUNT])
   @Query(() => [User], { name: 'users' })
   findAll(@GetUser() user: User) {
     return this.usersService.findAll({ id: { $ne: user.id } });
@@ -37,7 +37,7 @@ export class UsersResolver {
     return this.usersService.findOne(id);
   }
 
-  @Roles([AuthRoleEnum.ADMIN])
+  @Roles([AuthRoleEnum.ADMIN_ACCOUNT])
   @Mutation(() => User)
   @LogData({ description: '계정정보 수정', logType: LogTypeEnum.UPDATE })
   async updateUser(@Args('updateUserInput') body: UpdateUserDTO) {
@@ -45,9 +45,9 @@ export class UsersResolver {
     return { id, role, createdAt };
   }
 
-  @Roles([AuthRoleEnum.ADMIN])
+  @Roles([AuthRoleEnum.ADMIN_ACCOUNT])
   @Mutation(() => User)
-  @LogData({ description: '프로필 수정', logType: LogTypeEnum.UPDATE })
+  @LogData({ description: '계정정보 수정', logType: LogTypeEnum.UPDATE })
   async updateProfile(
     @Args('updateProfileInput') body: UpdateProfileDTO,
     @GetUser() user: MyInfo,
@@ -61,7 +61,7 @@ export class UsersResolver {
   }
   //
 
-  @Roles([AuthRoleEnum.ADMIN])
+  @Roles([AuthRoleEnum.ADMIN_ACCOUNT])
   @LogData({ description: '계정삭제', logType: LogTypeEnum.DELETE })
   @Mutation(() => User)
   removeUser(@Args('id') id: string) {

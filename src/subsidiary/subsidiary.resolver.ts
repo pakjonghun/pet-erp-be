@@ -33,7 +33,7 @@ export class SubsidiaryResolver {
   }
 
   @LogData({ description: '부자재업데이트', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_EDIT])
   @Mutation(() => Subsidiary)
   updateSubsidiary(
     @Args('updateSubsidiaryInput') updateSubsidiaryInput: UpdateSubsidiaryInput,
@@ -42,7 +42,7 @@ export class SubsidiaryResolver {
   }
 
   @LogData({ description: '부자재삭제', logType: LogTypeEnum.DELETE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_DELETE])
   @Mutation(() => Subsidiary)
   removeSubsidiary(@Args('_id') _id: string) {
     return this.subsidiaryService.remove(_id);

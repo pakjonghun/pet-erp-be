@@ -42,7 +42,7 @@ export class FactoryResolver {
   }
 
   @LogData({ description: '공장업데이트', logType: LogTypeEnum.CREATE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_EDIT])
   @Mutation(() => Factory)
   updateFactory(
     @Args('updateFactoryInput') updateFactoryInput: UpdateFactoryInput,
@@ -51,7 +51,7 @@ export class FactoryResolver {
   }
 
   @LogData({ description: '공장삭제', logType: LogTypeEnum.DELETE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_DELETE])
   @Mutation(() => Factory)
   removeFactory(@Args('_id', { type: () => String }) _id: string) {
     return this.factoryService.remove(_id);

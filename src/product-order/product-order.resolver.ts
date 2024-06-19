@@ -30,21 +30,21 @@ export class ProductOrderResolver {
   constructor(private readonly orderService: ProductOrderService) {}
 
   @LogData({ description: '발주', logType: LogTypeEnum.CREATE })
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.ORDER_CREATE])
   @Mutation(() => ProductOrder)
   createOrder(@Args('createOrderInput') createOrderInput: CreateOrderInput) {
     return this.orderService.create(createOrderInput);
   }
 
   @LogData({ description: '발주편집', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.ORDER_EDIT])
   @Mutation(() => ProductOrder)
   updateOrder(@Args('updateOrderInput') updateOrderInput: UpdateOrderInput) {
     return this.orderService.update(updateOrderInput);
   }
 
   @LogData({ description: '발주삭제', logType: LogTypeEnum.DELETE })
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.ORDER_DELETE])
   @Mutation(() => ProductOrder)
   removeOrder(@Args('_id', { type: () => String }) _id: string) {
     return this.orderService.remove(_id);

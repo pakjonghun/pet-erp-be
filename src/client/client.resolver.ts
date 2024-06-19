@@ -44,7 +44,7 @@ export class ClientResolver {
   }
 
   @LogData({ description: '거래처업데이트', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_EDIT])
   @Mutation(() => Client)
   updateClient(
     @Args('updateClientInput') updateClientInput: UpdateClientInput,
@@ -53,7 +53,7 @@ export class ClientResolver {
   }
 
   @LogData({ description: '거래처삭제', logType: LogTypeEnum.DELETE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_DELETE])
   @Mutation(() => Client)
   async removeClient(@Args('_id') _id: string) {
     const result = await this.clientService.remove(_id);

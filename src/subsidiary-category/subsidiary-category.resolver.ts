@@ -36,7 +36,7 @@ export class SubsidiaryCategoryResolver {
   }
 
   @LogData({ description: '부자재 분류업데이트', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_EDIT])
   @Mutation(() => SubsidiaryCategory)
   updateSubsidiaryCategory(
     @Args('updateSubsidiaryCategoryInput')
@@ -46,7 +46,7 @@ export class SubsidiaryCategoryResolver {
   }
 
   @LogData({ description: '부자재 분류삭제', logType: LogTypeEnum.DELETE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_DELETE])
   @Mutation(() => SubsidiaryCategory)
   removeSubsidiaryCategory(@Args('_id') _id: string) {
     return this.subsidiaryCategoryService.remove(_id);

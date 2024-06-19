@@ -11,13 +11,13 @@ import { FindLogsResponseDTO } from './dtos/find-log.output';
 export class LogResolver {
   constructor(private readonly logService: LogService) {}
 
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.ADMIN_LOG])
   @Mutation(() => Log)
   createLog(@Args('createLogInput') createLogInput: CreateLogDTO) {
     return this.logService.create(createLogInput);
   }
 
-  @Roles([AuthRoleEnum.ADMIN])
+  @Roles([AuthRoleEnum.ADMIN_LOG])
   @Query(() => FindLogsResponseDTO, { name: 'logs' })
   findMany(@Args('findLogsQuery') query: FindLogsDTO) {
     return this.logService.findMany(query);

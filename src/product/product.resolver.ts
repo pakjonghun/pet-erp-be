@@ -46,7 +46,7 @@ export class ProductResolver {
   }
 
   @LogData({ description: '제품업데이트', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_EDIT])
   @Mutation(() => Product)
   updateProduct(
     @Args('updateProductInput') updateProductInput: UpdateProductInput,
@@ -55,7 +55,7 @@ export class ProductResolver {
   }
 
   @LogData({ description: '제품삭제', logType: LogTypeEnum.DELETE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_DELETE])
   @Mutation(() => Product)
   removeProduct(@Args('_id', { type: () => String }) _id: string) {
     return this.productService.remove(_id);

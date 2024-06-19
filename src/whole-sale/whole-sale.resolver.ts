@@ -30,7 +30,7 @@ export class WholeSaleResolver {
   }
 
   @LogData({ description: '도매판매 업데이트', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.SALE_EDIT])
   @Mutation(() => [WholeSaleItem], { nullable: true })
   async updateWholeSale(
     @Args('updateWholeSaleInput') updateWholeSaleInput: UpdateWholeSaleInput,
@@ -40,7 +40,7 @@ export class WholeSaleResolver {
   }
 
   @LogData({ description: '도매판매생성', logType: LogTypeEnum.CREATE })
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.SALE_CREATE])
   @Mutation(() => [Sale], { nullable: true })
   createWholeSale(
     @Args('createWholeSaleInput') createWholeSaleInput: CreateWholeSaleInput,
@@ -49,7 +49,7 @@ export class WholeSaleResolver {
   }
 
   @LogData({ description: '도매판매삭제', logType: LogTypeEnum.DELETE })
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.SALE_DELETE])
   @Mutation(() => WholeSaleItem, { nullable: true })
   async removeWholeSale(@Args('_id', { type: () => String }) _id: string) {
     await this.wholeSaleService.removeAllWholeSaleById(_id);

@@ -5,6 +5,8 @@ import { SaleService } from './sale.service';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
 import { SabandService } from './sabang.service';
+import { LogData } from 'src/common/decorators/log.decorator';
+import { LogTypeEnum } from 'src/log/entities/log.entity';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
@@ -13,7 +15,8 @@ export class SaleResolver {
     private readonly sabangService: SabandService,
   ) {}
 
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @LogData({ description: '택배 비용수정', logType: LogTypeEnum.UPDATE })
+  @Roles([AuthRoleEnum.ADMIN_DELIVERY])
   @Mutation(() => DeliveryCost)
   setDeliveryCost(
     @Args('setDeliveryCostInput') setDeliveryCostInput: SetDeliveryCostInput,
@@ -21,7 +24,7 @@ export class SaleResolver {
     return this.saleService.setDeliveryCost(setDeliveryCostInput);
   }
 
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.ADMIN_DELIVERY])
   @Query(() => DeliveryCost, { nullable: true })
   async deliveryCost() {
     const result = await this.saleService.deliveryCost();

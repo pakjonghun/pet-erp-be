@@ -20,14 +20,14 @@ export class StockResolver {
   constructor(private readonly stockService: StockService) {}
 
   @LogData({ description: '입고', logType: LogTypeEnum.CREATE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.STOCK_OUT])
   @Mutation(() => [Stock], { nullable: true })
   addStock(@Args('addStocksInput') addStocksInput: CreateStockInput) {
     return this.stockService.addWithSession(addStocksInput);
   }
 
   @LogData({ description: '출고', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.STOCK_IN])
   @Mutation(() => [Stock], { nullable: true })
   outStock(@Args('outStocksInput') addStocksInput: CreateStockInput) {
     return this.stockService.out(addStocksInput);
