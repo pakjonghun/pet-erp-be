@@ -3,9 +3,6 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 
 export enum UserRoleEnum {
-  ADMIN = 'ADMIN',
-  MANAGER = 'MANAGER',
-  STAFF = 'STAFF',
   BACK_DELETE = 'BACK_DELETE',
   BACK_EDIT = 'BACK_EDIT',
   STOCK_IN = 'STOCK_IN',
@@ -24,9 +21,6 @@ export enum UserRoleEnum {
 }
 
 export enum AuthRoleEnum {
-  ADMIN = 'ADMIN',
-  MANAGER = 'MANAGER',
-  STAFF = 'STAFF',
   ANY = 'ANY',
   BACK_DELETE = 'BACK_DELETE',
   BACK_EDIT = 'BACK_EDIT',
