@@ -43,7 +43,6 @@ export class UsersService {
     }
 
     const { id, ...body } = updateInput;
-    console.log(body);
     const result = await this.userRepository.update({ id }, body);
     return result;
   }
