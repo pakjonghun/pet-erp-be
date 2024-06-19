@@ -3,7 +3,10 @@ import { FindManyOutput } from 'src/common/dtos/find-many.output';
 import { Subsidiary } from 'src/subsidiary/entities/subsidiary.entity';
 
 @ObjectType()
-export class SubsidiaryCountColumn extends PickType(Subsidiary, ['name']) {
+export class SubsidiaryCountColumn extends PickType(Subsidiary, [
+  'name',
+  'code',
+]) {
   @Field(() => Int)
   count: number;
 }

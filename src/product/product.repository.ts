@@ -31,7 +31,10 @@ export class ProductRepository extends AbstractRepository<Product> {
   async findFullManyProducts({ keyword, limit, skip }: ProductsInput) {
     const escapedKeyword = this.utilService.escapeRegex(keyword);
     const filterQuery: FilterQuery<Product> = {
-      name: { $regex: escapedKeyword, $options: 'i' },
+      $or: [
+        { name: { $regex: escapedKeyword, $options: 'i' } },
+        { code: { $regex: escapedKeyword, $options: 'i' } },
+      ],
     };
     const totalCount = await this.model.countDocuments(filterQuery);
     const data = await this.model

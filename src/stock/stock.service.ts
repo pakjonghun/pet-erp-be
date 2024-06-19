@@ -65,10 +65,20 @@ export class StockService {
     const storage = await this.checkStorageByName(storageName);
     const productList = await this.subsidiaryModel
       .find({
-        name: {
-          $regex: this.utilService.escapeRegex(productName),
-          $options: 'i',
-        },
+        $or: [
+          {
+            name: {
+              $regex: this.utilService.escapeRegex(productName),
+              $options: 'i',
+            },
+          },
+          {
+            code: {
+              $regex: this.utilService.escapeRegex(productName),
+              $options: 'i',
+            },
+          },
+        ],
       })
       .lean<Product[]>();
 
@@ -122,6 +132,7 @@ export class StockService {
       const newProduct: SubsidiaryCountColumn = {
         name: productItem.name,
         count: stock.count,
+        code: productItem.code,
       };
 
       result.push(newProduct);
@@ -145,10 +156,20 @@ export class StockService {
     const storage = await this.checkStorageByName(storageName);
     const productList = await this.productModel
       .find({
-        name: {
-          $regex: this.utilService.escapeRegex(productName),
-          $options: 'i',
-        },
+        $or: [
+          {
+            name: {
+              $regex: this.utilService.escapeRegex(productName),
+              $options: 'i',
+            },
+          },
+          {
+            code: {
+              $regex: this.utilService.escapeRegex(productName),
+              $options: 'i',
+            },
+          },
+        ],
       })
       .lean<Product[]>();
 
@@ -421,10 +442,6 @@ export class StockService {
 
       if (!product) {
         throw new NotFoundException(`${productName}는 존재하지 않습니다.`);
-      }
-
-      if (productName === '데일리케얼_강아지유산균') {
-        throw new Error('깨졌음');
       }
 
       const storage = storageByName.get(storageName);
