@@ -66,7 +66,7 @@ export class User extends AbstractEntity implements UserInterface {
   password: string;
 
   @Field(() => [UserRoleEnum])
-  @Prop({ type: String, enum: [UserRoleEnum] })
+  @Prop({ type: [String], enum: [UserRoleEnum] })
   role: UserRoleEnum[];
 
   @Field(() => Date)
