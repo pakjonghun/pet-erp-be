@@ -23,7 +23,7 @@ export class StockResolver {
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => [Stock], { nullable: true })
   addStock(@Args('addStocksInput') addStocksInput: CreateStockInput) {
-    return this.stockService.add(addStocksInput);
+    return this.stockService.addWithSession(addStocksInput);
   }
 
   @LogData({ description: '출고', logType: LogTypeEnum.UPDATE })

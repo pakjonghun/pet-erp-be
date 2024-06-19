@@ -24,15 +24,14 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
     session?: ClientSession,
   ): Promise<T> {
     if (session) {
-      const newDocument = new this.model(
-        {
-          _id: new Types.ObjectId(),
-          ...body,
-        },
-        { session },
-      );
+      const newDocument = new this.model({
+        _id: new Types.ObjectId(),
+        ...body,
+      });
 
-      const result = (await newDocument.save()).toJSON() as unknown as T;
+      const result = (
+        await newDocument.save({ session })
+      ).toJSON() as unknown as T;
       return result;
     } else {
       const newDocument = new this.model({

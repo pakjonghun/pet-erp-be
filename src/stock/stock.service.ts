@@ -2,13 +2,15 @@ import { Product } from './../product/entities/product.entity';
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateStockInput } from './dto/create-stock.input';
-import { InjectModel } from '@nestjs/mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import {
   AnyBulkWriteOperation,
   ClientSession,
+  Connection,
   FilterQuery,
   Model,
   PipelineStage,
@@ -36,6 +38,7 @@ import { SubsidiaryCountColumn } from './dto/subsidiary-count-stock.output';
 @Injectable()
 export class StockService {
   constructor(
+    @InjectConnection() private readonly connection: Connection,
     private readonly utilService: UtilService,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Sale.name) private readonly saleModel: Model<Sale>,
@@ -347,7 +350,65 @@ export class StockService {
     }
   }
 
+  async addWithSession({ stocks }: CreateStockInput) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+    try {
+      await this.add({ stocks }, session);
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw new InternalServerErrorException(
+        `서버에서 오류가 발생했습니다. ${error.message}`,
+      );
+    } finally {
+      await session.endSession();
+    }
+  }
+
   async add({ stocks }: CreateStockInput, session?: ClientSession) {
+    const productNameList = stocks
+      .filter((item) => !item.isSubsidiary)
+      .map((item) => item.productName);
+    const productList = await this.productModel.find({
+      name: { $in: productNameList },
+    });
+    const productByName = new Map<string, Product>(
+      productList.map((item) => [item.name, item]),
+    );
+
+    const subsidiaryNameList = stocks
+      .filter((item) => item.isSubsidiary)
+      .map((item) => item.productName);
+    const subsidiaryList = await this.subsidiaryModel.find({
+      name: { $in: subsidiaryNameList },
+    });
+    const subsidiaryByName = new Map<string, Product>(
+      subsidiaryList.map((item) => [item.name, item]),
+    );
+
+    const storageNameList = stocks.map((item) => item.storageName);
+    const storageList = await this.storageModel.find({
+      name: { $in: storageNameList },
+    });
+    const storageByName = new Map(storageList.map((item) => [item.name, item]));
+
+    const allItemIdList = productList
+      .map((item) => item.id)
+      .concat(subsidiaryList.map((item) => item._id));
+
+    const stockList = await this.stockRepository.model.find({
+      product: { $in: allItemIdList },
+    });
+
+    const stockByStorageProduct = new Map<string, Stock>(
+      stockList.map((item) => [
+        (item.storage as unknown as string) +
+          (item.product as unknown as string),
+        item,
+      ]),
+    );
+
     for await (const {
       productName,
       storageName,
@@ -355,22 +416,23 @@ export class StockService {
       isSubsidiary,
     } of stocks) {
       const product = isSubsidiary //
-        ? await this.subsidiaryModel.findOne({ name: productName })
-        : await this.productModel.findOne({ name: productName });
+        ? subsidiaryByName.get(productName)
+        : productByName.get(productName);
 
       if (!product) {
         throw new NotFoundException(`${productName}는 존재하지 않습니다.`);
       }
 
-      const storage = await this.checkStorageByName(storageName);
+      if (productName === '데일리케얼_강아지유산균') {
+        throw new Error('깨졌음');
+      }
 
-      const stock = await this.findOne({
-        storage,
-        product,
-      });
+      const storage = storageByName.get(storageName);
+      const stock = stockByStorageProduct.get(`${storage._id}${product._id}`);
 
       if (session) {
         if (!stock) {
+          ('세션 있음');
           await this.stockRepository.create(
             {
               count,
