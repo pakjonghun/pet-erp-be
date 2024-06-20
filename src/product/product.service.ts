@@ -255,8 +255,12 @@ export class ProductService {
       saleAt: {
         $exists: true,
         $gte: from,
-        $lte: to,
+        $lt: to,
       },
+      mallId: {
+        $ne: '로켓그로스',
+      },
+      orderStatus: '출고완료',
     };
   }
 

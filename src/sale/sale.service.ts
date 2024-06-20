@@ -259,14 +259,14 @@ export class SaleService {
           $match: {
             orderStatus: '출고완료',
             productCode: { $exists: true, $in: productCodeList },
-            mallId: { $exists: true },
+            mallId: { $exists: true, $ne: '로켓그로스' },
             count: { $exists: true },
             payCost: { $exists: true },
             wonCost: { $exists: true },
             saleAt: {
               $exists: true,
               $gte: from,
-              $lte: to,
+              $lt: to,
             },
           },
         },
@@ -321,14 +321,14 @@ export class SaleService {
           $match: {
             orderStatus: '출고완료',
             productCode: { $exists: true },
-            mallId: { $exists: true },
+            mallId: { $exists: true, $ne: '로켓그로스' },
             count: { $exists: true },
             payCost: { $exists: true },
             wonCost: { $exists: true },
             saleAt: {
               $exists: true,
               $gte: from,
-              $lte: to,
+              $lt: to,
             },
           },
         },

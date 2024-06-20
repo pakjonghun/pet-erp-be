@@ -28,7 +28,9 @@ export class SabandService {
     private readonly utilService: UtilService,
     private readonly awsS3Service: AwsS3Service,
     private readonly saleRepository: SaleRepository,
-  ) {}
+  ) {
+    this.run();
+  }
 
   @Cron('0 0 7 * * *')
   async runMorningSale() {
@@ -46,7 +48,7 @@ export class SabandService {
   }
 
   async run() {
-    const startDate = dayjs().subtract(2, 'week').format(DATE_FORMAT);
+    const startDate = dayjs().subtract(3, 'week').format(DATE_FORMAT);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
 
     const xmlBuffer = await this.createXmlBuffer({ startDate, endDate });
@@ -160,6 +162,7 @@ export class SabandService {
         </HEADER>		
         <DATA>
             <LANG>UTF-8</LANG>	
+            <ORDER_STATUS>004</ORDER_STATUS>
             <ORD_ST_DATE>${startDate}</ORD_ST_DATE>
             <ORD_ED_DATE>${endDate}</ORD_ED_DATE>
             <ORD_FIELD><![CDATA[IDX|ORDER_ID|P_EA|BARCODE|RECEIVE_NAME|RECEIVE_ADDR|RECEIVE_ZIPCODE|RECEIVE_TEL|DELV_MSG1|GOODS_KEYWORD|DELIVERY_ID|INVOICE_NO|RECEIVE_CEL|copy_idx|IDX|PRODUCT_ID|ORDER_DATE|PAY_COST|ORDER_STATUS|MALL_ID|MALL_WON_COST|ORD_CONFIRM_DATE|DELIVERY_CONFIRM_DATE]]></ORD_FIELD>		
