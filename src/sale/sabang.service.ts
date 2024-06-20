@@ -100,21 +100,15 @@ export class SabandService {
     for await (const item of list) {
       const document = this.saleRepository.emptyDocument;
       const saleAt = item['DELIVERY_CONFIRM_DATE']?.[0] //
-        ? dayjs(item['DELIVERY_CONFIRM_DATE']?.[0], {
-            format: FULL_DATE_FORMAT,
-          })
-            .utc()
+        ? dayjs
+            .utc(item['DELIVERY_CONFIRM_DATE']?.[0], FULL_DATE_FORMAT)
             .toDate()
         : null;
 
       console.log('saleAt : ', item['DELIVERY_CONFIRM_DATE']?.[0], saleAt);
 
       const orderConfirmedAt = item['ORD_CONFIRM_DATE']?.[0] //
-        ? dayjs(item['ORD_CONFIRM_DATE']?.[0], {
-            format: FULL_DATE_FORMAT,
-          })
-            .utc()
-            .toDate()
+        ? dayjs.utc(item['ORD_CONFIRM_DATE']?.[0], FULL_DATE_FORMAT).toDate()
         : null;
 
       const mallId = item['MALL_ID']?.[0];
