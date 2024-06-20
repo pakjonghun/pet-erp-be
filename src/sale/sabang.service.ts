@@ -19,7 +19,7 @@ import { Model } from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
 import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
-
+//
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -107,6 +107,8 @@ export class SabandService {
             .tz(dayjs.tz.guess())
             .toDate()
         : null;
+
+      console.log('saleAt : ', item['DELIVERY_CONFIRM_DATE']?.[0], saleAt);
 
       const orderConfirmedAt = item['ORD_CONFIRM_DATE']?.[0] //
         ? dayjs(item['ORD_CONFIRM_DATE']?.[0], {
