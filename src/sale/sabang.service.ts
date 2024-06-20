@@ -17,6 +17,11 @@ import * as dayjs from 'dayjs';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
+import * as utc from 'dayjs/plugin/utc';
+import * as timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 @Injectable()
 export class SabandService {
@@ -29,7 +34,7 @@ export class SabandService {
     private readonly awsS3Service: AwsS3Service,
     private readonly saleRepository: SaleRepository,
   ) {
-    // this.run();
+    this.run();
   }
 
   @Cron('0 0 7 * * *')
@@ -48,7 +53,7 @@ export class SabandService {
   }
 
   async run() {
-    const startDate = dayjs().subtract(3, 'week').format(DATE_FORMAT);
+    const startDate = dayjs().subtract(20, 'day').format(DATE_FORMAT);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
 
     const xmlBuffer = await this.createXmlBuffer({ startDate, endDate });
@@ -97,13 +102,19 @@ export class SabandService {
       const saleAt = item['DELIVERY_CONFIRM_DATE']?.[0] //
         ? dayjs(item['DELIVERY_CONFIRM_DATE']?.[0], {
             format: FULL_DATE_FORMAT,
-          }).toDate()
+          })
+            .utc()
+            .tz(dayjs.tz.guess())
+            .toDate()
         : null;
 
       const orderConfirmedAt = item['ORD_CONFIRM_DATE']?.[0] //
         ? dayjs(item['ORD_CONFIRM_DATE']?.[0], {
             format: FULL_DATE_FORMAT,
-          }).toDate()
+          })
+            .utc()
+            .tz(dayjs.tz.guess())
+            .toDate()
         : null;
 
       const mallId = item['MALL_ID']?.[0];
