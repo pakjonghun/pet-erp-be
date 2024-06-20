@@ -7,11 +7,10 @@ import {
 } from '@nestjs/common';
 import { map } from 'rxjs';
 import { Response } from 'express';
-import { UtilService } from '../../util/util.service';
 
 @Injectable()
 export class FileInspector implements NestInterceptor {
-  constructor(private readonly utilService: UtilService) {}
+  constructor() {}
   async intercept(context: ExecutionContext, next: CallHandler<any>) {
     const isHttp = context.getType() == 'http';
 

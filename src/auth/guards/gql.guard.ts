@@ -14,7 +14,6 @@ import {
   FORBIDDEN_ERROR,
   UNAUTHORIZE_ERROR,
 } from 'src/common/validations/constants';
-import * as requestIp from 'request-ip';
 
 @Injectable()
 export class GqlAuthGuard extends AuthGuard('jwt') {
@@ -34,18 +33,6 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
       ROLE_META_KEY,
       context.getHandler(),
     );
-
-    const request = this.getRequest(context);
-    const clientIp = requestIp.getClientIp(request);
-
-    if (user.role) {
-      const canAccess = user?.role?.includes(UserRoleEnum.ADMIN_ACCESS);
-      if (!canAccess) {
-        throw new UnauthorizedException(
-          `올 엑세스 권한이 없는 당신의 아이피는 ${clientIp} 입니다.`,
-        );
-      }
-    }
 
     switch (true) {
       case err:

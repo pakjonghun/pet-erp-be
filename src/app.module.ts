@@ -30,6 +30,7 @@ import { ProductOrderModule } from './product-order/product-order.module';
 import { GqlConfigService } from 'src/common/services/graphql.service';
 import { UtilModule } from './util/util.module';
 import * as Joi from 'joi';
+import { AccessInterceptor } from './common/interceptors/access.interceptor';
 
 @Module({
   imports: [
@@ -109,6 +110,11 @@ import * as Joi from 'joi';
       provide: APP_INTERCEPTOR,
       useClass: FileInspector,
     },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AccessInterceptor,
+    },
+
     GqlConfigService,
     DateScalar,
     AppService,
