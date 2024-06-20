@@ -18,7 +18,6 @@ module.exports = {
             'SALE_EDIT',
             'SALE_DELETE',
             'ADMIN_ACCESS',
-            'ADMIN_IP',
             'ADMIN_ACCOUNT',
             'ADMIN_DELIVERY',
             'ADMIN_LOG',
@@ -28,4 +27,3 @@ module.exports = {
     );
   },
 };
-//
