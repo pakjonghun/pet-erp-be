@@ -86,7 +86,7 @@ export class UtilService {
 
   recentDayjsMonthRange() {
     const toady = dayjs();
-    return [toady.subtract(30, 'month').startOf('date'), dayjs().endOf('date')];
+    return [toady.subtract(1, 'month').startOf('date'), toady.endOf('date')];
   }
 
   getRandomNumber(length: number) {

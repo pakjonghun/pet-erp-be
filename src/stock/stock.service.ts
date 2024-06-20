@@ -693,12 +693,14 @@ export class StockService {
     const salePipeLine: PipelineStage[] = [
       {
         $match: {
+          orderStatus: '출고완료',
+          mallId: { $ne: '로켓그로스' },
           productCode: { $in: productCodeList },
           count: { $exists: true },
           saleAt: {
             $exists: true,
             $gte: from.toDate(),
-            $lte: to.toDate(),
+            $lt: to.toDate(),
           },
         },
       },
@@ -721,10 +723,7 @@ export class StockService {
     ];
     const saleList =
       await this.saleModel.aggregate<CountAggregate>(salePipeLine);
-    const saleMap = new Map(
-      saleList.map((stock) => [stock._id, stock.accCount]),
-    );
-
+    const saleMap = new Map(saleList.map((sale) => [sale._id, sale.accCount]));
     const data = productList.map((item) => {
       const projectId = item._id.toHexString();
       const saleItem = saleMap.get(item.code) ?? 0;
