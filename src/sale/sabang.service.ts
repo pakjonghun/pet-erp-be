@@ -104,7 +104,6 @@ export class SabandService {
             format: FULL_DATE_FORMAT,
           })
             .utc()
-            .tz(dayjs.tz.guess())
             .toDate()
         : null;
 
@@ -115,7 +114,6 @@ export class SabandService {
             format: FULL_DATE_FORMAT,
           })
             .utc()
-            .tz(dayjs.tz.guess())
             .toDate()
         : null;
 
