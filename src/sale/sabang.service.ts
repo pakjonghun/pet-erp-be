@@ -18,10 +18,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
 import * as utc from 'dayjs/plugin/utc';
-import * as timezone from 'dayjs/plugin/timezone';
-//
 dayjs.extend(utc);
-dayjs.extend(timezone);
 
 @Injectable()
 export class SabandService {
@@ -33,9 +30,7 @@ export class SabandService {
     private readonly utilService: UtilService,
     private readonly awsS3Service: AwsS3Service,
     private readonly saleRepository: SaleRepository,
-  ) {
-    this.run();
-  }
+  ) {}
 
   @Cron('0 0 7 * * *')
   async runMorningSale() {
@@ -99,16 +94,17 @@ export class SabandService {
 
     for await (const item of list) {
       const document = this.saleRepository.emptyDocument;
-      const saleAt = item['DELIVERY_CONFIRM_DATE']?.[0] //
-        ? dayjs
-            .utc(item['DELIVERY_CONFIRM_DATE']?.[0], FULL_DATE_FORMAT)
-            .toDate()
+      const deliveryTime = item['DELIVERY_CONFIRM_DATE']?.[0];
+      const saleAt = deliveryTime //
+        ? dayjs.utc(deliveryTime, FULL_DATE_FORMAT).subtract(9, 'hour').toDate()
         : null;
 
-      console.log('saleAt : ', item['DELIVERY_CONFIRM_DATE']?.[0], saleAt);
-
-      const orderConfirmedAt = item['ORD_CONFIRM_DATE']?.[0] //
-        ? dayjs.utc(item['ORD_CONFIRM_DATE']?.[0], FULL_DATE_FORMAT).toDate()
+      const orderConfirmDate = item['ORD_CONFIRM_DATE']?.[0];
+      const orderConfirmedAt = orderConfirmDate //
+        ? dayjs
+            .utc(orderConfirmDate, FULL_DATE_FORMAT)
+            .subtract(9, 'hour')
+            .toDate()
         : null;
 
       const mallId = item['MALL_ID']?.[0];
