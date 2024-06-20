@@ -33,6 +33,7 @@ export class GqlConfigService implements GqlOptionsFactory {
         };
       },
       formatError: (error) => {
+        console.log('!!!!!!', error);
         const originalError = error.extensions?.originalError as object;
         const statusCode =
           typeof originalError == 'object' &&

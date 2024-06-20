@@ -70,7 +70,7 @@ export class UsersResolver {
 
   @Roles([AuthRoleEnum.ANY])
   @Query(() => MyInfo, { name: 'myInfo' })
-  getMyInfo(@GetUser() user: User) {
+  myInfo(@GetUser() user: User) {
     return user;
   }
 }

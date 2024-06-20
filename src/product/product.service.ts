@@ -487,7 +487,6 @@ export class ProductService {
         clients,
       };
     });
-    // console.log('newProductList : ', newProductList);
     return { totalCount, data: newProductList };
   }
 

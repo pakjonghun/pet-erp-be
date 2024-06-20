@@ -37,10 +37,14 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
 
     const request = this.getRequest(context);
     const clientIp = requestIp.getClientIp(request);
-    const canAllAccess = user.role.includes(UserRoleEnum.ADMIN_ACCESS);
 
-    if (!canAllAccess) {
-      throw new UnauthorizedException(`당신의 아이피는 ${clientIp} 입니다..`);
+    if (user.role) {
+      const canAccess = user?.role?.includes(UserRoleEnum.ADMIN_ACCESS);
+      if (!canAccess) {
+        throw new UnauthorizedException(
+          `올 엑세스 권한이 없는 당신의 아이피는 ${clientIp} 입니다.`,
+        );
+      }
     }
 
     switch (true) {
@@ -58,7 +62,9 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
         throw new UnauthorizedException(UNAUTHORIZE_ERROR);
 
       default:
-        const hasRole = roles.some((item) => user.role.includes(item));
+        const hasRole = roles.some((item) => {
+          return user.role.includes(item);
+        });
         if (hasRole) return user;
         else throw new ForbiddenException(FORBIDDEN_ERROR);
     }
