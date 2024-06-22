@@ -8,6 +8,7 @@ import { UtilService } from 'src/util/util.service';
 import { ProductSaleInput } from './dtos/product-sale.input';
 import { FindManyDTO } from 'src/common/dtos/find-many.input';
 import { Sale } from 'src/sale/entities/sale.entity';
+import { ProductSaleMenuOutput } from './dtos/product-sale-menu.output';
 
 @Injectable()
 export class ProductRepository extends AbstractRepository<Product> {
@@ -485,10 +486,10 @@ export class ProductRepository extends AbstractRepository<Product> {
               },
             },
             {
-              $limit: limit,
+              $skip: skip,
             },
             {
-              $skip: skip,
+              $limit: limit,
             },
           ],
           totalCount: [
@@ -508,7 +509,9 @@ export class ProductRepository extends AbstractRepository<Product> {
       },
     ];
 
-    const result = await this.saleModel.aggregate(pipeline);
+    const result =
+      await this.saleModel.aggregate<ProductSaleMenuOutput>(pipeline);
+
     return result?.[0];
   }
 }
