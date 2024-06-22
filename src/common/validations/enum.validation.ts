@@ -11,6 +11,7 @@ import { COMMON_VALIDATE_ERROR } from './constants';
 class IsOneOfValidator implements ValidatorConstraintInterface {
   validate(value: string[], args: ValidationArguments) {
     const [enumType] = args.constraints;
+
     return Object.values(enumType).includes(value);
   }
 

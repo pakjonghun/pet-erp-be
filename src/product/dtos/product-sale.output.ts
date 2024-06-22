@@ -109,12 +109,3 @@ export class ProductSaleData extends Product {
   @Field(() => String, { nullable: true })
   recentCreateDate: string;
 }
-
-@ObjectType()
-export class ProductSaleOutput {
-  @Field(() => Int)
-  totalCount: number;
-
-  @Field(() => [ProductSaleData])
-  data: ProductSaleData[];
-}

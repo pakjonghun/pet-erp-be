@@ -7,16 +7,13 @@ import { ProductSaleInput } from './dtos/product-sale.input';
 import { ProductSaleChartOutput } from './dtos/product-sale-chart.output';
 import { ProductsInput } from './dtos/products-input';
 import { ProductsOutput } from './dtos/products.output';
-import {
-  ProductSaleOutput,
-  SaleInfos,
-  TotalSaleInfo,
-} from './dtos/product-sale.output';
+import { SaleInfos, TotalSaleInfo } from './dtos/product-sale.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
 import { LogData } from 'src/common/decorators/log.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
+import { ProductSaleMenuOutput } from './dtos/product-sale-menu.output';
 
 @Resolver(() => Product)
 export class ProductResolver {
@@ -62,7 +59,7 @@ export class ProductResolver {
   }
 
   @Roles([AuthRoleEnum.ANY])
-  @Query(() => ProductSaleOutput, { nullable: true })
+  @Query(() => ProductSaleMenuOutput, { nullable: true })
   async productSales(
     @Args('productSalesInput') productSalesInput: ProductSaleInput,
   ) {
