@@ -11,6 +11,8 @@ import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
 import { LogData } from 'src/common/decorators/log.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
+import { FindDateScrollInput } from 'src/common/dtos/find-date-scroll.input';
+import { ClientSaleMenuOutput } from './dtos/client-sale-menu.output';
 
 @Resolver(() => Client)
 export class ClientResolver {
@@ -92,5 +94,14 @@ export class ClientResolver {
         prevAveragePayCost: previousItem?.averagePayCost,
       };
     });
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => ClientSaleMenuOutput)
+  async saleMenuClients(
+    @Args('saleMenuClientsInput', { nullable: true })
+    saleMenuClientsInput: FindDateScrollInput,
+  ) {
+    return this.clientService.clientSaleMenu(saleMenuClientsInput);
   }
 }

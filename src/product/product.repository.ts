@@ -105,6 +105,10 @@ export class ProductRepository extends AbstractRepository<Product> {
             $gte: from,
             $lt: to,
           },
+          wonCost: {
+            $gte: 0,
+            $exists: true,
+          },
         },
       },
       {
@@ -166,37 +170,37 @@ export class ProductRepository extends AbstractRepository<Product> {
         },
       },
       {
+        $lookup: {
+          from: 'products',
+          as: 'product_info',
+          foreignField: 'code',
+          localField: '_id',
+        },
+      },
+      {
+        $unwind: {
+          path: '$product_info',
+        },
+      },
+      {
+        $addFields: {
+          _id: '$product_info._id',
+          code: '$product_info.code',
+          barCode: '$product_info.barCode',
+          name: '$product_info.name',
+          wonPrice: '$product_info.wonPrice',
+          leadTime: '$product_info.leadTime',
+          salePrice: '$product_info.salePrice',
+        },
+      },
+      {
+        $project: {
+          product_info: 0,
+        },
+      },
+      {
         $facet: {
           data: [
-            {
-              $lookup: {
-                from: 'products',
-                as: 'product_info',
-                foreignField: 'code',
-                localField: '_id',
-              },
-            },
-            {
-              $unwind: {
-                path: '$product_info',
-              },
-            },
-            {
-              $addFields: {
-                _id: '$product_info._id',
-                code: '$product_info.code',
-                barCode: '$product_info.barCode',
-                name: '$product_info.name',
-                wonPrice: '$product_info.wonPrice',
-                leadTime: '$product_info.leadTime',
-                salePrice: '$product_info.salePrice',
-              },
-            },
-            {
-              $project: {
-                product_info: 0,
-              },
-            },
             {
               $lookup: {
                 from: 'stocks',
@@ -346,6 +350,10 @@ export class ProductRepository extends AbstractRepository<Product> {
                       saleAt: {
                         $gte: from,
                         $lt: to,
+                      },
+                      wonCost: {
+                        $exists: true,
+                        $gte: 0,
                       },
                       $expr: {
                         $eq: ['$productCode', '$$productCode'],

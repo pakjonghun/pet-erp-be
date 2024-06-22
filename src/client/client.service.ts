@@ -19,6 +19,7 @@ import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { FilterQuery, Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Sale } from 'src/sale/entities/sale.entity';
+import { FindDateScrollInput } from 'src/common/dtos/find-date-scroll.input';
 
 @Injectable()
 export class ClientService {
@@ -245,5 +246,9 @@ export class ClientService {
     );
 
     return { current, previous };
+  }
+
+  async clientSaleMenu(clientSaleMenuInput: FindDateScrollInput) {
+    return this.clientRepository.clientSaleMenu(clientSaleMenuInput);
   }
 }
