@@ -23,7 +23,7 @@ import { StocksInput } from './dto/stocks.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { ProductOrder } from 'src/product-order/entities/product-order.entity';
 import { UtilService } from 'src/util/util.service';
-import { Sale } from 'src/sale/entities/sale.entity';
+import { Sale, SaleInterface } from 'src/sale/entities/sale.entity';
 import { StockColumn } from './dto/stocks.output';
 import { StockStateOutput } from './dto/stocks-state.output';
 import { ObjectId } from 'mongodb';
@@ -34,6 +34,8 @@ import { ProductCountColumn } from './dto/product-count-stock.output';
 import { SubsidiaryStockColumn } from './dto/stocks-subsidiary.output';
 import { SubsidiaryStockStateOutput } from './dto/stocks-subsidiary-state.output';
 import { SubsidiaryCountColumn } from './dto/subsidiary-count-stock.output';
+import * as ExcelJS from 'exceljs';
+import { ColumnOption } from 'src/client/types';
 
 @Injectable()
 export class StockService {
@@ -918,5 +920,36 @@ export class StockService {
       throw new NotFoundException(`${storageName} 존재하지 않는 제품입니다.`);
     }
     return storage;
+  }
+
+  async upload(worksheet: ExcelJS.Worksheet) {
+    const colToField: Record<number, ColumnOption<SaleInterface>> = {
+      2: {
+        fieldName: 'count',
+      },
+      15: {
+        fieldName: 'orderNumber',
+      },
+    };
+
+    const objectList = this.utilService.excelToObject(worksheet, colToField, 1);
+    // for await (const object of objectList) {
+    //   await this.beforeUpload(object);
+    // }
+
+    console.log(objectList);
+
+    const newObjectList = objectList.map((obj) => {
+      if (!obj.productList) {
+        obj.productList = [];
+      }
+      return obj;
+    });
+
+    // const documents =
+    //   await this.stockRepository.objectToDocuments(newObjectList);
+    // this.utilService.checkDuplicatedField(documents, 'name');
+    // await this.stockRepository.docUniqueCheck(documents, 'name');
+    // await this.stockRepository.bulkWrite(documents);
   }
 }

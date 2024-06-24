@@ -68,4 +68,32 @@ export class AppController {
   async download(@Param('service') service: string) {
     return this.fileService.download(service);
   }
+
+  @Roles([AuthRoleEnum.STOCK_CONFIRM])
+  @Post('/upload/stock')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './upload',
+        filename(req, file, callback) {
+          const suffix = `${Date.now()}_${Math.round(Math.random() * 1000)}`;
+          callback(null, suffix);
+        },
+      }),
+    }),
+  )
+  async uploadStock(
+    @UploadedFile(
+      new ParseFilePipe({
+        errorHttpStatusCode: 400,
+        validators: [
+          new ExcelFileSizeValidator({ size: EXCEL_FILE_SIZE_LIMIT }),
+          new ExcelFileTypeValidator({ allowType: ALLOW_EXCEL_FILE_TYPE_LIST }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    await this.fileService.upload(file, 'stock');
+  }
 }

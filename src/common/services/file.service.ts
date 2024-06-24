@@ -9,6 +9,7 @@ import * as fs from 'fs';
 import * as ExcelJS from 'exceljs';
 import { FactoryService } from 'src/factory/factory.service';
 import { StorageService } from 'src/storage/storage.service';
+import { StockService } from 'src/stock/stock.service';
 
 @Injectable()
 export class FileService {
@@ -20,6 +21,7 @@ export class FileService {
     private readonly clientService: ClientService,
     private readonly factoryService: FactoryService,
     private readonly storageService: StorageService,
+    private readonly stockService: StockService,
   ) {}
 
   async upload(file: Express.Multer.File, service: string) {
@@ -53,6 +55,10 @@ export class FileService {
 
       case 'factory':
         await this.factoryService.upload(fistSheet);
+        break;
+
+      case 'stock':
+        await this.stockService.upload(fistSheet);
         break;
 
       default:
