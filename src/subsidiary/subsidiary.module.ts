@@ -7,6 +7,7 @@ import { SubsidiaryRepository } from './subsidiary.repository';
 import { ProductModule } from 'src/product/product.module';
 import { SubsidiaryCategoryModule } from 'src/subsidiary-category/subsidiary-category.module';
 import { Stock, StockSchema } from 'src/stock/entities/stock.entity';
+import { Storage, StorageSchema } from 'src/storage/entities/storage.entity';
 
 @Module({
   exports: [SubsidiaryService],
@@ -14,6 +15,7 @@ import { Stock, StockSchema } from 'src/stock/entities/stock.entity';
     DatabaseModule.forFeature([
       { name: Subsidiary.name, schema: SubsidiarySchema },
       { name: Stock.name, schema: StockSchema },
+      { name: Storage.name, schema: StorageSchema },
     ]),
     ProductModule,
     forwardRef(() => SubsidiaryCategoryModule),

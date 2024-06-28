@@ -13,6 +13,11 @@ export class CreateProductInput implements Omit<ProductInterface, 'category'> {
   @IsString({ message: '상품코드는 문자열 타입을 입력해주세요.' })
   barCode?: string;
 
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString({ message: '창고아이디는 문자열 타입을 입력해주세요.' })
+  storageId?: string;
+
   @Field(() => String)
   @IsString({ message: '상품이름은 문자열 타입을 입력해주세요.' })
   @NotContains(',', { message: `',' 는 제품 이름에 포함될 수 없습니다.` })

@@ -14,18 +14,24 @@ import { DATE_FORMAT, FULL_DATE_FORMAT } from 'src/common/constants';
 import * as https from 'https';
 import * as crypto from 'crypto';
 import * as dayjs from 'dayjs';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model } from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
 import * as utc from 'dayjs/plugin/utc';
+import { Sale, SaleDocument } from './entities/sale.entity';
+import { Stock } from 'src/stock/entities/stock.entity';
+import { StockService } from 'src/stock/stock.service';
 dayjs.extend(utc);
 
 @Injectable()
 export class SabandService {
   private readonly logger = new Logger(SabandService.name);
   constructor(
+    @InjectConnection() private readonly connection: Connection,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Client.name) private readonly clientModel: Model<Client>,
+    @InjectModel(Stock.name) private readonly stockModel: Model<Stock>,
+    private readonly stockService: StockService,
     private readonly configService: ConfigService,
     private readonly utilService: UtilService,
     private readonly awsS3Service: AwsS3Service,
@@ -48,9 +54,9 @@ export class SabandService {
   }
 
   async run() {
-    const startDate = dayjs().subtract(20, 'day').format(DATE_FORMAT);
+    //1주일 전 사방넷 자료를 가져온다.
+    const startDate = dayjs().subtract(5, 'day').format(DATE_FORMAT);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
-
     const xmlBuffer = await this.createXmlBuffer({ startDate, endDate });
     const params = {
       Bucket: this.configService.get('AWS_BUCKET'),
@@ -62,8 +68,48 @@ export class SabandService {
 
     const result = await this.awsS3Service.upload(params);
     const location = result.Location;
-    const saleData = await this.getSaleData(location);
-    await this.saleRepository.bulkUpsert(saleData);
+    const saleData = (await this.getSaleData(location)) as SaleDocument[];
+
+    //판매 데이터 배열을 순회한다.
+    //orderNumber 를 모두 추려내서 배열로 만든다.
+    //해당 orderNumber 이 이미  저장되 있는지 확인하고 저장이 안되있는것만 다시 추려낸다.
+    //저장 안되있는 orderNubmer 에 해당하는 제품코드 와 카운트를 추려내서 배열로 만들다.
+    //해당 배열로 재고를 출고 해준다.
+    //그대로 진행
+
+    const orderNumberList = saleData.map((item) => item.orderNumber);
+    const savedSaleList = await this.saleRepository.saleModel
+      .find({
+        orderNumber: { $in: orderNumberList },
+      })
+      .lean<Sale[]>();
+
+    const orderListMap = savedSaleList.map((item) => {
+      return [item.orderNumber, item];
+    }) as [string, Sale][];
+    const savedOrderByOrderNumber = new Map<string | number, Sale>(
+      orderListMap,
+    );
+
+    const notSavedOrderList = saleData
+      .filter((item) => !savedOrderByOrderNumber.has(item.orderNumber))
+      .map((item) => ({ count: item.count, productCode: item.productCode }));
+
+    const session = await this.connection.startSession();
+    session.startTransaction();
+    try {
+      // await this.stockService.out({
+
+      // })
+      await session.commitTransaction();
+    } catch (error) {
+      //
+      await session.abortTransaction();
+    } finally {
+      await session.endSession();
+    }
+
+    // await this.saleRepository.bulkUpsert(saleData);
     await this.awsS3Service.delete(params);
     this.logger.log(`사방넷 데이터가 모두 저장되었습니다.`);
   }

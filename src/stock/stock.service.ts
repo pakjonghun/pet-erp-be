@@ -404,7 +404,7 @@ export class StockService {
     const subsidiaryList = await this.subsidiaryModel.find({
       name: { $in: subsidiaryNameList },
     });
-    const subsidiaryByName = new Map<string, Product>(
+    const subsidiaryByName = new Map<string, Subsidiary>(
       subsidiaryList.map((item) => [item.name, item]),
     );
 

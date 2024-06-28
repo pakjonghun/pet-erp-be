@@ -59,6 +59,7 @@ export interface ClientInterface {
   manager?: string;
   managerTel?: string;
   inActive?: boolean;
+  storageId?: string;
 }
 
 @ObjectType()
@@ -71,6 +72,12 @@ export class Client extends AbstractEntity implements ClientInterface {
   })
   @Field(() => String)
   code: string;
+
+  @Prop({
+    type: String,
+  })
+  @Field(() => String, { nullable: true })
+  storageId?: string;
 
   @Prop({
     type: Number,

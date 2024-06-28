@@ -9,6 +9,8 @@ import { SaleResolver } from './sale.resolver';
 import { DeliveryCost, DeliveryCostSchema } from './entities/delivery.entity';
 import { Client, clientSchema } from 'src/client/entities/client.entity';
 import { Product, productSchema } from 'src/product/entities/product.entity';
+import { Stock, StockSchema } from 'src/stock/entities/stock.entity';
+import { StockModule } from 'src/stock/stock.module';
 
 @Module({
   exports: [SaleService],
@@ -17,8 +19,10 @@ import { Product, productSchema } from 'src/product/entities/product.entity';
       { name: Product.name, schema: productSchema },
       { name: Client.name, schema: clientSchema },
       { name: Sale.name, schema: saleSchema },
+      { name: Stock.name, schema: StockSchema },
       { name: DeliveryCost.name, schema: DeliveryCostSchema },
     ]),
+    StockModule,
   ],
   providers: [
     SaleResolver,

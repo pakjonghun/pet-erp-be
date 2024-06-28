@@ -18,6 +18,7 @@ import {
 import { ProductLoader } from './product.loader';
 import { Stock, StockSchema } from 'src/stock/entities/stock.entity';
 import { Sale, saleSchema } from 'src/sale/entities/sale.entity';
+import { Storage, StorageSchema } from 'src/storage/entities/storage.entity';
 
 @Module({
   exports: [ProductService, ProductLoader],
@@ -28,6 +29,7 @@ import { Sale, saleSchema } from 'src/sale/entities/sale.entity';
       { name: ProductOrder.name, schema: ProductOrderSchema },
       { name: Stock.name, schema: StockSchema },
       { name: Sale.name, schema: saleSchema },
+      { name: Storage.name, schema: StorageSchema },
     ]),
     SaleModule,
     forwardRef(() => ProductCategoryModule),

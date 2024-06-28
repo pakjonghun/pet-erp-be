@@ -1,5 +1,5 @@
 import { InputType, Field, Float, Int } from '@nestjs/graphql';
-import { IsNotEmpty, IsOptional, Max, Min } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
 import { IsOneOf } from 'src/common/validations/enum.validation';
 import { ClientInterface, ClientType } from '../entities/client.entity';
 
@@ -46,4 +46,9 @@ export class CreateClientInput implements ClientInterface {
   @Field(() => String)
   @IsNotEmpty({ message: '거래처 이름을 입력하세요.' })
   name: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString({ message: '창고아이디는 문자열 타입을 입력해주세요.' })
+  storageId?: string;
 }

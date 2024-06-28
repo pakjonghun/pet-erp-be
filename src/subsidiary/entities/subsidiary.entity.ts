@@ -12,6 +12,7 @@ export interface SubsidiaryInterface {
   category?: SubsidiaryCategory;
   wonPrice?: number;
   leadTime?: number;
+  storageId?: string;
 }
 
 @ObjectType()
@@ -24,6 +25,12 @@ export class Subsidiary extends AbstractEntity implements SubsidiaryInterface {
   })
   @Field(() => String)
   code: string;
+
+  @Prop({
+    type: String,
+  })
+  @Field(() => String, { nullable: true })
+  storageId?: string;
 
   @Prop({
     type: String,

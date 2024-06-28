@@ -50,4 +50,9 @@ export class CreateSubsidiaryInput
   @IsOptional()
   @Min(0, { message: '부자재 리드타임은 0 이상의 값을 입력하세요.' })
   leadTime?: number;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString({ message: '창고아이디는 문자열 타입을 입력해주세요.' })
+  storageId?: string;
 }

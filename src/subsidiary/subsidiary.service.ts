@@ -17,11 +17,13 @@ import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-ca
 import { FilterQuery, Model } from 'mongoose';
 import * as ExcelJS from 'exceljs';
 import { InjectModel } from '@nestjs/mongoose';
+import { Storage } from 'src/storage/entities/storage.entity';
 
 @Injectable()
 export class SubsidiaryService {
   constructor(
     @InjectModel(Stock.name) private readonly stockModel: Model<Stock>,
+    @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
     private readonly productService: ProductService,
     private readonly utilService: UtilService,
     private readonly subsidiaryCategoryService: SubsidiaryCategoryService,
@@ -111,6 +113,9 @@ export class SubsidiaryService {
       6: {
         fieldName: 'leadTime',
       },
+      7: {
+        fieldName: 'storageId',
+      },
     };
 
     const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
@@ -120,14 +125,34 @@ export class SubsidiaryService {
       const createBody = await this.beforeUpload(object);
       newObjectList.push(createBody);
     }
-    const documents =
+    const subsidiaryDocList =
       await this.subsidiaryRepository.objectToDocuments(newObjectList);
-    this.utilService.checkDuplicatedField(documents, 'code');
-    await this.subsidiaryRepository.bulkWrite(documents);
+    this.utilService.checkDuplicatedField(subsidiaryDocList, 'code');
+
+    const storageIdList = subsidiaryDocList.map((item) => item.storageId);
+    const storageDocList = await this.storageModel
+      .find({
+        _id: { $in: storageIdList },
+      })
+      .lean<Storage[]>();
+    const storageById = new Map<string, Storage>(
+      storageDocList.map(
+        (item) => [item._id.toHexString(), item] as [string, Storage],
+      ),
+    );
+
+    subsidiaryDocList.map((item) => {
+      return {
+        ...item,
+        storageId: storageById.get(item.storageId)._id.toHexString(),
+      };
+    });
+
+    await this.subsidiaryRepository.bulkWrite(subsidiaryDocList);
   }
 
   async downloadExcel() {
-    const allData = this.subsidiaryRepository.model
+    const initData = await this.subsidiaryRepository.model
       .find()
       .populate({
         path: 'category',
@@ -137,8 +162,26 @@ export class SubsidiaryService {
         path: 'productList',
         select: ['name'],
       })
-      .select('-_id -createdAt -updatedAt')
-      .cursor();
+      .select('-_id -createdAt -updatedAt');
+
+    const storageIdList = initData.map((item) => item.storageId);
+    const storageDocList = await this.storageModel
+      .find({
+        _id: { $in: storageIdList },
+      })
+      .lean<Storage[]>();
+    const storageById = new Map<string, Storage>(
+      storageDocList.map(
+        (item) => [item._id.toHexString(), item] as [string, Storage],
+      ),
+    );
+
+    const allData = initData.map((item) => {
+      return {
+        ...item,
+        storageId: storageById.get(item.storageId),
+      };
+    });
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Data');
@@ -152,7 +195,7 @@ export class SubsidiaryService {
     ];
 
     for await (const doc of allData) {
-      const object = doc.toObject();
+      const object = doc;
       const newObject = {
         ...object,
         category: object?.category?.name ?? '',
@@ -163,8 +206,6 @@ export class SubsidiaryService {
 
       worksheet.addRow(newObject);
     }
-
-    await allData.close();
 
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;

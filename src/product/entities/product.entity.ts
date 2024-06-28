@@ -12,6 +12,7 @@ export interface ProductInterface {
   salePrice?: number;
   leadTime?: number;
   category?: ProductCategory;
+  storageId?: string;
 }
 
 @Schema({ versionKey: false, timestamps: true })
@@ -24,6 +25,10 @@ export class Product extends AbstractEntity implements ProductInterface {
     unique: true,
   })
   code: string;
+
+  @Field(() => String, { nullable: true })
+  @Prop({ type: String })
+  storageId?: string;
 
   @Field(() => String, { nullable: true })
   @Prop({ type: String })
