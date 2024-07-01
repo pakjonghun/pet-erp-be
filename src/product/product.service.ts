@@ -23,12 +23,14 @@ import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { InjectModel } from '@nestjs/mongoose';
 import { ProductOrder } from 'src/product-order/entities/product-order.entity';
 import { Stock } from 'src/stock/entities/stock.entity';
+import { Storage } from 'src/storage/entities/storage.entity';
 
 @Injectable()
 export class ProductService {
   constructor(
     @Inject(forwardRef(() => ProductCategoryService))
     private readonly categoryService: ProductCategoryService,
+
     private readonly saleService: SaleService,
     private readonly utilService: UtilService,
     private readonly productRepository: ProductRepository,
@@ -36,6 +38,9 @@ export class ProductService {
 
     @InjectModel(ProductOrder.name)
     private readonly productOrderModel: Model<ProductOrder>,
+
+    @InjectModel(Storage.name)
+    private readonly storageModel: Model<Storage>,
 
     @InjectModel(Sale.name)
     private readonly saleModel: Model<Sale>,
@@ -75,6 +80,12 @@ export class ProductService {
       category = await this.categoryService.upsert({ name: categoryName });
     }
 
+    let storage;
+    const storageName = createProductInput.storageName;
+    if (storageName) {
+      storage = await this.checkStorage(storageName);
+    }
+
     if (createProductInput.name.includes(',')) {
       throw new BadRequestException('제품이름에 , 는 포함될 수 없습니다.');
     }
@@ -90,6 +101,7 @@ export class ProductService {
     const result = await this.productRepository.create({
       ...createProductInput,
       category,
+      storageId: storage._id,
     });
 
     return this.findOne({ _id: result._id });
@@ -117,26 +129,34 @@ export class ProductService {
       throw new BadRequestException('제품이름에 , 는 포함될 수 없습니다.');
     }
 
+    const newBody = {
+      ...body,
+      storageId: undefined,
+    };
+
+    let productCategoryDoc;
     if (body.category) {
-      const productCategory = await this.categoryService.findOne({
+      productCategoryDoc = await this.categoryService.findOne({
         name: body.category,
       });
 
-      if (!productCategory) {
+      if (!productCategoryDoc) {
         throw new NotFoundException(
           `${body.category}은 존재하지 않는 분류 입니다.`,
         );
       }
 
-      const newBody = {
-        ...body,
-        category: productCategory,
-      };
-      await this.productRepository.update({ _id }, newBody);
-      return this.findOne({ _id });
+      newBody.category = productCategoryDoc;
     }
 
-    await this.productRepository.update({ _id }, body);
+    let storageId;
+    if (body.storageName) {
+      const storage = await this.checkStorage(body.storageName);
+      storageId = storage._id.toHexString();
+      newBody.storageId = storageId;
+    }
+
+    await this.productRepository.update({ _id }, newBody);
     return this.findOne({ _id });
   }
 
@@ -213,6 +233,9 @@ export class ProductService {
       19: {
         fieldName: 'category',
       },
+      20: {
+        fieldName: 'storageId',
+      },
     };
 
     const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
@@ -224,6 +247,12 @@ export class ProductService {
             '제품 이름에는 , 를 포함할 수 없습니다.',
           );
         }
+      }
+
+      const storageName = object.storageId as string;
+      if (storageName) {
+        const storage = await this.checkStorage(storageName);
+        object.storageId = storage._id.toHexString();
       }
 
       const categoryName = object.category as string;
@@ -245,29 +274,6 @@ export class ProductService {
     await this.productRepository.bulkWrite(documents);
   }
 
-  private getSaleQueryByDate({
-    productCodeList,
-    from,
-    to,
-  }: {
-    productCodeList: string[];
-    from: Date;
-    to: Date;
-  }): FilterQuery<Sale> {
-    return {
-      productCode: { $in: productCodeList },
-      saleAt: {
-        $exists: true,
-        $gte: from,
-        $lt: to,
-      },
-      mallId: {
-        $ne: '로켓그로스',
-      },
-      orderStatus: '출고완료',
-    };
-  }
-
   async salesByProduct({ keyword, ...rest }: ProductSaleInput) {
     const productCodeList =
       await this.productRepository.productCodeList(keyword);
@@ -287,14 +293,22 @@ export class ProductService {
   }
 
   async downloadExcel() {
-    const allData = this.productRepository.model
+    const allData = await this.productRepository.model
       .find()
       .populate({
         path: 'category',
         select: ['name'],
       })
       .select('-_id -createdAt -updatedAt')
-      .cursor();
+      .lean<Product[]>();
+
+    const storageIdList = allData.map((item) => item.storageId);
+    const storageList = await this.storageModel.find({
+      _id: { $in: storageIdList },
+    });
+    const storageById = new Map<string, Storage>(
+      storageList.map((item) => [item._id.toHexString(), item]),
+    );
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Data');
@@ -319,21 +333,32 @@ export class ProductService {
       { header: '', key: '', width: 10 },
       { header: '', key: '', width: 10 },
       { header: '분류', key: 'category', width: 40 },
+      { header: '출고창고', key: 'storageId', width: 70 },
     ];
 
-    for await (const doc of allData) {
-      const object = doc.toObject();
+    for await (const product of allData) {
       const newObject = {
-        ...object,
-        category: object?.category?.name ?? '',
+        ...product,
+        category: product?.category?.name ?? '',
+        storageId: storageById.get(product.storageId)?.name,
       };
 
       worksheet.addRow(newObject);
     }
 
-    await allData.close();
-
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;
+  }
+
+  private async checkStorage(storageName: string) {
+    const storage = await this.storageModel
+      .findOne({ name: storageName })
+      .lean<Storage>();
+
+    if (!storage) {
+      throw new BadRequestException(`${storageName}창고는 존재하지 않습니다.`);
+    }
+
+    return storage;
   }
 }

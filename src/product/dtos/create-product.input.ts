@@ -3,7 +3,9 @@ import { ProductInterface } from '../entities/product.entity';
 import { IsOptional, IsString, Min, NotContains } from 'class-validator';
 
 @InputType()
-export class CreateProductInput implements Omit<ProductInterface, 'category'> {
+export class CreateProductInput
+  implements Omit<ProductInterface, 'category' | 'storageId'>
+{
   @Field(() => String)
   @IsString({ message: '상품코드는 문자열 타입을 입력해주세요.' })
   code: string;
@@ -36,4 +38,8 @@ export class CreateProductInput implements Omit<ProductInterface, 'category'> {
   @Field(() => String, { nullable: true })
   @IsOptional()
   category?: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  storageName?: string;
 }
