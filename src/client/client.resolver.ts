@@ -5,7 +5,10 @@ import { CreateClientInput } from './dtos/create-client.input';
 import { UpdateClientInput } from './dtos/update-client.input';
 import { ClientsOutput } from './dtos/clients.output';
 import { ClientsInput } from './dtos/clients.input';
-import { SaleInfos, TotalSaleInfo } from 'src/product/dtos/product-sale.output';
+import {
+  DashboardResult,
+  TotalSaleInfo,
+} from 'src/product/dtos/product-sale.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
@@ -74,7 +77,7 @@ export class ClientResolver {
   }
 
   @Roles([AuthRoleEnum.ANY])
-  @Query(() => [SaleInfos], { nullable: true })
+  @Query(() => DashboardResult, { nullable: true })
   async dashboardClients(
     @Args('dashboardClientsInput', { nullable: true })
     dashboardClientsInput: FindDateInput,
@@ -84,8 +87,8 @@ export class ClientResolver {
       'mallId',
     );
 
-    return current.map((item) => {
-      const previousItem = previous.find((prev) => prev._id === item._id);
+    const data = current.data.map((item) => {
+      const previousItem = previous.data.find((prev) => prev._id === item._id);
       return {
         ...item,
         prevAccPayCost: previousItem?.accPayCost,
@@ -94,6 +97,10 @@ export class ClientResolver {
         prevAveragePayCost: previousItem?.averagePayCost,
       };
     });
+    return {
+      data,
+      totalCount: current.totalCount,
+    };
   }
 
   @Roles([AuthRoleEnum.ANY])
