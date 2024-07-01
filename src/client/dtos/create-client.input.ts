@@ -46,4 +46,8 @@ export class CreateClientInput implements ClientInterface {
   @Field(() => String)
   @IsNotEmpty({ message: '거래처 이름을 입력하세요.' })
   name: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  storageName: string;
 }

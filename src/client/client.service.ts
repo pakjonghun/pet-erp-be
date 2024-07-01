@@ -20,17 +20,37 @@ import { FilterQuery, Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { FindDateScrollInput } from 'src/common/dtos/find-date-scroll.input';
+import { Storage } from 'src/storage/entities/storage.entity';
 
 @Injectable()
 export class ClientService {
   constructor(
     @InjectModel(Sale.name) private readonly saleModel: Model<Sale>,
+    @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
     private readonly clientRepository: ClientRepository,
     private readonly utilService: UtilService,
     private readonly saleService: SaleService,
   ) {}
 
   private async beforeCreate(input: CreateClientInput | UpdateClientInput) {
+    const newInput = {
+      ...input,
+      storageId: undefined,
+    };
+
+    if (input.storageName) {
+      const storage = await this.storageModel.findOne({
+        name: input.storageName,
+      });
+      if (!storage) {
+        throw new BadRequestException(
+          `${input.storageName} 창고는 존재하지 않습니다.`,
+        );
+      }
+
+      newInput.storageId = storage._id.toHexString();
+    }
+
     if (input.code) {
       const isCodeExist = await this.clientRepository.exists({
         code: input.code,
@@ -54,9 +74,29 @@ export class ClientService {
         );
       }
     }
+
+    return newInput as CreateClientInput | UpdateClientInput;
   }
 
   private async beforeUpdate(input: UpdateClientInput) {
+    const newInput = {
+      ...input,
+      storageId: undefined,
+    };
+
+    if (input.storageName) {
+      const storage = await this.storageModel.findOne({
+        name: input.storageName,
+      });
+      if (!storage) {
+        throw new BadRequestException(
+          `${input.storageName} 창고는 존재하지 않습니다.`,
+        );
+      }
+
+      newInput.storageId = storage._id.toHexString();
+    }
+
     const updateTarget = await this.clientRepository.model
       .findOne({
         _id: input._id,
@@ -75,11 +115,16 @@ export class ClientService {
         `${input.name} 판매기록이 있는 제품이름 입니다. 사방넷 전산과 동기화를 위해 이름을 수정할 수 없습니다.`,
       );
     }
+
+    return newInput;
   }
 
   async create(createClientInput: CreateClientInput) {
-    await this.beforeCreate(createClientInput);
-    const result = await this.clientRepository.create(createClientInput);
+    const newInput = (await this.beforeCreate(
+      createClientInput,
+    )) as CreateClientInput;
+
+    const result = await this.clientRepository.create(newInput);
     return result;
   }
 
@@ -112,8 +157,8 @@ export class ClientService {
   }
 
   async update({ _id, ...body }: UpdateClientInput) {
-    await this.beforeUpdate({ ...body, _id });
-    return this.clientRepository.update({ _id }, body);
+    const newBody = await this.beforeUpdate({ ...body, _id });
+    return this.clientRepository.update({ _id }, newBody);
   }
 
   async remove(_id: string) {
@@ -182,6 +227,9 @@ export class ClientService {
           return true;
         },
       },
+      11: {
+        fieldName: 'storageId',
+      },
     };
 
     const documents = await this.clientRepository.excelToDocuments(
@@ -189,6 +237,23 @@ export class ClientService {
       colToField,
       3,
     );
+
+    const storageNameList = documents.map((item) => item.storageId);
+    const storageList = await this.storageModel.find({
+      name: { $in: storageNameList },
+    });
+    const storageByName = new Map<string, Storage>(
+      storageList.map((item) => [item.name, item]),
+    );
+
+    documents.forEach((document) => {
+      if (document.storageId) {
+        document.storageId = storageByName
+          .get(document.storageId)
+          ._id.toHexString();
+      }
+    });
+
     this.utilService.checkDuplicatedField(documents, 'code');
     await this.clientRepository.docUniqueCheck(documents, 'code');
     this.utilService.checkDuplicatedField(documents, 'name');
@@ -197,10 +262,10 @@ export class ClientService {
   }
 
   async downloadExcel() {
-    const allData = this.clientRepository.model
+    const allData = await this.clientRepository.model
       .find()
       .select('-_id -createdAt -updatedAt')
-      .cursor();
+      .lean<Client[]>();
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Data');
@@ -216,20 +281,30 @@ export class ClientService {
       { header: '담당자', key: 'manager', width: 40 },
       { header: '연락처', key: 'managerTel', width: 40 },
       { header: '거래여부', key: 'inActive', width: 40 },
+      { header: '출고 창고', key: 'storageId', width: 70 },
     ];
 
-    for await (const doc of allData) {
-      const object = doc.toObject();
+    const storageIdList = allData.map((item) => item.storageId);
+    const storageList = await this.storageModel.find({
+      _id: { $in: storageIdList },
+    });
+    const storageById = new Map<string, Storage>(
+      storageList.map((item) => [item._id.toHexString(), item]),
+    );
+
+    for await (const object of allData) {
       const handleClientType = ClientTypeToHangle[
         object.clientType
       ] as ClientType;
 
       object.clientType = handleClientType;
 
+      if (object.storageId) {
+        object.storageId = storageById.get(object.storageId)?.name ?? '';
+      }
+
       worksheet.addRow(object);
     }
-
-    await allData.close();
 
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;

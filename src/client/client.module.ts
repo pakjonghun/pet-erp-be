@@ -6,6 +6,7 @@ import { Client, clientSchema } from './entities/client.entity';
 import { ClientRepository } from './client.repository';
 import { SaleModule } from 'src/sale/sale.module';
 import { Sale, saleSchema } from 'src/sale/entities/sale.entity';
+import { Storage, StorageSchema } from 'src/storage/entities/storage.entity';
 
 @Module({
   exports: [ClientService],
@@ -14,6 +15,7 @@ import { Sale, saleSchema } from 'src/sale/entities/sale.entity';
     DatabaseModule.forFeature([
       { name: Client.name, schema: clientSchema },
       { name: Sale.name, schema: saleSchema },
+      { name: Storage.name, schema: StorageSchema },
     ]),
   ],
   providers: [ClientResolver, ClientService, ClientRepository],
