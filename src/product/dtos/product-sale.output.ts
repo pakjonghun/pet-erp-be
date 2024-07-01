@@ -73,6 +73,15 @@ export class SaleInfos {
 }
 
 @ObjectType()
+export class DashboardResult {
+  @Field(() => [SaleInfos], { nullable: true })
+  data?: SaleInfos[];
+
+  @Field(() => Int, { nullable: true })
+  totalCount: number;
+}
+
+@ObjectType()
 export class ClientInfo {
   @Field(() => Int, { nullable: true })
   accPayCost: number;

@@ -84,6 +84,8 @@ export class SaleService {
     groupId?: string,
     originName: string = 'productName',
     productCodeList?: string[],
+    skip: number = 0,
+    limit: number = 10,
   ) {
     const _id = groupId ? `$${groupId}` : null;
     const name = `$${originName}`;
@@ -94,39 +96,16 @@ export class SaleService {
       _id,
       name,
       productCodeList,
+      skip,
+      limit,
     });
 
-    const result =
-      await this.saleRepository.saleModel.aggregate<SaleInfo>(pipeline);
-    // const mallIdList = result.map((item) => item._id).filter((item) => !!item);
-    // type ClientFee = { feeRate: number; name: string };
-
-    // const clientQuery: FilterQuery<Client> = {
-    //   name: { $in: mallIdList },
-    // };
-    // const clientList = await this.clientModel
-    //   .find(clientQuery)
-    //   .select(['name', 'feeRate'])
-    //   .lean<ClientFee[]>();
-
-    // const clientListByName = new Map<string, ClientFee>();
-    // clientList.forEach((client) => {
-    //   clientListByName.set(client.name, client);
-    // });
+    const result = await this.saleRepository.saleModel.aggregate<{
+      data: SaleInfo[];
+      totalCount: number;
+    }>(pipeline);
 
     return result;
-    // return result.map((item) => {
-    //   const client = clientListByName.get(item._id);
-    //   if (!client || !client.feeRate) return item;
-
-    //   const accPayCostWithFee = item.accPayCost * (1 - client.feeRate);
-    //   const accProfitWitFee = item.accProfit * (1 - client.feeRate);
-    //   return {
-    //     ...item,
-    //     accPayCost: Math.floor(accPayCostWithFee),
-    //     accProfit: Math.floor(accProfitWitFee),
-    //   };
-    // });
   }
 
   async saleBy(filterQuery: FilterQuery<Sale>) {
@@ -246,12 +225,16 @@ export class SaleService {
     _id,
     name,
     productCodeList,
+    skip,
+    limit,
   }: {
     from: Date;
     to: Date;
     _id: string;
     name: string;
     productCodeList?: string[];
+    skip: number;
+    limit: number;
   }): PipelineStage[] {
     if (productCodeList) {
       return [
@@ -301,17 +284,39 @@ export class SaleService {
           },
         },
         {
-          $sort: {
-            accPayCost: -1,
-            accCount: -1,
+          $facet: {
+            data: [
+              {
+                $sort: {
+                  accPayCost: -1,
+                  accCount: -1,
+                  _id: -1,
+                },
+              },
+              {
+                $skip: skip,
+              },
+              {
+                $limit: limit,
+              },
+              {
+                $project: {
+                  wonCost: 0,
+                },
+              },
+            ],
+            totalCount: [
+              {
+                $count: 'count',
+              },
+            ],
           },
         },
         {
-          $limit: 10,
-        },
-        {
-          $project: {
-            wonCost: 0,
+          $addFields: {
+            totalCount: {
+              $arrayElemAt: ['$totalCount.count', 0],
+            },
           },
         },
       ];
@@ -363,17 +368,39 @@ export class SaleService {
           },
         },
         {
-          $sort: {
-            accPayCost: -1,
-            accCount: -1,
+          $facet: {
+            data: [
+              {
+                $project: {
+                  wonCost: 0,
+                },
+              },
+              {
+                $sort: {
+                  accPayCost: -1,
+                  accCount: -1,
+                  _id: -1,
+                },
+              },
+              {
+                $skip: skip,
+              },
+              {
+                $limit: limit,
+              },
+            ],
+            totalCount: [
+              {
+                $count: 'count',
+              },
+            ],
           },
         },
         {
-          $limit: 10,
-        },
-        {
-          $project: {
-            wonCost: 0,
+          $addFields: {
+            totalCount: {
+              $arrayElemAt: ['$totalCount.count', 0],
+            },
           },
         },
       ];

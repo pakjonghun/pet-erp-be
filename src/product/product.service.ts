@@ -45,7 +45,7 @@ export class ProductService {
   ) {}
 
   async totalSaleBy(
-    { productCodeList, ...range }: FindDateInput,
+    { productCodeList, skip, limit, ...range }: FindDateInput,
     groupId?: string,
   ) {
     const prevRange = this.utilService.getBeforeDate(range);
@@ -54,14 +54,18 @@ export class ProductService {
       groupId,
       undefined,
       productCodeList,
+      skip,
+      limit,
     );
     const previous = await this.saleService.totalSale(
       prevRange,
       groupId,
       undefined,
       productCodeList,
+      skip,
+      limit,
     );
-    return { current, previous };
+    return { current: current?.[0], previous: previous?.[0] };
   }
 
   async create(createProductInput: CreateProductInput) {

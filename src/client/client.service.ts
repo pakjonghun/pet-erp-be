@@ -235,17 +235,33 @@ export class ClientService {
     return buffer;
   }
 
-  async totalSaleBy(range: FindDateInput, groupId?: string) {
-    const prevRange = this.utilService.getBeforeDate(range);
+  async totalSaleBy(
+    { from, to, limit = 10, skip = 0 }: FindDateInput,
+    groupId?: string,
+  ) {
+    const prevRange = this.utilService.getBeforeDate({
+      from,
+      to,
+    });
 
-    const current = await this.saleService.totalSale(range, groupId, 'mallId');
+    const current = await this.saleService.totalSale(
+      { from, to },
+      groupId,
+      'mallId',
+      undefined,
+      skip,
+      limit,
+    );
     const previous = await this.saleService.totalSale(
       prevRange,
       groupId,
       'mallId',
+      undefined,
+      skip,
+      limit,
     );
 
-    return { current, previous };
+    return { current: current?.[0], previous: previous?.[0] };
   }
 
   async clientSaleMenu(clientSaleMenuInput: FindDateScrollInput) {
