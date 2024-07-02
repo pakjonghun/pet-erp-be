@@ -35,7 +35,7 @@ export class ClientService {
   private async beforeCreate(input: CreateClientInput | UpdateClientInput) {
     const newInput = {
       ...input,
-      storageId: undefined,
+      storageId: null,
     };
 
     if (input.storageName) {
@@ -81,7 +81,7 @@ export class ClientService {
   private async beforeUpdate(input: UpdateClientInput) {
     const newInput = {
       ...input,
-      storageId: undefined,
+      storageId: null,
     };
 
     if (input.storageName) {

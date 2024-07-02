@@ -1,6 +1,11 @@
 import { Product } from 'src/product/entities/product.entity';
 //
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { UtilService } from 'src/util/util.service';
 import { ConfigService } from '@nestjs/config';
 import { DateRange } from './types';
@@ -14,18 +19,24 @@ import { DATE_FORMAT, FULL_DATE_FORMAT } from 'src/common/constants';
 import * as https from 'https';
 import * as crypto from 'crypto';
 import * as dayjs from 'dayjs';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model } from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
 import * as utc from 'dayjs/plugin/utc';
+import { Sale } from './entities/sale.entity';
+import { StockService } from 'src/stock/stock.service';
+import { CreateSingleStockInput } from 'src/stock/dto/create-stock.input';
+import { Storage } from 'src/storage/entities/storage.entity';
 dayjs.extend(utc);
 
 @Injectable()
 export class SabandService {
   private readonly logger = new Logger(SabandService.name);
   constructor(
+    @InjectConnection() private readonly connection: Connection,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Client.name) private readonly clientModel: Model<Client>,
+    private readonly stockService: StockService,
     private readonly configService: ConfigService,
     private readonly utilService: UtilService,
     private readonly awsS3Service: AwsS3Service,
@@ -62,8 +73,91 @@ export class SabandService {
 
     const result = await this.awsS3Service.upload(params);
     const location = result.Location;
-    const saleData = await this.getSaleData(location);
-    await this.saleRepository.bulkUpsert(saleData);
+    const saleData = (await this.getSaleData(location)) as Sale[];
+
+    const orderNumberList = saleData.map((item) => item.orderNumber);
+    const savedSaleList = await this.saleRepository.findMany(
+      {
+        orderNumber: { $in: orderNumberList },
+      },
+      ['orderNumber', '-_id', 'productCode', 'mallId'],
+    );
+
+    const savedSaleByOrderNumber = new Map<
+      string,
+      Pick<Sale, 'productCode' | 'orderNumber' | 'mallId'>
+    >(savedSaleList.map((sale) => [sale.orderNumber, sale]));
+
+    const clientList = await this.saleRepository.findManyClient(
+      {
+        code: { $in: [] },
+      },
+      ['-_id', 'storageId', 'name'],
+    );
+
+    const clientByName = new Map<string, Pick<Client, 'storageId' | 'name'>>(
+      clientList.map((item) => [item.name, item]),
+    );
+
+    const productCodeList = saleData.map((item) => item.productCode);
+    const productList = await this.saleRepository.findManyProduct(
+      { code: { $in: productCodeList } },
+      ['-_id', 'code', 'name'],
+    );
+    const productByCode = new Map<
+      string,
+      Pick<Product, 'storageId' | 'name' | 'code'>
+    >(productList.map((item) => [item.code, item]));
+
+    const storageList = await this.saleRepository.findManyStorage({});
+    const storageById = new Map<string, Storage>(
+      storageList.map((item) => [item._id.toHexString(), item]),
+    );
+
+    //모든 데이터를 것들을 순회하면서 거래처에 매핑된 창고가 있으면 그 창고에서 해당 제품을 출고한다.
+    const stocks = saleData
+      .filter((sale) => !savedSaleByOrderNumber.has(sale.orderNumber))
+      .filter((sale) => !!clientByName.get(sale.mallId)?.storageId)
+      .filter((sale) => !!productByCode.get(sale.productCode))
+      .filter((sale) => {
+        const storageId = clientByName.get(sale.mallId).storageId;
+        return storageById.has(storageId);
+      })
+      .map((sale) => {
+        const storageId = clientByName.get(sale.mallId).storageId;
+        const storageName = storageById.get(storageId).name;
+        const productName = productByCode.get(sale.productCode).name;
+        const singleStock: CreateSingleStockInput = {
+          isSubsidiary: false,
+          count: sale.count,
+          productName,
+          storageName,
+        };
+        return singleStock;
+      });
+
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
+    try {
+      console.log('stocks', stocks);
+      // await this.stockService.out(
+      //   {
+      //     stocks,
+      //   },
+      //   session,
+      // );
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw new InternalServerErrorException(
+        `서버에서 오류가 발생했습니다. ${error.message}`,
+      );
+    } finally {
+      await session.endSession();
+    }
+
+    // await this.saleRepository.bulkUpsert(saleData);
     await this.awsS3Service.delete(params);
     this.logger.log(`사방넷 데이터가 모두 저장되었습니다.`);
   }

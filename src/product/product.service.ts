@@ -131,7 +131,7 @@ export class ProductService {
 
     const newBody = {
       ...body,
-      storageId: undefined,
+      storageId: null,
     };
 
     let productCategoryDoc;

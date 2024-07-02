@@ -488,7 +488,7 @@ export class StockService {
     }
   }
 
-  async out({ stocks }: CreateStockInput) {
+  async out({ stocks }: CreateStockInput, session?: ClientSession) {
     const newStock: AnyBulkWriteOperation<Stock>[] = [];
 
     for await (const {
@@ -536,7 +536,11 @@ export class StockService {
       });
     }
 
-    await this.stockRepository.model.bulkWrite(newStock);
+    if (session) {
+      await this.stockRepository.model.bulkWrite(newStock, { session });
+    } else {
+      await this.stockRepository.model.bulkWrite(newStock);
+    }
   }
 
   async findMany({
