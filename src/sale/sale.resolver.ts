@@ -31,7 +31,7 @@ export class SaleResolver {
     return result;
   }
 
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.STOCK_SALE_OUT])
   @Mutation(() => DeliveryCost, { nullable: true })
   async loadSabangData() {
     await this.sabangService.run();

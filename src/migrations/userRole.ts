@@ -11,6 +11,7 @@ module.exports = {
             'BACK_EDIT',
             'STOCK_IN',
             'STOCK_OUT',
+            'STOCK_SALE_OUT',
             'ORDER_CREATE',
             'ORDER_EDIT',
             'ORDER_DELETE',
