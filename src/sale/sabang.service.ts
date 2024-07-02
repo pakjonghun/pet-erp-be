@@ -23,7 +23,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Connection, Model } from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
 import * as utc from 'dayjs/plugin/utc';
-import { Sale } from './entities/sale.entity';
+import { Sale, SaleDocument } from './entities/sale.entity';
 import { StockService } from 'src/stock/stock.service';
 import { CreateSingleStockInput } from 'src/stock/dto/create-stock.input';
 import { Storage } from 'src/storage/entities/storage.entity';
@@ -73,7 +73,7 @@ export class SabandService {
 
     const result = await this.awsS3Service.upload(params);
     const location = result.Location;
-    const saleData = (await this.getSaleData(location)) as Sale[];
+    const saleData = (await this.getSaleData(location)) as SaleDocument[];
 
     const orderNumberList = saleData.map((item) => item.orderNumber);
     const savedSaleList = await this.saleRepository.findMany(
@@ -157,7 +157,7 @@ export class SabandService {
       await session.endSession();
     }
 
-    // await this.saleRepository.bulkUpsert(saleData);
+    await this.saleRepository.bulkUpsert(saleData);
     await this.awsS3Service.delete(params);
     this.logger.log(`사방넷 데이터가 모두 저장되었습니다.`);
   }
