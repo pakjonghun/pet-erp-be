@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -421,14 +422,19 @@ export class SaleService {
         $match: {
           saleAt: {
             $gte: from,
-            $lte: to,
+            $lt: to,
           },
+          orderStatus: '출고완료',
+          mallId: { $ne: '로켓그로스' },
+          // count: { $exists: true },
         },
       },
       {
         $group: {
           _id: null,
-          count: { $sum: 1 },
+          count: {
+            $sum: '$count',
+          },
         },
       },
     ];
@@ -437,20 +443,31 @@ export class SaleService {
       count: number;
     }>(pipeLine);
 
+    if (!saleCount.length) {
+      throw new BadRequestException(
+        `${year}년 ${month}월 에는 출고완료된 판매 존재하지 않습니다.`,
+      );
+    }
+
     const count = saleCount[0].count;
     const newDeliveryCost = !count //
       ? 0
       : monthDeliveryPayCost / count;
     const result = await this.deliveryCostModel.findOneAndUpdate(
       {},
-      { $set: { deliveryCost: newDeliveryCost, year, month } },
+      {
+        $set: {
+          deliveryCost: newDeliveryCost,
+          year,
+          month,
+          monthDeliveryPayCost,
+        },
+      },
       { upsert: true, new: true },
     );
 
     if (!result) {
-      throw new InternalServerErrorException(
-        '서버에서 예상치 못한 발생했습니다.',
-      );
+      throw new InternalServerErrorException('서버에서 오류가 발생했습니다.');
     }
 
     return result;

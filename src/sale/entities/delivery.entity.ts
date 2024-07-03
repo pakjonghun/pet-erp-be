@@ -6,6 +6,10 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 export class DeliveryCost {
   @Field(() => Float)
   @Prop({ type: Number })
+  monthDeliveryPayCost: number;
+
+  @Field(() => Float)
+  @Prop({ type: Number })
   deliveryCost: number;
 
   @Field(() => Int)
