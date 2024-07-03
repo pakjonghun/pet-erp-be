@@ -88,9 +88,11 @@ export class SabandService {
       Pick<Sale, 'productCode' | 'orderNumber' | 'mallId'>
     >(savedSaleList.map((sale) => [sale.orderNumber, sale]));
 
+    const allClientNameList = saleData.map((item) => item.mallId);
+    const clientNameList = Array.from(new Set(allClientNameList));
     const clientList = await this.saleRepository.findManyClient(
       {
-        code: { $in: [] },
+        name: { $in: clientNameList },
       },
       ['-_id', 'storageId', 'name'],
     );
@@ -99,11 +101,13 @@ export class SabandService {
       clientList.map((item) => [item.name, item]),
     );
 
-    const productCodeList = saleData.map((item) => item.productCode);
+    const allProductCodeList = saleData.map((item) => item.productCode);
+    const productCodeList = Array.from(new Set(allProductCodeList));
     const productList = await this.saleRepository.findManyProduct(
       { code: { $in: productCodeList } },
       ['-_id', 'code', 'name'],
     );
+
     const productByCode = new Map<
       string,
       Pick<Product, 'storageId' | 'name' | 'code'>
@@ -115,10 +119,11 @@ export class SabandService {
     );
 
     //모든 데이터를 것들을 순회하면서 거래처에 매핑된 창고가 있으면 그 창고에서 해당 제품을 출고한다.
+
     const stocks = saleData
       .filter((sale) => !savedSaleByOrderNumber.has(sale.orderNumber))
       .filter((sale) => !!clientByName.get(sale.mallId)?.storageId)
-      .filter((sale) => !!productByCode.get(sale.productCode))
+      .filter((sale) => productByCode.has(sale.productCode))
       .filter((sale) => {
         const storageId = clientByName.get(sale.mallId).storageId;
         return storageById.has(storageId);
@@ -136,17 +141,18 @@ export class SabandService {
         return singleStock;
       });
 
+    await this.awsS3Service.delete(params);
+
     const session = await this.connection.startSession();
     session.startTransaction();
 
     try {
-      console.log('stocks', stocks);
-      // await this.stockService.out(
-      //   {
-      //     stocks,
-      //   },
-      //   session,
-      // );
+      await this.stockService.out(
+        {
+          stocks,
+        },
+        session,
+      );
       await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction();
@@ -158,7 +164,6 @@ export class SabandService {
     }
 
     await this.saleRepository.bulkUpsert(saleData);
-    await this.awsS3Service.delete(params);
     this.logger.log(`사방넷 데이터가 모두 저장되었습니다.`);
   }
 

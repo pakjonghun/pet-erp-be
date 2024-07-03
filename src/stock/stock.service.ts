@@ -554,7 +554,20 @@ export class StockService {
     type CountAggregate = { _id: string; accCount: number };
 
     const filterQuery: Record<string, any> = {
-      name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
+      $or: [
+        {
+          name: {
+            $regex: this.utilService.escapeRegex(keyword),
+            $options: 'i',
+          },
+        },
+        {
+          code: {
+            $regex: this.utilService.escapeRegex(keyword),
+            $options: 'i',
+          },
+        },
+      ],
     };
 
     let stocks: Stock[] = [];
@@ -738,6 +751,7 @@ export class StockService {
       const leftDate = daySale == 0 ? null : Math.floor(stockItem / daySale);
 
       const newData: StockColumn = {
+        productCode: item.code,
         wonPrice: item.wonPrice,
         leftDate: stockItem == 0 ? -1 : leftDate,
         monthSaleCount: saleItem,
