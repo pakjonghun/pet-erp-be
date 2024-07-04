@@ -147,12 +147,12 @@ export class SabandService {
     session.startTransaction();
 
     try {
-      await this.stockService.out(
-        {
-          stocks,
-        },
-        session,
-      );
+      // await this.stockService.out(
+      //   {
+      //     stocks,
+      //   },
+      //   session,
+      // );
       await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction();
