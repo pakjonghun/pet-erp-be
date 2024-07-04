@@ -89,7 +89,7 @@ export class SaleService {
     limit: number = 10,
   ) {
     const _id = groupId ? `$${groupId}` : null;
-    const name = `$${originName}`;
+    const name = originName;
 
     const pipeline = this.getTotalSalePipeline({
       from,

@@ -73,7 +73,7 @@ export class ClientResolver {
   ) {
     const { current, previous } =
       await this.clientService.totalSaleBy(dashboardClientInput);
-    return { current: current[0], previous: previous[0] };
+    return { current: current.data[0], previous: previous.data[0] };
   }
 
   @Roles([AuthRoleEnum.ANY])

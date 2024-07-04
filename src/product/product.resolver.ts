@@ -83,7 +83,8 @@ export class ProductResolver {
     const { current, previous } = await this.productService.totalSaleBy(
       dashboardProductInput,
     );
-    return { current: current[0], previous: previous[0] };
+
+    return { current: current.data[0], previous: previous.data[0] };
   }
 
   @Roles([AuthRoleEnum.ANY])
