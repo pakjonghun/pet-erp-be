@@ -59,7 +59,7 @@ export class SabandService {
   }
 
   async run() {
-    const startDate = dayjs().subtract(20, 'day').format(DATE_FORMAT);
+    const startDate = dayjs().startOf('day').format(DATE_FORMAT);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
 
     const xmlBuffer = await this.createXmlBuffer({ startDate, endDate });
