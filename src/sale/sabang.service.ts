@@ -59,8 +59,13 @@ export class SabandService {
   // }
 
   async run() {
-    const startDate = dayjs().startOf('day').format(DATE_FORMAT);
+    const startDate = dayjs()
+      .subtract(2, 'day')
+      .startOf('day')
+      .format(DATE_FORMAT);
+    console.log('startDate : ', startDate);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
+    console.log('endDate : ', endDate);
 
     const xmlBuffer = await this.createXmlBuffer({ startDate, endDate });
     const params = {
@@ -174,7 +179,7 @@ export class SabandService {
     const session = await this.connection.startSession();
     session.startTransaction();
     console.log('출고되는 재고 목록 숫자', stocks.length);
-    console.log('판매 데이터', saleData);
+    console.log('판매 데이터', saleData.length);
     try {
       await this.stockService.out(
         {
