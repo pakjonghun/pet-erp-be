@@ -25,8 +25,6 @@ import { Client } from 'src/client/entities/client.entity';
 import * as utc from 'dayjs/plugin/utc';
 import { Sale, SaleDocument } from './entities/sale.entity';
 import { StockService } from 'src/stock/stock.service';
-import { CreateSingleStockInput } from 'src/stock/dto/create-stock.input';
-import { Storage } from 'src/storage/entities/storage.entity';
 dayjs.extend(utc);
 
 @Injectable()
@@ -59,106 +57,14 @@ export class SabandService {
   }
 
   async out() {
-    const startDate = dayjs().subtract(1, 'day').startOf('day').toDate();
-    const endDate = dayjs().endOf('day').toDate();
-    const outSaleList = (await this.saleRepository.findMany({
-      saleAt: {
-        $gte: startDate,
-        $lt: endDate,
-      },
-      mallId: { $ne: '로켓그로스' },
-      orderStatus: '출고완료',
-      isOut: false,
-    })) as SaleDocument[];
-
-    if (outSaleList.length === 0) {
-      throw new BadRequestException(
-        '출고할 사방넷 데이터가 없습니다. 사방넷 동기화를 먼저 실행해 주세요.',
-      );
-    }
-
-    this.logger.log(`${startDate} 부터 출고해야 하는 데이터를 불러옵니다.`);
-
-    //거래처 조회
-    const allClientNameList = outSaleList.map((item) => item.mallId);
-    const clientNameList = Array.from(new Set(allClientNameList));
-    const clientList = await this.saleRepository.findManyClient(
-      {
-        name: { $in: clientNameList },
-      },
-      ['-_id', 'storageId', 'name'],
-    );
-    const clientByName = new Map<string, Pick<Client, 'storageId' | 'name'>>(
-      clientList.map((item) => [item.name, item]),
-    );
-
-    //제품조회
-    const allProductCodeList = outSaleList.map((item) => item.productCode);
-    const productCodeList = Array.from(new Set(allProductCodeList));
-    const productList = await this.saleRepository.findManyProduct(
-      { code: { $in: productCodeList } },
-      ['-_id', 'code', 'name'],
-    );
-    const productByCode = new Map<
-      string,
-      Pick<Product, 'storageId' | 'name' | 'code'>
-    >(productList.map((item) => [item.code, item]));
-
-    //창고조회
-    const storageList = await this.saleRepository.findManyStorage({});
-    const storageById = new Map<string, Storage>(
-      storageList.map((item) => [item._id.toHexString(), item]),
-    );
-
-    //모든 데이터를 것들을 순회하면서 거래처에 매핑된 창고가 있으면 그 창고에서 해당 제품을 출고한다.
-
-    const filteredOutSaleList = outSaleList
-      .filter((sale) => {
-        return !!clientByName.get(sale.mallId)?.storageId;
-      })
-      .filter((sale) => {
-        return productByCode.has(sale.productCode);
-      })
-      .filter((sale) => {
-        const storageId = clientByName.get(sale.mallId).storageId;
-        return storageById.has(storageId);
-      });
-
-    const stocks = filteredOutSaleList.map((sale) => {
-      const storageId = clientByName.get(sale.mallId).storageId;
-      const storageName = storageById.get(storageId).name;
-      const productName = productByCode.get(sale.productCode).name;
-      const singleStock: CreateSingleStockInput = {
-        isSubsidiary: false,
-        count: sale.count,
-        productName,
-        storageName,
-      };
-      return singleStock;
-    });
-
-    if (stocks.length === 0) {
-      throw new BadRequestException(
-        '출고할 사방넷 데이터가 없습니다. 사방넷 동기화, 거래처 창고 입력 여부를 확인해주세요.',
-      );
-    }
-
     const session = await this.connection.startSession();
     session.startTransaction();
-    console.log('조회된 아직 출고안된 판매', outSaleList.length);
-    console.log('출고되는 재고 목록 숫자', stocks.length);
 
     try {
-      await this.stockService.out(
-        {
-          stocks,
-        },
+      const { errors, filteredSaleList } = await this.stockService.saleOut({
         session,
-      );
-
-      const orderNumberList = filteredOutSaleList.map(
-        (item) => item.orderNumber,
-      );
+      });
+      const orderNumberList = filteredSaleList.map((item) => item.orderNumber);
       await this.saleRepository.saleModel.updateMany(
         {
           orderNumber: { $in: orderNumberList },
@@ -168,9 +74,14 @@ export class SabandService {
             isOut: true,
           },
         },
+        {
+          session,
+        },
       );
 
       await session.commitTransaction();
+      this.logger.log(`사방넷 데이터가 모두 저장되었습니다.`);
+      return errors;
     } catch (error) {
       await session.abortTransaction();
       throw new InternalServerErrorException(
@@ -179,8 +90,6 @@ export class SabandService {
     } finally {
       await session.endSession();
     }
-
-    this.logger.log(`사방넷 데이터가 모두 저장되었습니다.`);
   }
 
   async run() {

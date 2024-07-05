@@ -111,4 +111,8 @@ export class UtilService {
   escapeRegex(string: string) {
     return string.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
   }
+
+  afterCheckIsEmpty(string: string) {
+    return string ? string : '입력안됨';
+  }
 }

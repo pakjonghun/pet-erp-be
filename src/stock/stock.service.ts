@@ -1,5 +1,6 @@
 import { Product } from './../product/entities/product.entity';
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -34,6 +35,7 @@ import { ProductCountColumn } from './dto/product-count-stock.output';
 import { SubsidiaryStockColumn } from './dto/stocks-subsidiary.output';
 import { SubsidiaryStockStateOutput } from './dto/stocks-subsidiary-state.output';
 import { SubsidiaryCountColumn } from './dto/subsidiary-count-stock.output';
+import { Client } from 'src/client/entities/client.entity';
 
 @Injectable()
 export class StockService {
@@ -43,6 +45,8 @@ export class StockService {
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Sale.name) private readonly saleModel: Model<Sale>,
     @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
+    @InjectModel(Client.name)
+    private readonly clientModel: Model<Client>,
     @InjectModel(ProductOrder.name)
     private readonly productOrderModel: Model<Storage>,
     @InjectModel(Subsidiary.name)
@@ -488,7 +492,237 @@ export class StockService {
     }
   }
 
-  async out({ stocks }: CreateStockInput, session?: ClientSession) {
+  async saleOut({ session }: { session: ClientSession }) {
+    const startDate = dayjs().subtract(7, 'day').startOf('day').toDate();
+    const endDate = dayjs().endOf('day').toDate();
+
+    const allOutSaleList = await this.saleModel.find({
+      saleAt: {
+        $gte: startDate,
+        $lt: endDate,
+      },
+      orderStatus: '출고완료',
+      isOut: false,
+    });
+
+    console.log('allOutSaleList : ', allOutSaleList.length);
+    if (allOutSaleList.length === 0) {
+      throw new BadRequestException(
+        '출고 할 수 있는 사방넷 판매 데이터가 없습니다.',
+      );
+    }
+
+    const allProductCodeList = allOutSaleList.map((item) => item.productCode);
+    const productCodeList = Array.from(new Set(allProductCodeList));
+    const productList = await this.productModel
+      .find({
+        code: { $in: productCodeList },
+      })
+      .lean<Product[]>();
+    const productListByCode = new Map<string, Product>(
+      productList.map((p) => [p.code, p]),
+    );
+
+    const allClientCodeList = allOutSaleList.map((item) => item.mallId);
+    const clientCodeList = Array.from(new Set(allClientCodeList));
+    const clientList = await this.clientModel
+      .find({
+        name: { $in: clientCodeList },
+      })
+      .lean<Client[]>();
+    const clientListByName = new Map<string, Client>(
+      clientList.map((c) => [c.name, c]),
+    );
+
+    const storageList = await this.storageModel.find({}).lean<Storage[]>();
+    const storageListById = new Map<string, Storage>(
+      storageList.map((storage) => [storage._id.toHexString(), storage]),
+    );
+
+    const stockList = await this.stockRepository.model.find({
+      product: { $in: productList.map((p) => p._id) },
+    });
+    const stockListByProductId = new Map<string, Stock>(
+      stockList.map((stock) => [
+        (stock.product as unknown as ObjectId).toHexString(),
+        stock,
+      ]),
+    );
+    const stockListByProductIdStorageId = new Map<string, Stock>(
+      stockList.map((stock) => {
+        const productId = (stock.product as unknown as ObjectId).toHexString();
+        const storageId = (stock.storage as unknown as ObjectId).toHexString();
+        return [`${productId}_${storageId}`, stock];
+      }),
+    );
+
+    if (stockList.length === 0) {
+      throw new BadRequestException(
+        '출고 할 수 있는 재고가 있는 제품이 없습니다.',
+      );
+    }
+
+    const hasNoCountSale: Sale[] = [];
+    const hasNoProductCodeSale: Sale[] = [];
+    const hasNoMatchClientSale: Sale[] = [];
+    const hasNoMatchStorageSale: Sale[] = [];
+    const hasNoStockSale: Sale[] = [];
+    const hasNoMatchStorageProductStockSale: Sale[] = [];
+
+    const filteredSaleList = allOutSaleList
+      .filter((sale) => {
+        const hasCount = !!sale?.count && sale.count > 0;
+        if (!hasCount) hasNoCountSale.push(sale);
+        return hasCount;
+      })
+      .filter((sale) => {
+        const hasProductCode = productListByCode.has(sale.productCode);
+        if (!hasProductCode) hasNoProductCodeSale.push(sale);
+        return hasProductCode;
+      })
+      .filter((sale) => {
+        const hasMatchClient = clientListByName.has(sale.mallId);
+        if (!hasMatchClient) hasNoMatchClientSale.push(sale);
+        return hasMatchClient;
+      })
+      .filter((sale) => {
+        const targetClient = clientListByName.get(sale.mallId)!;
+        const targetStorageId = targetClient.storageId;
+        if (!targetStorageId) hasNoMatchStorageSale.push(sale);
+        const hasStorage = storageListById.has(targetStorageId);
+        if (!hasStorage) hasNoMatchStorageSale.push(sale);
+        return !!targetStorageId && hasStorage;
+      })
+      .filter((sale) => {
+        const targetProduct = productListByCode.get(sale.productCode)!;
+        const productId = targetProduct._id.toHexString();
+        const hasStockProduct = stockListByProductId.has(productId);
+        if (!hasStockProduct) hasNoStockSale.push(sale);
+        return hasStockProduct;
+      })
+      .filter((sale) => {
+        const targetProduct = productListByCode.get(sale.productCode)!;
+        const productId = targetProduct._id.toHexString();
+        const targetClient = clientListByName.get(sale.mallId)!;
+        const storageId = targetClient.storageId;
+        const hasMatchStorageProductStock = stockListByProductIdStorageId.has(
+          `${productId}_${storageId}`,
+        );
+        if (!hasMatchStorageProductStock) {
+          hasNoMatchStorageProductStockSale.push(sale);
+        }
+        return hasMatchStorageProductStock;
+      });
+
+    const hasNoCountSaleMessage = this.getOutErrorMessage(
+      '판매수량이 없음',
+      hasNoCountSale.map(
+        (sale) =>
+          `주문번호 ${sale.orderNumber}인 ${this.utilService.afterCheckIsEmpty(sale.productName)}제품 ${sale.count == null ? '입력없음' : sale.count}개`,
+      ),
+    );
+
+    const hasNoProductCodeSaleMessage = this.getOutErrorMessage(
+      '제품코드가 백데이터에 없음',
+      hasNoProductCodeSale.map((sale) =>
+        this.utilService.afterCheckIsEmpty(sale.productCode),
+      ),
+    );
+
+    const hasNoMatchClientSaleMessage = this.getOutErrorMessage(
+      '거래처가 백데이터에 없음',
+      hasNoMatchClientSale.map((sale) =>
+        this.utilService.afterCheckIsEmpty(sale.mallId),
+      ),
+    );
+
+    const hasNoMatchStorageSaleMessage = this.getOutErrorMessage(
+      '창고가 거래처에 매핑되어 있지 않음',
+      hasNoMatchStorageSale.map((sale) =>
+        this.utilService.afterCheckIsEmpty(sale.mallId),
+      ),
+    );
+
+    const hasNoStockSaleMessage = this.getOutErrorMessage(
+      '재고가 없는 제품',
+      hasNoStockSale.map((sale) => `${sale.productName}(${sale.productCode})`),
+    );
+
+    const hasNoMatchStorageProductStockSaleMessage = this.getOutErrorMessage(
+      '창고에 재고가 없는 제품',
+      hasNoMatchStorageProductStockSale.map((sale) => {
+        const client = clientListByName.get(sale.mallId);
+        const storage = storageListById.get(client.storageId);
+        return `${storage.name}창고 ${sale.productName}(${sale.productCode})제품`;
+      }),
+    );
+
+    console.log('hasNoCountSale : ', hasNoCountSaleMessage);
+    console.log('hasNoProductCodeSale : ', hasNoProductCodeSaleMessage);
+    console.log('hasNoMatchClientSale : ', hasNoMatchClientSaleMessage);
+    console.log('hasNoMatchStorageSale : ', hasNoMatchStorageSaleMessage);
+    console.log('hasNoStockSale : ', hasNoStockSaleMessage);
+    console.log(
+      'hasNoMatchStorageProductStockSale : ',
+      hasNoMatchStorageProductStockSaleMessage,
+    );
+
+    const errorString = this.errorJoin(
+      '\n | ',
+      hasNoCountSaleMessage,
+      hasNoProductCodeSaleMessage,
+      hasNoMatchClientSaleMessage,
+      hasNoMatchStorageSaleMessage,
+      hasNoStockSaleMessage,
+      hasNoMatchStorageProductStockSaleMessage,
+    );
+
+    if (filteredSaleList.length === 0) {
+      throw new BadRequestException(
+        '지금은 출고 가능한 제품이 없습니다. ' + errorString,
+      );
+    }
+
+    const newStock: AnyBulkWriteOperation<Stock>[] = filteredSaleList.map(
+      (sale) => {
+        const targetProduct = productListByCode.get(sale.productCode)!;
+        const productId = targetProduct._id.toHexString();
+        const targetClient = clientListByName.get(sale.mallId)!;
+        const storageId = targetClient.storageId;
+        const stock = stockListByProductIdStorageId.get(
+          `${productId}_${storageId}`,
+        );
+        const count = sale.count;
+
+        return {
+          updateOne: {
+            filter: { _id: stock._id },
+            update: { $set: { count: stock.count - count } },
+          },
+        };
+      },
+    );
+
+    await this.stockRepository.model.bulkWrite(newStock, { session });
+    return {
+      filteredSaleList,
+      errors: {
+        hasNoCountSale: hasNoCountSaleMessage,
+        hasNoProductCodeSale: hasNoProductCodeSaleMessage,
+        hasNoMatchClientSale: hasNoMatchClientSaleMessage,
+        hasNoMatchStorageSale: hasNoMatchStorageSaleMessage,
+        hasNoStockSale: hasNoStockSaleMessage,
+        hasNoMatchStorageProductStockSale:
+          hasNoMatchStorageProductStockSaleMessage,
+        totalErrors: errorString,
+      },
+    };
+  }
+
+  async out({
+    stocks,
+    session,
+  }: CreateStockInput & { session?: ClientSession }) {
     const newStock: AnyBulkWriteOperation<Stock>[] = [];
 
     for await (const {
@@ -936,5 +1170,19 @@ export class StockService {
       throw new NotFoundException(`${storageName} 존재하지 않는 제품입니다.`);
     }
     return storage;
+  }
+
+  private getOutErrorMessage(title: string, errorMessages: string[]) {
+    if (errorMessages.length == 0) return '';
+
+    return title + ' ' + Array.from(new Set(errorMessages)).join(', ') + '\n';
+  }
+
+  private errorJoin(seprator: string, ...errors: string[]) {
+    return errors
+      .filter((error) => !!error.trim())
+      .join(seprator)
+      .trim()
+      .replace(/\|$/, '');
   }
 }

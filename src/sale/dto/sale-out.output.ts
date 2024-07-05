@@ -19,4 +19,7 @@ export class SaleOutOutput {
 
   @Field(() => String, { nullable: true })
   hasNoMatchStorageProductStockSale?: string;
+
+  @Field(() => String, { nullable: true })
+  totalErrors?: string;
 }
