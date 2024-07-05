@@ -119,6 +119,34 @@ export class SabandService {
     );
 
     //모든 데이터를 것들을 순회하면서 거래처에 매핑된 창고가 있으면 그 창고에서 해당 제품을 출고한다.
+    const notSaled = saleData.filter(
+      (sale) => !savedSaleByOrderNumber.has(sale.orderNumber),
+    );
+    console.log('notSaled : ', notSaled.length);
+
+    const hasStorageId = saleData
+      .filter((sale) => !savedSaleByOrderNumber.has(sale.orderNumber))
+      .filter((sale) => !!clientByName.get(sale.mallId)?.storageId);
+
+    console.log('hasStorageId : ', hasStorageId.length);
+
+    const hasProductCode = saleData
+      .filter((sale) => !savedSaleByOrderNumber.has(sale.orderNumber))
+      .filter((sale) => !!clientByName.get(sale.mallId)?.storageId)
+      .filter((sale) => productByCode.has(sale.productCode));
+
+    console.log('hasProductCode : ', hasProductCode.length);
+
+    const realHasStorage = saleData
+      .filter((sale) => !savedSaleByOrderNumber.has(sale.orderNumber))
+      .filter((sale) => !!clientByName.get(sale.mallId)?.storageId)
+      .filter((sale) => productByCode.has(sale.productCode))
+      .filter((sale) => {
+        const storageId = clientByName.get(sale.mallId).storageId;
+        return storageById.has(storageId);
+      });
+
+    console.log('realHasStorage  : ', realHasStorage);
 
     const stocks = saleData
       .filter((sale) => !savedSaleByOrderNumber.has(sale.orderNumber))
@@ -146,6 +174,7 @@ export class SabandService {
     const session = await this.connection.startSession();
     session.startTransaction();
     console.log('출고되는 재고 목록 숫자', stocks.length);
+    console.log('판매 데이터', saleData);
     try {
       await this.stockService.out(
         {
