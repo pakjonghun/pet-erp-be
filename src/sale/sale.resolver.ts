@@ -7,6 +7,7 @@ import { AuthRoleEnum } from 'src/users/entities/user.entity';
 import { SabandService } from './sabang.service';
 import { LogData } from 'src/common/decorators/log.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
+import { VoidScalar } from 'src/common/scalars/void.scalar';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
@@ -31,9 +32,15 @@ export class SaleResolver {
     return result;
   }
 
-  @Roles([AuthRoleEnum.STOCK_SALE_OUT])
+  @Roles([AuthRoleEnum.ANY])
   @Mutation(() => DeliveryCost, { nullable: true })
   async loadSabangData() {
     await this.sabangService.run();
+  }
+
+  @Roles([AuthRoleEnum.STOCK_SALE_OUT])
+  @Mutation(() => VoidScalar, { nullable: true })
+  async outSaleData() {
+    await this.sabangService.out();
   }
 }

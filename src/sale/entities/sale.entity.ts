@@ -30,6 +30,7 @@ export interface SaleInterface {
   deliveryBoxCount?: number;
   saleAt?: Date;
   orderConfirmedAt?: Date;
+  isOut?: boolean;
 }
 
 @ObjectType()
@@ -137,6 +138,10 @@ export class Sale extends AbstractEntity implements SaleInterface {
   @Prop({ type: Boolean })
   @Field(() => Boolean, { nullable: true })
   isDone: boolean;
+
+  @Prop({ type: Boolean, default: true })
+  @Field(() => Boolean, { nullable: true })
+  isOut: boolean;
 }
 
 export const saleSchema = SchemaFactory.createForClass(Sale);

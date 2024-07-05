@@ -13,7 +13,7 @@ import { AwsS3Service } from './aws.service';
 import { parseStringPromise } from 'xml2js';
 import axios from 'axios';
 import { SaleRepository } from './sale.repository';
-// import { Cron } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { DATE_FORMAT, FULL_DATE_FORMAT } from 'src/common/constants';
 
 import * as https from 'https';
@@ -43,29 +43,156 @@ export class SabandService {
     private readonly saleRepository: SaleRepository,
   ) {}
 
-  // @Cron('0 0 7 * * *')
-  // async runMorningSale() {
-  //   await this.run();
-  // }
+  @Cron('0 0 7 * * *')
+  async runMorningSale() {
+    await this.run();
+  }
 
-  // @Cron('0 0 12 * * *')
-  // async runAfternoonSale() {
-  //   await this.run();
-  // }
+  @Cron('0 0 12 * * *')
+  async runAfternoonSale() {
+    await this.run();
+  }
 
-  // @Cron('0 0 19 * * *')
-  // async runEveningSale() {
-  //   await this.run();
-  // }
+  @Cron('0 0 19 * * *')
+  async runEveningSale() {
+    await this.run();
+  }
+
+  async out() {
+    const startDate = dayjs().subtract(1, 'day').startOf('day').toDate();
+    const endDate = dayjs().endOf('day').toDate();
+    const outSaleList = (await this.saleRepository.findMany({
+      saleAt: {
+        $gte: startDate,
+        $lt: endDate,
+      },
+      mallId: { $ne: '로켓그로스' },
+      orderStatus: '출고완료',
+      isOut: false,
+    })) as SaleDocument[];
+
+    if (outSaleList.length === 0) {
+      throw new BadRequestException(
+        '출고할 사방넷 데이터가 없습니다. 사방넷 동기화를 먼저 실행해 주세요.',
+      );
+    }
+
+    this.logger.log(`${startDate} 부터 출고해야 하는 데이터를 불러옵니다.`);
+
+    //거래처 조회
+    const allClientNameList = outSaleList.map((item) => item.mallId);
+    const clientNameList = Array.from(new Set(allClientNameList));
+    const clientList = await this.saleRepository.findManyClient(
+      {
+        name: { $in: clientNameList },
+      },
+      ['-_id', 'storageId', 'name'],
+    );
+    const clientByName = new Map<string, Pick<Client, 'storageId' | 'name'>>(
+      clientList.map((item) => [item.name, item]),
+    );
+
+    //제품조회
+    const allProductCodeList = outSaleList.map((item) => item.productCode);
+    const productCodeList = Array.from(new Set(allProductCodeList));
+    const productList = await this.saleRepository.findManyProduct(
+      { code: { $in: productCodeList } },
+      ['-_id', 'code', 'name'],
+    );
+    const productByCode = new Map<
+      string,
+      Pick<Product, 'storageId' | 'name' | 'code'>
+    >(productList.map((item) => [item.code, item]));
+
+    //창고조회
+    const storageList = await this.saleRepository.findManyStorage({});
+    const storageById = new Map<string, Storage>(
+      storageList.map((item) => [item._id.toHexString(), item]),
+    );
+
+    //모든 데이터를 것들을 순회하면서 거래처에 매핑된 창고가 있으면 그 창고에서 해당 제품을 출고한다.
+
+    const filteredOutSaleList = outSaleList
+      .filter((sale) => {
+        return !!clientByName.get(sale.mallId)?.storageId;
+      })
+      .filter((sale) => {
+        return productByCode.has(sale.productCode);
+      })
+      .filter((sale) => {
+        const storageId = clientByName.get(sale.mallId).storageId;
+        return storageById.has(storageId);
+      });
+
+    const stocks = filteredOutSaleList.map((sale) => {
+      if (sale.orderNumber === '2059494758') {
+        console.log('has cat sale');
+      }
+
+      const storageId = clientByName.get(sale.mallId).storageId;
+      const storageName = storageById.get(storageId).name;
+      const productName = productByCode.get(sale.productCode).name;
+      const singleStock: CreateSingleStockInput = {
+        isSubsidiary: false,
+        count: sale.count,
+        productName,
+        storageName,
+      };
+      return singleStock;
+    });
+
+    if (stocks.length === 0) {
+      throw new BadRequestException(
+        '출고할 사방넷 데이터가 없습니다. 사방넷 동기화, 거래처 창고 입력 여부를 확인해주세요.',
+      );
+    }
+
+    const session = await this.connection.startSession();
+    session.startTransaction();
+    console.log('조회된 아직 출고안된 판매', outSaleList.length);
+    console.log('출고되는 재고 목록 숫자', stocks.length);
+
+    try {
+      await this.stockService.out(
+        {
+          stocks,
+        },
+        session,
+      );
+
+      const orderNumberList = filteredOutSaleList.map(
+        (item) => item.orderNumber,
+      );
+      await this.saleRepository.saleModel.updateMany(
+        {
+          orderNumber: { $in: orderNumberList },
+        },
+        {
+          $set: {
+            isOut: true,
+          },
+        },
+      );
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw new InternalServerErrorException(
+        `서버에서 오류가 발생했습니다. ${error.message}`,
+      );
+    } finally {
+      await session.endSession();
+    }
+
+    this.logger.log(`사방넷 데이터가 모두 저장되었습니다.`);
+  }
 
   async run() {
     const startDate = dayjs()
-      .subtract(2, 'day')
+      .subtract(7, 'day')
       .startOf('day')
       .format(DATE_FORMAT);
-    console.log('startDate : ', startDate);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
-    console.log('endDate : ', endDate);
 
     const xmlBuffer = await this.createXmlBuffer({ startDate, endDate });
     const params = {
@@ -84,6 +211,7 @@ export class SabandService {
     const savedSaleList = await this.saleRepository.findMany(
       {
         orderNumber: { $in: orderNumberList },
+        isOut: true,
       },
       ['orderNumber', '-_id', 'productCode', 'mallId'],
     );
@@ -93,72 +221,27 @@ export class SabandService {
       Pick<Sale, 'productCode' | 'orderNumber' | 'mallId'>
     >(savedSaleList.map((sale) => [sale.orderNumber, sale]));
 
-    const allClientNameList = saleData.map((item) => item.mallId);
-    const clientNameList = Array.from(new Set(allClientNameList));
-    const clientList = await this.saleRepository.findManyClient(
-      {
-        name: { $in: clientNameList },
-      },
-      ['-_id', 'storageId', 'name'],
-    );
-
-    const clientByName = new Map<string, Pick<Client, 'storageId' | 'name'>>(
-      clientList.map((item) => [item.name, item]),
-    );
-
-    const allProductCodeList = saleData.map((item) => item.productCode);
-    const productCodeList = Array.from(new Set(allProductCodeList));
-    const productList = await this.saleRepository.findManyProduct(
-      { code: { $in: productCodeList } },
-      ['-_id', 'code', 'name'],
-    );
-
-    const productByCode = new Map<
-      string,
-      Pick<Product, 'storageId' | 'name' | 'code'>
-    >(productList.map((item) => [item.code, item]));
-
-    const storageList = await this.saleRepository.findManyStorage({});
-    const storageById = new Map<string, Storage>(
-      storageList.map((item) => [item._id.toHexString(), item]),
-    );
-
-    //모든 데이터를 것들을 순회하면서 거래처에 매핑된 창고가 있으면 그 창고에서 해당 제품을 출고한다.
-
-    const stocks = saleData
-      .filter((sale) => !savedSaleByOrderNumber.has(sale.orderNumber))
-      .filter((sale) => !!clientByName.get(sale.mallId)?.storageId)
-      .filter((sale) => productByCode.has(sale.productCode))
-      .filter((sale) => {
-        const storageId = clientByName.get(sale.mallId).storageId;
-        return storageById.has(storageId);
-      })
-      .map((sale) => {
-        const storageId = clientByName.get(sale.mallId).storageId;
-        const storageName = storageById.get(storageId).name;
-        const productName = productByCode.get(sale.productCode).name;
-        const singleStock: CreateSingleStockInput = {
-          isSubsidiary: false,
-          count: sale.count,
-          productName,
-          storageName,
-        };
-        return singleStock;
-      });
+    //아직 출고안된 제품은 모두 false
+    saleData.forEach((sale) => {
+      const isNotOutSale = !savedSaleByOrderNumber.has(sale.orderNumber);
+      if (isNotOutSale) {
+        sale.isOut = false;
+      }
+    });
 
     await this.awsS3Service.delete(params);
 
     const session = await this.connection.startSession();
     session.startTransaction();
-    console.log('출고되는 재고 목록 숫자', stocks.length);
     console.log('판매 데이터', saleData.length);
+    console.log(
+      '출고안된 데이터',
+      saleData.reduce((acc, cur) => {
+        if (cur.isOut) return acc;
+        else return acc + 1;
+      }, 0),
+    );
     try {
-      await this.stockService.out(
-        {
-          stocks,
-        },
-        session,
-      );
       await this.saleRepository.bulkUpsert(saleData, session);
       await session.commitTransaction();
     } catch (error) {

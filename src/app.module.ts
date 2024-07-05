@@ -31,6 +31,7 @@ import { GqlConfigService } from 'src/common/services/graphql.service';
 import { UtilModule } from './util/util.module';
 import * as Joi from 'joi';
 import { AccessInterceptor } from './common/interceptors/access.interceptor';
+import { VoidScalar } from './common/scalars/void.scalar';
 
 @Module({
   imports: [
@@ -117,6 +118,7 @@ import { AccessInterceptor } from './common/interceptors/access.interceptor';
 
     GqlConfigService,
     DateScalar,
+    VoidScalar,
     AppService,
     FileService,
   ],

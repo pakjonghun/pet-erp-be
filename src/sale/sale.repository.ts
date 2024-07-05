@@ -19,7 +19,7 @@ export class SaleRepository {
     documents: HydratedDocument<Sale>[],
     session: ClientSession,
   ) {
-    this.saleModel.bulkWrite(
+    await this.saleModel.bulkWrite(
       documents.map((item) => ({
         updateOne: {
           filter: { code: item.code },
