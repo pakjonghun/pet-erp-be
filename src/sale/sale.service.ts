@@ -341,7 +341,7 @@ export class SaleService {
         {
           $group: {
             _id,
-            name: { $first: name },
+            name: { $first: '$productName' },
             accPayCost: { $sum: '$payCost' },
             accCount: { $sum: '$count' },
             accWonCost: { $sum: '$wonCost' },
