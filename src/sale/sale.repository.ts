@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Sale } from './entities/sale.entity';
-import { HydratedDocument, Model, FilterQuery } from 'mongoose';
+import { HydratedDocument, Model, FilterQuery, ClientSession } from 'mongoose';
 import { Product } from 'src/product/entities/product.entity';
 import { Client } from 'src/client/entities/client.entity';
 import { Storage } from 'src/storage/entities/storage.entity';
@@ -15,7 +15,10 @@ export class SaleRepository {
     @InjectModel(Sale.name) public readonly saleModel: Model<Sale>,
   ) {}
 
-  async bulkUpsert(documents: HydratedDocument<Sale>[]) {
+  async bulkUpsert(
+    documents: HydratedDocument<Sale>[],
+    session: ClientSession,
+  ) {
     this.saleModel.bulkWrite(
       documents.map((item) => ({
         updateOne: {
@@ -24,6 +27,7 @@ export class SaleRepository {
           upsert: true,
         },
       })),
+      { session },
     );
   }
 

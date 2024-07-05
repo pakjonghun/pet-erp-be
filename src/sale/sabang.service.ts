@@ -153,6 +153,7 @@ export class SabandService {
         },
         session,
       );
+      await this.saleRepository.bulkUpsert(saleData, session);
       await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction();
@@ -163,7 +164,6 @@ export class SabandService {
       await session.endSession();
     }
 
-    await this.saleRepository.bulkUpsert(saleData);
     this.logger.log(`사방넷 데이터가 모두 저장되었습니다.`);
   }
 
