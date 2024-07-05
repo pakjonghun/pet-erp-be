@@ -125,10 +125,6 @@ export class SabandService {
       });
 
     const stocks = filteredOutSaleList.map((sale) => {
-      if (sale.orderNumber === '2059494758') {
-        console.log('has cat sale');
-      }
-
       const storageId = clientByName.get(sale.mallId).storageId;
       const storageName = storageById.get(storageId).name;
       const productName = productByCode.get(sale.productCode).name;
