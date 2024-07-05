@@ -13,7 +13,7 @@ import { AwsS3Service } from './aws.service';
 import { parseStringPromise } from 'xml2js';
 import axios from 'axios';
 import { SaleRepository } from './sale.repository';
-import { Cron } from '@nestjs/schedule';
+// import { Cron } from '@nestjs/schedule';
 import { DATE_FORMAT, FULL_DATE_FORMAT } from 'src/common/constants';
 
 import * as https from 'https';
@@ -43,20 +43,20 @@ export class SabandService {
     private readonly saleRepository: SaleRepository,
   ) {}
 
-  @Cron('0 0 7 * * *')
-  async runMorningSale() {
-    await this.run();
-  }
+  // @Cron('0 0 7 * * *')
+  // async runMorningSale() {
+  //   await this.run();
+  // }
 
-  @Cron('0 0 12 * * *')
-  async runAfternoonSale() {
-    await this.run();
-  }
+  // @Cron('0 0 12 * * *')
+  // async runAfternoonSale() {
+  //   await this.run();
+  // }
 
-  @Cron('0 0 19 * * *')
-  async runEveningSale() {
-    await this.run();
-  }
+  // @Cron('0 0 19 * * *')
+  // async runEveningSale() {
+  //   await this.run();
+  // }
 
   async run() {
     const startDate = dayjs().startOf('day').format(DATE_FORMAT);
@@ -145,14 +145,14 @@ export class SabandService {
 
     const session = await this.connection.startSession();
     session.startTransaction();
-
+    console.log('출고되는 재고 목록 숫자', stocks.length);
     try {
-      // await this.stockService.out(
-      //   {
-      //     stocks,
-      //   },
-      //   session,
-      // );
+      await this.stockService.out(
+        {
+          stocks,
+        },
+        session,
+      );
       await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction();
