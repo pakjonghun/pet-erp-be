@@ -505,7 +505,6 @@ export class StockService {
       isOut: false,
     });
 
-    console.log('allOutSaleList : ', allOutSaleList.length);
     if (allOutSaleList.length === 0) {
       throw new BadRequestException(
         '출고 할 수 있는 사방넷 판매 데이터가 없습니다.',
@@ -655,16 +654,6 @@ export class StockService {
         const storage = storageListById.get(client.storageId);
         return `${storage.name}창고 ${sale.productName}(${sale.productCode})제품`;
       }),
-    );
-
-    console.log('hasNoCountSale : ', hasNoCountSaleMessage);
-    console.log('hasNoProductCodeSale : ', hasNoProductCodeSaleMessage);
-    console.log('hasNoMatchClientSale : ', hasNoMatchClientSaleMessage);
-    console.log('hasNoMatchStorageSale : ', hasNoMatchStorageSaleMessage);
-    console.log('hasNoStockSale : ', hasNoStockSaleMessage);
-    console.log(
-      'hasNoMatchStorageProductStockSale : ',
-      hasNoMatchStorageProductStockSaleMessage,
     );
 
     const errorString = this.errorJoin(

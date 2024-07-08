@@ -183,7 +183,6 @@ export class ProductOrderService {
         },
         session,
       );
-      console.log('productOrder : ', productOrder);
 
       const productIdList = productOrder.products.map((item) => item.product);
       const productList = await this.productModel.find({

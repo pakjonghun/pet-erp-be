@@ -138,14 +138,7 @@ export class SabandService {
 
     const session = await this.connection.startSession();
     session.startTransaction();
-    console.log('판매 데이터', saleData.length);
-    console.log(
-      '출고안된 데이터',
-      saleData.reduce((acc, cur) => {
-        if (cur.isOut) return acc;
-        else return acc + 1;
-      }, 0),
-    );
+
     try {
       await this.saleRepository.bulkUpsert(saleData, session);
       await session.commitTransaction();
