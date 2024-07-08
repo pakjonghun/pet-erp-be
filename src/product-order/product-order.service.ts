@@ -1,25 +1,38 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ObjectId } from 'mongodb';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   CreateOrderInput,
   CreateOrderProductInput,
 } from './dto/create-order.input';
 import { UpdateOrderInput } from './dto/update-order.input';
 import { ProductOrderRepository } from './product-order.repository';
-import { InjectModel } from '@nestjs/mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Factory } from 'src/factory/entities/factory.entity';
-import { FilterQuery, Model } from 'mongoose';
+import { Connection, FilterQuery, Model } from 'mongoose';
 import { Product } from 'src/product/entities/product.entity';
 import { OrdersInput } from './dto/orders.input';
 import { ProductOrder } from './entities/product-order.entity';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { UtilService } from 'src/util/util.service';
+import { CompleteOrderInput } from './dto/complete-order.input';
+import { StockService } from 'src/stock/stock.service';
+import { CreateSingleStockInput } from 'src/stock/dto/create-stock.input';
+import { Storage } from 'src/storage/entities/storage.entity';
 
 @Injectable()
 export class ProductOrderService {
   constructor(
+    @InjectConnection() private readonly connection: Connection,
     private readonly productOrderRepository: ProductOrderRepository,
     private readonly utilService: UtilService,
+    private readonly stockService: StockService,
     @InjectModel(Factory.name) private readonly factoryModel: Model<Factory>,
+    @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
   ) {}
 
@@ -150,6 +163,62 @@ export class ProductOrderService {
     );
 
     return result;
+  }
+
+  async completeOrder({ _id, storageName }: CompleteOrderInput) {
+    const productOrder = await this.productOrderRepository.findOne({ _id });
+    if (!productOrder) {
+      throw new BadRequestException('해당 발주가 존재하지 않습니다.');
+    }
+
+    const session = await this.connection.startSession();
+    session.startTransaction();
+    try {
+      const result = await this.productOrderRepository.update(
+        { _id },
+        {
+          $set: {
+            isDone: true,
+          },
+        },
+        session,
+      );
+      console.log('productOrder : ', productOrder);
+
+      const productIdList = productOrder.products.map((item) => item.product);
+      const productList = await this.productModel.find({
+        _id: { $in: productIdList },
+      });
+      const productById = new Map<string, Product>(
+        productList.map((item) => [item._id.toHexString(), item]),
+      );
+
+      const stocks: CreateSingleStockInput[] = productOrder.products.map(
+        (item) => {
+          return {
+            count: item.count,
+            productName:
+              productById.get(
+                (item.product as unknown as ObjectId).toHexString(),
+              ).name ?? '',
+            isSubsidiary: false,
+            storageName,
+          };
+        },
+      );
+
+      await this.stockService.add({ stocks }, session);
+
+      await session.commitTransaction();
+      return result;
+    } catch (error) {
+      await session.abortTransaction();
+      throw new InternalServerErrorException(
+        `서버에서 오류가 발생했습니다. ${error.message}`,
+      );
+    } finally {
+      await session.endSession();
+    }
   }
 
   remove(_id: string) {

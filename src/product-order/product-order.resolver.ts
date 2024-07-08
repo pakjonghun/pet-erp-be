@@ -24,6 +24,7 @@ import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
 import { LogData } from 'src/common/decorators/log.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
+import { CompleteOrderInput } from './dto/complete-order.input';
 
 @Resolver(() => ProductOrder)
 export class ProductOrderResolver {
@@ -41,6 +42,13 @@ export class ProductOrderResolver {
   @Mutation(() => ProductOrder)
   updateOrder(@Args('updateOrderInput') updateOrderInput: UpdateOrderInput) {
     return this.orderService.update(updateOrderInput);
+  }
+
+  @LogData({ description: '발주완료', logType: LogTypeEnum.UPDATE })
+  @Roles([AuthRoleEnum.ORDER_EDIT])
+  @Mutation(() => ProductOrder)
+  completeOrder(@Args('completeOrderInput') completeOrder: CompleteOrderInput) {
+    return this.orderService.completeOrder(completeOrder);
   }
 
   @LogData({ description: '발주삭제', logType: LogTypeEnum.DELETE })

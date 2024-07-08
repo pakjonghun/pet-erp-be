@@ -9,6 +9,8 @@ import {
 } from './entities/product-order.entity';
 import { Factory, FactorySchema } from 'src/factory/entities/factory.entity';
 import { ProductOrderResolver } from './product-order.resolver';
+import { StockModule } from 'src/stock/stock.module';
+import { StorageSchema, Storage } from 'src/storage/entities/storage.entity';
 
 @Module({
   imports: [
@@ -16,7 +18,9 @@ import { ProductOrderResolver } from './product-order.resolver';
       { name: Product.name, schema: ProductOrderSchema },
       { name: ProductOrder.name, schema: ProductOrderSchema },
       { name: Factory.name, schema: FactorySchema },
+      { name: Storage.name, schema: StorageSchema },
     ]),
+    StockModule,
   ],
   providers: [
     ProductOrderResolver,
