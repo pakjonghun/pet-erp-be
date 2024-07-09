@@ -1,6 +1,7 @@
 import { InputType, Int, Field } from '@nestjs/graphql';
 import { ProductInterface } from '../entities/product.entity';
 import { IsOptional, IsString, Min, NotContains } from 'class-validator';
+import { Prop } from '@nestjs/mongoose';
 
 @InputType()
 export class CreateProductInput
@@ -42,4 +43,8 @@ export class CreateProductInput
   @Field(() => String, { nullable: true })
   @IsOptional()
   storageName?: string;
+
+  @Field(() => Boolean, { nullable: true })
+  @Prop({ type: Boolean })
+  isFreeDeliveryFee?: boolean;
 }

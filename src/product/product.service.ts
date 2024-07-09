@@ -127,7 +127,7 @@ export class ProductService {
   }
 
   async update({ _id, ...body }: UpdateProductInput) {
-    if (body.name.includes(',')) {
+    if (body.name && body.name.includes(',')) {
       throw new BadRequestException('제품이름에 , 는 포함될 수 없습니다.');
     }
 
