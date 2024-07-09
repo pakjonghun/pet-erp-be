@@ -50,4 +50,10 @@ export class CreateClientInput implements ClientInterface {
   @Field(() => String, { nullable: true })
   @IsOptional()
   storageName: string;
+
+  @Field(() => [String], { nullable: true })
+  deliveryFreeProductIdList?: string[];
+
+  @Field(() => [String], { nullable: true })
+  deliveryNotFreeProductIdList?: string[];
 }

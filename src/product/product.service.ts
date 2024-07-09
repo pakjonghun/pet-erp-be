@@ -238,6 +238,9 @@ export class ProductService {
       20: {
         fieldName: 'storageId',
       },
+      21: {
+        fieldName: 'isFreeDeliveryFee',
+      },
     };
 
     const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
@@ -265,10 +268,15 @@ export class ProductService {
 
         object.category = categoryDoc;
       }
+
+      if (typeof object.isFreeDeliveryFee == 'string') {
+        object.isFreeDeliveryFee = object.isFreeDeliveryFee.includes('무료');
+      }
     }
 
     const documents =
       await this.productRepository.objectToDocuments(objectList);
+
     this.utilService.checkDuplicatedField(documents, 'code');
     this.utilService.checkDuplicatedField(documents, 'name');
     await this.productRepository.docUniqueCheck(documents, 'code');
@@ -336,6 +344,7 @@ export class ProductService {
       { header: '', key: '', width: 10 },
       { header: '분류', key: 'category', width: 40 },
       { header: '출고창고', key: 'storageId', width: 70 },
+      { header: '착불여부', key: 'isFreeDeliveryFee', width: 70 },
     ];
 
     for await (const product of allData) {
@@ -343,6 +352,7 @@ export class ProductService {
         ...product,
         category: product?.category?.name ?? '',
         storageId: storageById.get(product.storageId)?.name,
+        isFreeDeliveryFee: product?.isFreeDeliveryFee ? '무료배송' : '유료배송',
       };
 
       worksheet.addRow(newObject);
