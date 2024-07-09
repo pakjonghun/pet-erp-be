@@ -60,8 +60,8 @@ export interface ClientInterface {
   managerTel?: string;
   inActive?: boolean;
   storageId?: string;
-  deliveryFreeProductIdList?: string[];
-  deliveryNotFreeProductIdList?: string[];
+  deliveryFreeProductCodeList?: string[];
+  deliveryNotFreeProductCodeList?: string[];
 }
 
 @ObjectType()
@@ -136,11 +136,11 @@ export class Client extends AbstractEntity implements ClientInterface {
 
   @Prop({ type: [String] })
   @Field(() => [String], { nullable: true })
-  deliveryFreeProductIdList?: string[];
+  deliveryFreeProductCodeList?: string[];
 
   @Prop({ type: [String] })
   @Field(() => [String], { nullable: true })
-  deliveryNotFreeProductIdList?: string[];
+  deliveryNotFreeProductCodeList?: string[];
 }
 
 export const clientSchema = SchemaFactory.createForClass(Client);

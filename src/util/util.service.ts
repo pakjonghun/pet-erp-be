@@ -39,7 +39,7 @@ export class UtilService {
         if (fieldName) {
           let value = cell.value;
           if (typeof value === 'string') {
-            value = value.trim().replace(/[\b]/g, '');
+            value = value.trim().replace(/[\b]/g, '').trim();
           }
 
           if (colToField[cellIndex]?.transform) {

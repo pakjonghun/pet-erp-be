@@ -63,7 +63,6 @@ export class ProductService {
       limit,
     );
 
-    console.dir(current, { depth: 10 });
     const previous = await this.saleService.totalSale(
       prevRange,
       groupId,

@@ -1107,7 +1107,10 @@ export class StockService {
     const data = subsidiaryList.map((item) => {
       const productList = (item.productList ?? [])
         .map((product) => {
-          const stringId = (product as unknown as ObjectId).toHexString();
+          const stringId =
+            typeof product === 'string'
+              ? product
+              : (product as unknown as ObjectId).toHexString();
           const productName = productById.get(stringId)?.name;
           return productName;
         })

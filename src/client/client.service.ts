@@ -14,19 +14,21 @@ import { ColumnOption } from './types';
 import { SaleService } from 'src/sale/sale.service';
 import { ClientsInput } from './dtos/clients.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
-import * as ExcelJS from 'exceljs';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { FilterQuery, Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { FindDateScrollInput } from 'src/common/dtos/find-date-scroll.input';
 import { Storage } from 'src/storage/entities/storage.entity';
+import * as ExcelJS from 'exceljs';
+import { Product } from 'src/product/entities/product.entity';
 
 @Injectable()
 export class ClientService {
   constructor(
     @InjectModel(Sale.name) private readonly saleModel: Model<Sale>,
     @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
+    @InjectModel(Product.name) private readonly productModel: Model<Product>,
     private readonly clientRepository: ClientRepository,
     private readonly utilService: UtilService,
     private readonly saleService: SaleService,
@@ -132,7 +134,7 @@ export class ClientService {
     return this.clientRepository.findAll({});
   }
 
-  findMany(query: ClientsInput) {
+  async findMany(query: ClientsInput) {
     const filterQuery: FilterQuery<Client> = {
       name: {
         $regex: this.utilService.escapeRegex(query.keyword),
@@ -144,12 +146,14 @@ export class ClientService {
       filterQuery.clientType = { $in: query.clientType };
     }
 
-    return this.clientRepository.findMany({
+    const clients = await this.clientRepository.findMany({
       filterQuery,
       skip: query.skip,
       limit: query.limit,
       order: OrderEnum.DESC,
     });
+
+    return clients;
   }
 
   findOne(_id: string) {
@@ -230,15 +234,51 @@ export class ClientService {
       11: {
         fieldName: 'storageId',
       },
+      12: {
+        fieldName: 'deliveryFreeProductCodeList',
+      },
+      13: {
+        fieldName: 'deliveryNotFreeProductCodeList',
+      },
     };
 
-    const documents = await this.clientRepository.excelToDocuments(
-      worksheet,
-      colToField,
-      3,
+    const objectList = this.utilService.excelToObject(worksheet, colToField, 3);
+    const freeDeliveryProductNameList = objectList.flatMap((item) =>
+      item.deliveryFreeProductCodeList
+        ? item.deliveryFreeProductCodeList
+            .split(',')
+            .filter((item) => !!item)
+            .map((item) => item.trim())
+        : [],
+    );
+    const notFreeDeliveryProductNameList = objectList.flatMap((item) =>
+      item.notFreeDeliveryProductNameList
+        ? item.notFreeDeliveryProductNameList
+            .split(',')
+            .filter((item) => !!item)
+            .map((item) => item.trim())
+        : [],
     );
 
-    const storageNameList = documents.map((item) => item.storageId);
+    const concatNameList = freeDeliveryProductNameList.concat(
+      notFreeDeliveryProductNameList,
+    );
+
+    const productByName = new Map<string, Product>();
+
+    if (concatNameList.length) {
+      const productList = await this.productModel
+        .find({
+          name: { $in: concatNameList },
+        })
+        .lean<Product[]>();
+
+      productList.forEach((doc) => {
+        productByName.set(doc.name, doc);
+      });
+    }
+
+    const storageNameList = objectList.map((item) => item.storageId);
     const storageList = await this.storageModel.find({
       name: { $in: storageNameList },
     });
@@ -246,13 +286,50 @@ export class ClientService {
       storageList.map((item) => [item.name, item]),
     );
 
-    documents.forEach((document) => {
-      if (document.storageId) {
-        document.storageId = storageByName
-          .get(document.storageId)
-          ._id.toHexString();
+    objectList.forEach((object) => {
+      if (object.storageId) {
+        object.storageId =
+          storageByName.get(object.storageId)?._id.toHexString() ?? '';
+      }
+
+      if (object.deliveryFreeProductCodeList) {
+        const productNameList = object.deliveryFreeProductCodeList
+          ? (object.deliveryFreeProductCodeList as unknown as string)
+              .split(',')
+              .filter((item) => item)
+              .map((item) => item.trim())
+          : [];
+
+        object.deliveryFreeProductCodeList = productNameList
+          .map((item) => {
+            const product = productByName.get(item);
+            return product?.code ?? '';
+          })
+          .filter((item) => !!item);
+      } else {
+        object.deliveryFreeProductCodeList = undefined;
+      }
+
+      if (object.deliveryNotFreeProductCodeList) {
+        const productNameList = object.deliveryNotFreeProductCodeList
+          ? (object.deliveryNotFreeProductCodeList as unknown as string)
+              .split(',')
+              .filter((item) => item)
+              .map((item) => item.trim())
+          : [];
+
+        object.deliveryNotFreeProductCodeList = productNameList
+          .map((item) => {
+            const product = productByName.get(item);
+            return product?.code ?? '';
+          })
+          .filter((item) => !!item);
+      } else {
+        object.deliveryNotFreeProductCodeList = undefined;
       }
     });
+
+    const documents = await this.clientRepository.objectToDocuments(objectList);
 
     this.utilService.checkDuplicatedField(documents, 'code');
     await this.clientRepository.docUniqueCheck(documents, 'code');
@@ -282,6 +359,16 @@ export class ClientService {
       { header: '연락처', key: 'managerTel', width: 40 },
       { header: '거래여부', key: 'inActive', width: 40 },
       { header: '출고 창고', key: 'storageId', width: 70 },
+      {
+        header: '무료배송 제품',
+        key: 'deliveryFreeProductCodeList',
+        width: 70,
+      },
+      {
+        header: '유료배송 제품',
+        key: 'deliveryNotFreeProductCodeList',
+        width: 70,
+      },
     ];
 
     const storageIdList = allData.map((item) => item.storageId);
@@ -292,18 +379,75 @@ export class ClientService {
       storageList.map((item) => [item._id.toHexString(), item]),
     );
 
-    for await (const object of allData) {
-      const handleClientType = ClientTypeToHangle[
-        object.clientType
-      ] as ClientType;
+    const freeDeliveryProductCodeList =
+      allData.flatMap((item) => item.deliveryFreeProductCodeList) ?? [];
+    const notFreeDeliveryProductCodeList =
+      allData.flatMap((item) => item.deliveryNotFreeProductCodeList) ?? [];
 
-      object.clientType = handleClientType;
+    const concatCodeList = freeDeliveryProductCodeList
+      .concat(notFreeDeliveryProductCodeList)
+      .filter((item) => !!item);
 
-      if (object.storageId) {
-        object.storageId = storageById.get(object.storageId)?.name ?? '';
+    const productByCode = new Map<string, Product>();
+
+    if (concatCodeList.length) {
+      const productList = await this.productModel
+        .find({
+          code: { $in: concatCodeList },
+        })
+        .select(['name', 'code'])
+        .lean<Product[]>();
+
+      productList.forEach((doc) => {
+        productByCode.set(doc.code, doc);
+      });
+    }
+
+    type OmitClient = Omit<
+      Client,
+      'deliveryFreeProductCodeList' | 'deliveryNotFreeProductCodeList'
+    > & {
+      deliveryNotFreeProductCodeList: string;
+      deliveryFreeProductCodeList: string;
+    };
+    for await (const {
+      deliveryFreeProductCodeList,
+      deliveryNotFreeProductCodeList,
+      clientType,
+      ...object
+    } of allData) {
+      const handleClientType = ClientTypeToHangle[clientType] as ClientType;
+
+      const newObject = {
+        ...object,
+        clientType: handleClientType ?? '',
+        deliveryFreeProductCodeList: '',
+        deliveryNotFreeProductCodeList: '',
+      } as OmitClient;
+
+      if (newObject.storageId) {
+        newObject.storageId = storageById.get(object.storageId)?.name ?? '';
       }
 
-      worksheet.addRow(object);
+      if (deliveryFreeProductCodeList?.length) {
+        newObject.deliveryFreeProductCodeList = deliveryFreeProductCodeList
+          .map((item) => {
+            const product = productByCode.get(item);
+            return product?.name ?? '';
+          })
+          .join(', ');
+      }
+
+      if (deliveryNotFreeProductCodeList?.length) {
+        newObject.deliveryNotFreeProductCodeList =
+          deliveryNotFreeProductCodeList
+            .map((item) => {
+              const product = productByCode.get(item);
+              return product?.name ?? '';
+            })
+            .join(', ');
+      }
+      worksheet.addRow(newObject);
     }
 
     const buffer = await workbook.xlsx.writeBuffer();

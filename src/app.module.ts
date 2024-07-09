@@ -76,7 +76,7 @@ import { VoidScalar } from './common/scalars/void.scalar';
     GraphQLModule.forRootAsync({
       driver: ApolloDriver,
       useClass: GqlConfigService,
-      imports: [FactoryModule, ProductModule, StorageModule],
+      imports: [FactoryModule, ProductModule, StorageModule, ClientModule],
     }),
     ScheduleModule.forRoot(),
     DatabaseModule,

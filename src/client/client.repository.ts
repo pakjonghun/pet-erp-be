@@ -348,7 +348,6 @@ export class ClientRepository extends AbstractRepository<Client> {
     ];
 
     const result = await this.saleModel.aggregate<ClientSaleMenu>(pipeline);
-    console.dir(result?.[0], { depth: 10 });
     return result?.[0];
   }
 }
