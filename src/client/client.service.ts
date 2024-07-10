@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { CreateClientInput } from './dtos/create-client.input';
 import { UpdateClientInput } from './dtos/update-client.input';
 import {
@@ -20,8 +24,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { FindDateScrollInput } from 'src/common/dtos/find-date-scroll.input';
 import { Storage } from 'src/storage/entities/storage.entity';
-import * as ExcelJS from 'exceljs';
 import { Product } from 'src/product/entities/product.entity';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class ClientService {
@@ -121,7 +125,55 @@ export class ClientService {
     return newInput;
   }
 
+  private deliveryProductDuplicatedCheck(
+    createClientInput: Partial<
+      Pick<
+        Client,
+        'deliveryFreeProductCodeList' | 'deliveryNotFreeProductCodeList'
+      >
+    >,
+  ) {
+    if (
+      createClientInput.deliveryFreeProductCodeList &&
+      createClientInput.deliveryNotFreeProductCodeList
+    ) {
+      if (
+        createClientInput.deliveryFreeProductCodeList.length > 0 &&
+        createClientInput.deliveryNotFreeProductCodeList.length > 0
+      ) {
+        const free = new Set(createClientInput.deliveryFreeProductCodeList);
+        const notFree = new Set(
+          createClientInput.deliveryNotFreeProductCodeList,
+        );
+
+        const freeDuplicated =
+          createClientInput.deliveryNotFreeProductCodeList.find((item) =>
+            free.has(item),
+          );
+
+        if (freeDuplicated) {
+          throw new ConflictException(
+            `${freeDuplicated} 제품코드는 무료와 유료 배송에 모두 입력되어 있습니다.`,
+          );
+        }
+
+        const notFreeDuplicated =
+          createClientInput.deliveryFreeProductCodeList.find((item) =>
+            notFree.has(item),
+          );
+
+        if (notFreeDuplicated) {
+          throw new ConflictException(
+            `${notFreeDuplicated} 제품코드는 무료와 유료 배송에 모두 입력되어 있습니다.`,
+          );
+        }
+      }
+    }
+  }
+
   async create(createClientInput: CreateClientInput) {
+    this.deliveryProductDuplicatedCheck(createClientInput);
+
     const newInput = (await this.beforeCreate(
       createClientInput,
     )) as CreateClientInput;
@@ -161,6 +213,7 @@ export class ClientService {
   }
 
   async update({ _id, ...body }: UpdateClientInput) {
+    this.deliveryProductDuplicatedCheck(body);
     const newBody = await this.beforeUpdate({ ...body, _id });
     return this.clientRepository.update({ _id }, newBody);
   }
