@@ -26,17 +26,15 @@ export class ClientRepository extends AbstractRepository<Client> {
     const pipeline: PipelineStage[] = [
       {
         $match: {
-          mallId: {
-            $ne: '로켓그로스',
-          },
           orderStatus: '출고완료',
+          productCode: { $exists: true },
+          mallId: { $exists: true, $ne: '로켓그로스' },
+          count: { $exists: true },
+          payCost: { $exists: true },
+          wonCost: { $exists: true },
           saleAt: {
             $gte: from,
             $lt: to,
-          },
-          wonCost: {
-            $exists: true,
-            $gte: 0,
           },
         },
       },
@@ -47,6 +45,7 @@ export class ClientRepository extends AbstractRepository<Client> {
           payCost: 1,
           wonCost: 1,
           productCode: 1,
+          deliveryCost: 1,
         },
       },
       {
@@ -60,6 +59,9 @@ export class ClientRepository extends AbstractRepository<Client> {
           },
           accCount: {
             $sum: '$count',
+          },
+          deliveryCost: {
+            $sum: '$deliveryCost',
           },
         },
       },
@@ -148,17 +150,14 @@ export class ClientRepository extends AbstractRepository<Client> {
                       $expr: {
                         $eq: ['$mallId', '$$mallId'],
                       },
-                      mallId: {
-                        $ne: '로켓그로스',
-                      },
                       orderStatus: '출고완료',
+                      productCode: { $exists: true },
+                      count: { $exists: true },
+                      payCost: { $exists: true },
+                      wonCost: { $exists: true },
                       saleAt: {
                         $gte: from,
                         $lt: to,
-                      },
-                      wonCost: {
-                        $exists: true,
-                        $gte: 0,
                       },
                     },
                   },
@@ -221,10 +220,11 @@ export class ClientRepository extends AbstractRepository<Client> {
                       $expr: {
                         $eq: ['$mallId', '$$mallId'],
                       },
-                      mallId: {
-                        $ne: '로켓그로스',
-                      },
                       orderStatus: '출고완료',
+                      productCode: { $exists: true },
+                      count: { $exists: true },
+                      payCost: { $exists: true },
+                      wonCost: { $exists: true },
                       saleAt: {
                         $gte: prevRange.from,
                         $lt: prevRange.to,
@@ -242,6 +242,9 @@ export class ClientRepository extends AbstractRepository<Client> {
                       },
                       accWonCost: {
                         $sum: '$wonCost',
+                      },
+                      deliveryCost: {
+                        $sum: '$deliveryCost',
                       },
                     },
                   },
@@ -306,6 +309,7 @@ export class ClientRepository extends AbstractRepository<Client> {
                 prevAccWonCost: '$prevSale.accWonCost',
                 prevAccProfit: '$prevSale.accProfit',
                 prevProfitRate: '$prevSale.profitRate',
+                prevDeliveryCost: '$prevSale.deliveryCost',
               },
             },
             {

@@ -42,6 +42,12 @@ export class ClientSaleMenu extends Client {
   @Field(() => Float, { nullable: true })
   prevProfitRate: number;
 
+  @Field(() => Float, { nullable: true })
+  prevDeliveryCost: number;
+
+  @Field(() => Float, { nullable: true })
+  deliveryCost: number;
+
   @Field(() => [ProductSaleInfo])
   products: ProductSaleInfo[];
 }

@@ -27,6 +27,9 @@ export class SaleInfo {
   @Field(() => Float, { nullable: true })
   averagePayCost: number;
 
+  @Field(() => Float, { nullable: true })
+  deliveryCost: number;
+
   _id: string;
 }
 
@@ -70,6 +73,12 @@ export class SaleInfos {
 
   @Field(() => Float, { nullable: true })
   prevAveragePayCost: number;
+
+  @Field(() => Float, { nullable: true })
+  deliveryCost: number;
+
+  @Field(() => Float, { nullable: true })
+  prevDeliveryCost: number;
 }
 
 @ObjectType()

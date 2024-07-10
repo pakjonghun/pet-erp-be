@@ -94,20 +94,17 @@ export class ProductRepository extends AbstractRepository<Product> {
     const pipeline: PipelineStage[] = [
       {
         $match: {
-          mallId: {
-            $ne: '로켓그로스',
-          },
           orderStatus: '출고완료',
+          mallId: { $exists: true, $ne: '로켓그로스' },
+          count: { $exists: true },
+          payCost: { $exists: true },
+          wonCost: { $exists: true },
           productCode: {
             $in: productCodeList,
           },
           saleAt: {
             $gte: from,
             $lt: to,
-          },
-          wonCost: {
-            $gte: 0,
-            $exists: true,
           },
         },
       },
@@ -118,6 +115,7 @@ export class ProductRepository extends AbstractRepository<Product> {
           payCost: 1,
           wonCost: 1,
           productCode: 1,
+          deliveryCost: 1,
         },
       },
       {
@@ -131,6 +129,9 @@ export class ProductRepository extends AbstractRepository<Product> {
           },
           accCount: {
             $sum: '$count',
+          },
+          deliveryCost: {
+            $sum: '$deliveryCost',
           },
         },
       },
@@ -343,17 +344,14 @@ export class ProductRepository extends AbstractRepository<Product> {
                 pipeline: [
                   {
                     $match: {
-                      mallId: {
-                        $ne: '로켓그로스',
-                      },
                       orderStatus: '출고완료',
+                      mallId: { $exists: true, $ne: '로켓그로스' },
+                      count: { $exists: true },
+                      payCost: { $exists: true },
+                      wonCost: { $exists: true },
                       saleAt: {
                         $gte: from,
                         $lt: to,
-                      },
-                      wonCost: {
-                        $exists: true,
-                        $gte: 0,
                       },
                       $expr: {
                         $eq: ['$productCode', '$$productCode'],
@@ -396,10 +394,11 @@ export class ProductRepository extends AbstractRepository<Product> {
                 pipeline: [
                   {
                     $match: {
-                      mallId: {
-                        $ne: '로켓그로스',
-                      },
                       orderStatus: '출고완료',
+                      mallId: { $exists: true, $ne: '로켓그로스' },
+                      count: { $exists: true },
+                      payCost: { $exists: true },
+                      wonCost: { $exists: true },
                       saleAt: {
                         $gte: prevDate.from,
                         $lt: prevDate.to,
@@ -420,6 +419,9 @@ export class ProductRepository extends AbstractRepository<Product> {
                       },
                       accWonCost: {
                         $sum: '$wonCost',
+                      },
+                      deliveryCost: {
+                        $sum: '$deliveryCost',
                       },
                     },
                   },
@@ -480,6 +482,7 @@ export class ProductRepository extends AbstractRepository<Product> {
                 prevAccWonCost: '$prevSale.accWonCost',
                 prevAccProfit: '$prevSale.accProfit',
                 prevAccProfitRate: '$prevSale.profitRate',
+                prevDeliveryCost: '$prevSale.deliveryCost',
               },
             },
             {

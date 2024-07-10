@@ -50,6 +50,12 @@ export class ProductSaleMenu extends Product {
 
   @Field(() => Float, { nullable: true })
   prevAccProfitRate: number;
+
+  @Field(() => Float, { nullable: true })
+  deliveryCost: number;
+
+  @Field(() => Float, { nullable: true })
+  prevDeliveryCost: number;
 }
 
 @ObjectType()

@@ -55,6 +55,7 @@ export class ClientResolver {
         prevAccCount: previousItem?.accCount,
         prevAccProfit: previousItem?.accProfit,
         prevAveragePayCost: previousItem?.averagePayCost,
+        prevDeliveryCost: previousItem?.deliveryCost,
       };
     });
     return {

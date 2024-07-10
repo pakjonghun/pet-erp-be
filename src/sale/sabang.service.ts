@@ -25,6 +25,7 @@ import { Client } from 'src/client/entities/client.entity';
 import * as utc from 'dayjs/plugin/utc';
 import { Sale, SaleDocument } from './entities/sale.entity';
 import { StockService } from 'src/stock/stock.service';
+import { DeliveryCost } from './entities/delivery.entity';
 dayjs.extend(utc);
 
 @Injectable()
@@ -34,6 +35,8 @@ export class SabandService {
     @InjectConnection() private readonly connection: Connection,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Client.name) private readonly clientModel: Model<Client>,
+    @InjectModel(DeliveryCost.name)
+    private readonly deliveryCostModel: Model<DeliveryCost>,
     private readonly stockService: StockService,
     private readonly configService: ConfigService,
     private readonly utilService: UtilService,
@@ -94,7 +97,7 @@ export class SabandService {
 
   async run() {
     const startDate = dayjs()
-      .subtract(7, 'day')
+      .subtract(14, 'day')
       .startOf('day')
       .format(DATE_FORMAT);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
@@ -112,6 +115,25 @@ export class SabandService {
     const location = result.Location;
     const saleData = (await this.getSaleData(location)) as SaleDocument[];
 
+    const productCodeList = saleData.map((sale) => sale.productCode);
+    const productList = await this.productModel
+      .find({
+        code: { $in: productCodeList },
+      })
+      .lean<Product[]>();
+
+    const productByCode = new Map<string, Product>(
+      productList.map((p) => [p.code, p]),
+    );
+
+    const mallIdList = saleData.map((sale) => sale.mallId);
+    const clientList = await this.clientModel
+      .find({ name: mallIdList })
+      .lean<Client[]>();
+    const clientByName = new Map<string, Client>(
+      clientList.map((c) => [c.name, c]),
+    );
+
     const orderNumberList = saleData.map((item) => item.orderNumber);
     const savedSaleList = await this.saleRepository.findMany(
       {
@@ -126,11 +148,41 @@ export class SabandService {
       Pick<Sale, 'productCode' | 'orderNumber' | 'mallId'>
     >(savedSaleList.map((sale) => [sale.orderNumber, sale]));
 
+    const deliveryCost = await this.deliveryCostModel
+      .findOne()
+      .lean<DeliveryCost>();
+
+    // deliveryCost.
     //아직 출고안된 제품은 모두 false
+    //거래처에 해당 제품이 유료배송이면 택배비에 평균 택배비 넣기
+    //거래처에 해당 제품이 무료배송이면 택배비는 0원
+    //해당 제품이 유배 설정이고 거래처에 해당 제품이 무료배송으로 안들어가 있으면 배송비 넣기
     saleData.forEach((sale) => {
       const isNotOutSale = !savedSaleByOrderNumber.has(sale.orderNumber);
       if (isNotOutSale) {
         sale.isOut = false;
+      }
+
+      const product = productByCode.get(sale.productCode);
+      const client = clientByName.get(sale.mallId);
+      const freeDeliveryProductCodeList =
+        client?.deliveryFreeProductCodeList ?? [];
+      const notFreeDeliveryProductCodeList =
+        client?.deliveryNotFreeProductCodeList ?? [];
+      const isFreeDelivery = freeDeliveryProductCodeList.some(
+        (item) => item === sale.postalCode,
+      );
+      const isNotFreeDelivery = notFreeDeliveryProductCodeList.some(
+        (item) => item === sale.postalCode,
+      );
+      const isProductNotFree = !product?.isFreeDeliveryFee;
+
+      if (isFreeDelivery) {
+        sale.deliveryCost = 0;
+      }
+
+      if (isNotFreeDelivery || (isProductNotFree && !isFreeDelivery)) {
+        sale.deliveryCost = deliveryCost.deliveryCost ?? 0;
       }
     });
 
