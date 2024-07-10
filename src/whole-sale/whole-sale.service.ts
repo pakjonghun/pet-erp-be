@@ -415,15 +415,18 @@ export class WholeSaleService {
     return sales[0].data;
   }
 
-  async update({
-    wholeSaleId,
-    mallId,
-    productList: curProductList,
-    saleAt,
-    telephoneNumber1,
-    isDone,
-    deliveryBoxCount = 1,
-  }: UpdateWholeSaleInput) {
+  async update(
+    {
+      wholeSaleId,
+      mallId,
+      productList: curProductList,
+      saleAt,
+      telephoneNumber1,
+      isDone,
+      deliveryBoxCount = 1,
+    }: UpdateWholeSaleInput,
+    userId: string,
+  ) {
     const session = await this.connection.startSession();
     session.startTransaction();
     try {
@@ -510,7 +513,7 @@ export class WholeSaleService {
         }
       }
 
-      await this.remove(wholeSaleId, session);
+      await this.remove(wholeSaleId, userId, session);
       const newWholeSaleId = await this.createWholeSale(
         {
           isDone,
@@ -538,11 +541,11 @@ export class WholeSaleService {
     }
   }
 
-  async removeAllWholeSaleById(wholeSaleId: string) {
+  async removeAllWholeSaleById(wholeSaleId: string, userId: string) {
     const session = await this.connection.startSession();
     session.startTransaction();
     try {
-      await this.remove(wholeSaleId, session);
+      await this.remove(wholeSaleId, userId, session);
       await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction();
@@ -554,9 +557,9 @@ export class WholeSaleService {
     }
   }
 
-  async remove(wholeSaleId: string, session: ClientSession) {
+  async remove(wholeSaleId: string, userId: string, session: ClientSession) {
     const stockList = await this.salesToStocks(wholeSaleId);
-    await this.stockService.add({ stocks: stockList }, session);
+    await this.stockService.add({ stocks: stockList }, userId, session);
     await this.wholeSaleRepository.model.deleteMany(
       { wholeSaleId },
       { session },

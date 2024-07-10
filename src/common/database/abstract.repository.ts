@@ -129,15 +129,15 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
           session,
         },
       );
+    } else {
+      await this.model.bulkWrite(
+        documents.map((document) => {
+          return {
+            insertOne: { document },
+          };
+        }),
+      );
     }
-
-    await this.model.bulkWrite(
-      documents.map((document) => {
-        return {
-          insertOne: { document },
-        };
-      }),
-    );
   }
 
   async excelToDocuments(

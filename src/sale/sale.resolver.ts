@@ -1,4 +1,4 @@
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { DeliveryCost } from './entities/delivery.entity';
 import { SetDeliveryCostInput } from './dto/delivery-cost.Input';
 import { SaleService } from './sale.service';
@@ -40,8 +40,9 @@ export class SaleResolver {
 
   @Roles([AuthRoleEnum.STOCK_SALE_OUT])
   @Mutation(() => SaleOutOutput, { nullable: true })
-  async outSaleData() {
-    const result = await this.sabangService.out();
+  async outSaleData(@Context() ctx: any) {
+    const userId = ctx.req.user.id;
+    const result = await this.sabangService.out(userId);
     return result;
   }
 }

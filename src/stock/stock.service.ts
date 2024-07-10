@@ -12,7 +12,6 @@ import {
   AnyBulkWriteOperation,
   ClientSession,
   Connection,
-  FilterQuery,
   Model,
   PipelineStage,
 } from 'mongoose';
@@ -37,6 +36,7 @@ import { SubsidiaryStockStateOutput } from './dto/stocks-subsidiary-state.output
 import { SubsidiaryCountColumn } from './dto/subsidiary-count-stock.output';
 import { Client } from 'src/client/entities/client.entity';
 import { LogService } from 'src/log/log.service';
+import { LogInterface, LogTypeEnum } from 'src/log/entities/log.entity';
 
 @Injectable()
 export class StockService {
@@ -377,11 +377,11 @@ export class StockService {
     }
   }
 
-  async addWithSession({ stocks }: CreateStockInput) {
+  async addWithSession({ stocks }: CreateStockInput, userId: string) {
     const session = await this.connection.startSession();
     session.startTransaction();
     try {
-      await this.add({ stocks }, session);
+      await this.add({ stocks }, userId, session);
       await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction();
@@ -393,8 +393,33 @@ export class StockService {
     }
   }
 
-  //여기
-  async add({ stocks }: CreateStockInput, session?: ClientSession) {
+  async outWithSession({
+    createStockInput,
+    userId,
+  }: {
+    createStockInput: CreateStockInput;
+    userId: string;
+  }) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+    try {
+      await this.out({ createStockInput, userId, session });
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw new InternalServerErrorException(
+        `서버에서 오류가 발생했습니다. ${error.message}`,
+      );
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  async add(
+    { stocks }: CreateStockInput,
+    userId: string,
+    session?: ClientSession,
+  ) {
     const productNameList = stocks
       .filter((item) => !item.isSubsidiary)
       .map((item) => item.productName);
@@ -437,6 +462,8 @@ export class StockService {
       ]),
     );
 
+    const logs: LogInterface[] = [];
+
     for await (const {
       productName,
       storageName,
@@ -454,9 +481,19 @@ export class StockService {
       const storage = storageByName.get(storageName);
       const stock = stockByStorageProduct.get(`${storage._id}${product._id}`);
 
+      const log = this.logService.createStockLog({
+        userId,
+        productName,
+        storageName,
+        logType: LogTypeEnum.UPDATE,
+        count,
+        action: '입고',
+      });
+
+      logs.push(log);
+
       if (session) {
         if (!stock) {
-          ('세션 있음');
           await this.stockRepository.create(
             {
               count,
@@ -493,10 +530,19 @@ export class StockService {
         }
       }
     }
+
+    if (logs.length) {
+      await this.logService.bulkCreate({ logs, session });
+    }
   }
 
-  //여기
-  async saleOut({ session }: { session: ClientSession }) {
+  async saleOut({
+    session,
+    userId,
+  }: {
+    session: ClientSession;
+    userId: string;
+  }) {
     const startDate = dayjs().subtract(7, 'day').startOf('day').toDate();
     const endDate = dayjs().endOf('day').toDate();
 
@@ -676,6 +722,7 @@ export class StockService {
       );
     }
 
+    const logs: LogInterface[] = [];
     const newStock: AnyBulkWriteOperation<Stock>[] = filteredSaleList.map(
       (sale) => {
         const targetProduct = productListByCode.get(sale.productCode)!;
@@ -687,6 +734,17 @@ export class StockService {
         );
         const count = sale.count;
 
+        const targetStorage = storageListById.get(storageId);
+        const log = this.logService.createStockLog({
+          userId,
+          productName: targetProduct.name,
+          storageName: targetStorage.name,
+          count,
+          logType: LogTypeEnum.UPDATE,
+        });
+
+        logs.push(log);
+
         return {
           updateOne: {
             filter: { _id: stock._id },
@@ -696,6 +754,7 @@ export class StockService {
       },
     );
 
+    await this.logService.bulkCreate({ logs, session });
     await this.stockRepository.model.bulkWrite(newStock, { session });
     return {
       filteredSaleList,
@@ -712,13 +771,17 @@ export class StockService {
     };
   }
 
-  //여기
   async out({
-    stocks,
+    createStockInput: { stocks },
+    userId,
     session,
-  }: CreateStockInput & { session?: ClientSession }) {
+  }: {
+    createStockInput: CreateStockInput;
+    session?: ClientSession;
+    userId: string;
+  }) {
     const newStock: AnyBulkWriteOperation<Stock>[] = [];
-    const filteredStock: Stock[] = [];
+    const logs: LogInterface[] = [];
 
     const storageNameList = stocks.map((s) => s.storageName);
     const storageList = await this.storageModel.find({
@@ -758,7 +821,7 @@ export class StockService {
       }),
     );
 
-    for await (const {
+    for (const {
       productName,
       storageName,
       count,
@@ -798,8 +861,17 @@ export class StockService {
         },
       });
 
-      filteredStock.push(stock);
+      const log = this.logService.createStockLog({
+        userId,
+        logType: LogTypeEnum.UPDATE,
+        storageName: storage.name,
+        productName: product.name,
+        count,
+      });
+      logs.push(log);
     }
+
+    await this.logService.bulkCreate({ logs, session });
 
     if (session) {
       await this.stockRepository.model.bulkWrite(newStock, { session });
@@ -1174,9 +1246,6 @@ export class StockService {
 
     return { totalCount, data };
   }
-  private findOne(filterQuery: FilterQuery<Stock>) {
-    return this.stockRepository.findOne(filterQuery);
-  }
 
   private async checkProductByName(productName: string) {
     const product = await this.productModel.findOne({ name: productName });
@@ -1201,7 +1270,7 @@ export class StockService {
   private async checkStorageByName(storageName: string) {
     const storage = await this.storageModel.findOne({ name: storageName });
     if (!storage) {
-      throw new NotFoundException(`${storageName} 존재하지 않는 제품입니다.`);
+      throw new NotFoundException(`${storageName} 존재하지 않는 창고입니다.`);
     }
     return storage;
   }

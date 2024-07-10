@@ -165,7 +165,10 @@ export class ProductOrderService {
     return result;
   }
 
-  async completeOrder({ _id, storageName }: CompleteOrderInput) {
+  async completeOrder(
+    { _id, storageName }: CompleteOrderInput,
+    userId: string,
+  ) {
     const productOrder = await this.productOrderRepository.findOne({ _id });
     if (!productOrder) {
       throw new BadRequestException('해당 발주가 존재하지 않습니다.');
@@ -206,7 +209,7 @@ export class ProductOrderService {
         },
       );
 
-      await this.stockService.add({ stocks }, session);
+      await this.stockService.add({ stocks }, userId, session);
 
       await session.commitTransaction();
       return result;

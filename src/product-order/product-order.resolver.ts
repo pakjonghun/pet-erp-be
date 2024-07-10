@@ -47,8 +47,12 @@ export class ProductOrderResolver {
   @LogData({ description: '발주완료', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ORDER_EDIT])
   @Mutation(() => ProductOrder)
-  completeOrder(@Args('completeOrderInput') completeOrder: CompleteOrderInput) {
-    return this.orderService.completeOrder(completeOrder);
+  completeOrder(
+    @Args('completeOrderInput') completeOrder: CompleteOrderInput,
+    @Context() ctx: any,
+  ) {
+    const userId = ctx.req.user.id;
+    return this.orderService.completeOrder(completeOrder, userId);
   }
 
   @LogData({ description: '발주삭제', logType: LogTypeEnum.DELETE })

@@ -59,13 +59,14 @@ export class SabandService {
     await this.run();
   }
 
-  async out() {
+  async out(userId: string) {
     const session = await this.connection.startSession();
     session.startTransaction();
 
     try {
       const { errors, filteredSaleList } = await this.stockService.saleOut({
         session,
+        userId,
       });
       const orderNumberList = filteredSaleList.map((item) => item.orderNumber);
       await this.saleRepository.saleModel.updateMany(

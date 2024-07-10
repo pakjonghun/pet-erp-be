@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
 import { StockService } from './stock.service';
 import { Stock } from './entities/stock.entity';
 import { CreateStockInput } from './dto/create-stock.input';
@@ -9,8 +9,6 @@ import { ProductCountStocksInput } from './dto/product-count-stock.input';
 import { ProductCountStocksOutput } from './dto/product-count-stock.output';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
-import { LogData } from 'src/common/decorators/log.decorator';
-import { LogTypeEnum } from 'src/log/entities/log.entity';
 import { SubsidiaryStocksOutput } from './dto/stocks-subsidiary.output';
 import { SubsidiaryStockStateOutput } from './dto/stocks-subsidiary-state.output';
 import { SubsidiaryCountStocksOutput } from './dto/subsidiary-count-stock.output';
@@ -20,17 +18,30 @@ export class StockResolver {
   constructor(private readonly stockService: StockService) {}
 
   // @LogData({ description: '입고', logType: LogTypeEnum.CREATE })
-  @Roles([AuthRoleEnum.STOCK_OUT])
+  @Roles([AuthRoleEnum.STOCK_IN])
   @Mutation(() => [Stock], { nullable: true })
-  addStock(@Args('addStocksInput') addStocksInput: CreateStockInput) {
-    return this.stockService.addWithSession(addStocksInput);
+  addStock(
+    @Args('addStocksInput') addStocksInput: CreateStockInput,
+    @Context() ctx: any,
+  ) {
+    const userId = ctx.req.user.id;
+    return this.stockService.addWithSession(addStocksInput, userId);
   }
 
   // @LogData({ description: '출고', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.STOCK_IN])
+  @Roles([AuthRoleEnum.STOCK_OUT])
   @Mutation(() => [Stock], { nullable: true })
-  outStock(@Args('outStocksInput') addStocksInput: CreateStockInput) {
-    return this.stockService.out(addStocksInput);
+  async outStock(
+    @Args('outStocksInput') addStocksInput: CreateStockInput,
+    @Context() ctx: any,
+  ) {
+    const userId = ctx.req.user.id as string;
+    const result = await this.stockService.outWithSession({
+      createStockInput: addStocksInput,
+      userId,
+    });
+
+    return result;
   }
 
   @Roles([AuthRoleEnum.ANY])
@@ -79,3 +90,4 @@ export class StockResolver {
     return result;
   }
 }
+//

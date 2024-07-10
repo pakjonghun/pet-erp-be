@@ -32,6 +32,8 @@ export class LogInterceptor implements NestInterceptor {
     return next.handle().pipe(
       map(async (data) => {
         const user = request.user as User;
+        if (!this.reflector) return data;
+
         const logData = this.reflector.get<LogMetaData>(
           LOG_META_KEY,
           context.getHandler(),
