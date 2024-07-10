@@ -117,7 +117,20 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
     }
   }
 
-  async bulkWrite(documents: HydratedDocument<T>[]) {
+  async bulkWrite(documents: HydratedDocument<T>[], session?: ClientSession) {
+    if (session) {
+      await this.model.bulkWrite(
+        documents.map((document) => {
+          return {
+            insertOne: { document },
+          };
+        }),
+        {
+          session,
+        },
+      );
+    }
+
     await this.model.bulkWrite(
       documents.map((document) => {
         return {

@@ -36,12 +36,14 @@ import { SubsidiaryStockColumn } from './dto/stocks-subsidiary.output';
 import { SubsidiaryStockStateOutput } from './dto/stocks-subsidiary-state.output';
 import { SubsidiaryCountColumn } from './dto/subsidiary-count-stock.output';
 import { Client } from 'src/client/entities/client.entity';
+import { LogService } from 'src/log/log.service';
 
 @Injectable()
 export class StockService {
   constructor(
     @InjectConnection() private readonly connection: Connection,
     private readonly utilService: UtilService,
+    private readonly logService: LogService,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Sale.name) private readonly saleModel: Model<Sale>,
     @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
@@ -391,6 +393,7 @@ export class StockService {
     }
   }
 
+  //여기
   async add({ stocks }: CreateStockInput, session?: ClientSession) {
     const productNameList = stocks
       .filter((item) => !item.isSubsidiary)
@@ -492,6 +495,7 @@ export class StockService {
     }
   }
 
+  //여기
   async saleOut({ session }: { session: ClientSession }) {
     const startDate = dayjs().subtract(7, 'day').startOf('day').toDate();
     const endDate = dayjs().endOf('day').toDate();
@@ -708,36 +712,72 @@ export class StockService {
     };
   }
 
+  //여기
   async out({
     stocks,
     session,
   }: CreateStockInput & { session?: ClientSession }) {
     const newStock: AnyBulkWriteOperation<Stock>[] = [];
+    const filteredStock: Stock[] = [];
+
+    const storageNameList = stocks.map((s) => s.storageName);
+    const storageList = await this.storageModel.find({
+      name: { $in: storageNameList },
+    });
+    const storageByName = new Map<string, Storage>(
+      storageList.map((s) => [s.name, s]),
+    );
+
+    const isSubsidiary = stocks[0].isSubsidiary;
+    const productNameList = stocks.map((s) => s.productName);
+    const productList = isSubsidiary
+      ? await this.subsidiaryModel
+          .find({
+            name: { $in: productNameList },
+          })
+          .lean<Subsidiary[]>()
+      : await this.productModel
+          .find({
+            name: { $in: productNameList },
+          })
+          .lean<Product[]>();
+    const productByName = new Map<string, Product | Subsidiary>(
+      productList.map((p) => [p.name, p] as [string, Product | Subsidiary]),
+    );
+
+    const productIdList = productList.map((item) => item._id);
+    const stockList = await this.stockRepository.model.find({
+      product: { $in: productIdList },
+    });
+    const stockByProductIdStorageId = new Map<string, Stock>(
+      stockList.map((s) => {
+        const productId = (s.product as unknown as ObjectId).toHexString();
+        const storageId = (s.storage as unknown as ObjectId).toHexString();
+        const key = `${productId}_${storageId}`;
+        return [key, s];
+      }),
+    );
 
     for await (const {
       productName,
       storageName,
       count,
-      isSubsidiary,
+      // isSubsidiary,
     } of stocks) {
-      const product = isSubsidiary //
-        ? await this.subsidiaryModel.findOne({ name: productName })
-        : await this.productModel.findOne({ name: productName });
+      const product = productByName.get(productName);
       if (!product) {
         throw new NotFoundException(`${productName}는 존재하지 않습니다.`);
       }
 
-      const storage = await this.storageModel.findOne({ name: storageName });
+      const storage = storageByName.get(storageName);
       if (!storage) {
         throw new NotFoundException(
           `${storageName}는 존재하지 않는 창고 입니다.`,
         );
       }
 
-      const stock = await this.findOne({
-        storage,
-        product,
-      });
+      const key = `${product._id.toHexString()}_${storage._id.toHexString()}`;
+      const stock = stockByProductIdStorageId.get(key);
 
       if (!stock) {
         throw new ConflictException(
@@ -757,6 +797,8 @@ export class StockService {
           update: { $set: { count: stock.count - count } },
         },
       });
+
+      filteredStock.push(stock);
     }
 
     if (session) {

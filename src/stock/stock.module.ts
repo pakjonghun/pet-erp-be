@@ -17,6 +17,7 @@ import {
 import { Sale, saleSchema } from 'src/sale/entities/sale.entity';
 import { Factory, FactorySchema } from 'src/factory/entities/factory.entity';
 import { Client, clientSchema } from 'src/client/entities/client.entity';
+import { LogModule } from 'src/log/log.module';
 
 @Module({
   exports: [StockService],
@@ -55,6 +56,7 @@ import { Client, clientSchema } from 'src/client/entities/client.entity';
         schema: clientSchema,
       },
     ]),
+    LogModule,
   ],
   providers: [StockResolver, StockService, StockRepository],
 })

@@ -2,7 +2,7 @@ import { CreateLogDTO } from './dtos/create-log.input';
 import { LogRepository } from './log.repository';
 import { Injectable } from '@nestjs/common';
 import { FindLogsDTO } from './dtos/find-log.input';
-import { FilterQuery } from 'mongoose';
+import { ClientSession, FilterQuery } from 'mongoose';
 import { Log } from './entities/log.entity';
 import { UtilService } from 'src/util/util.service';
 
@@ -15,6 +15,11 @@ export class LogService {
 
   create(createLogInput: CreateLogDTO) {
     return this.logRepository.create(createLogInput);
+  }
+
+  bulkWrite(logs: CreateLogDTO[], session: ClientSession) {
+    const logDocs = logs.map((log) => new this.logRepository.model(log));
+    return this.logRepository.bulkWrite(logDocs, session);
   }
 
   findMany({ keyword, keywordTarget, from, to, ...query }: FindLogsDTO) {
