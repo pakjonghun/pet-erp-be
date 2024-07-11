@@ -8,8 +8,8 @@ export class OutProduct extends PickType(Product, ['code', 'name']) {}
 
 @ObjectType()
 export class OutputOption extends OmitType(Option, ['productCodeList']) {
-  @Field(() => OutProduct)
-  productList: OutProduct;
+  @Field(() => [OutProduct])
+  productCodeList: OutProduct[];
 }
 
 @ObjectType()

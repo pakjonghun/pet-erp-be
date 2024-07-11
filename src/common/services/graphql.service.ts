@@ -6,6 +6,7 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
 import { ProductLoader } from 'src/product/product.loader';
 import { StorageLoader } from 'src/storage/storage.loader';
 import { ClientLoader } from 'src/client/client.loader';
+import { OptionLoader } from 'src/option/option.loader';
 @Injectable()
 export class GqlConfigService implements GqlOptionsFactory {
   constructor(
@@ -13,6 +14,7 @@ export class GqlConfigService implements GqlOptionsFactory {
     private readonly productLoader: ProductLoader,
     private readonly storageLoader: StorageLoader,
     private readonly clientLoader: ClientLoader,
+    private readonly optionLoader: OptionLoader,
   ) {}
   createGqlOptions(): ApolloDriverConfig {
     return {
@@ -25,6 +27,7 @@ export class GqlConfigService implements GqlOptionsFactory {
         const productLoader = this.productLoader.createLoader();
         const storageLoader = this.storageLoader.createLoader();
         const clientLoader = this.clientLoader.createLoader();
+        const optionLoader = this.optionLoader.createLoader();
         return {
           req,
           res,
@@ -33,6 +36,7 @@ export class GqlConfigService implements GqlOptionsFactory {
             productLoader,
             storageLoader,
             clientLoader,
+            optionLoader,
           },
         };
       },

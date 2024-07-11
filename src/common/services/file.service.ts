@@ -5,10 +5,11 @@ import { ProductService } from 'src/product/product.service';
 import { ClientService } from 'src/client/client.service';
 import { ProductCategoryService } from 'src/product-category/product-category.service';
 import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-category.service';
-import * as fs from 'fs';
-import * as ExcelJS from 'exceljs';
 import { FactoryService } from 'src/factory/factory.service';
 import { StorageService } from 'src/storage/storage.service';
+import { OptionService } from 'src/option/option.service';
+import * as fs from 'fs';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class FileService {
@@ -20,6 +21,7 @@ export class FileService {
     private readonly clientService: ClientService,
     private readonly factoryService: FactoryService,
     private readonly storageService: StorageService,
+    private readonly optionService: OptionService,
   ) {}
 
   async upload(file: Express.Multer.File, service: string) {
@@ -54,6 +56,9 @@ export class FileService {
       case 'factory':
         await this.factoryService.upload(fistSheet);
         break;
+      case 'option':
+        this.optionService.upload(fistSheet);
+        break;
 
       default:
         throw new BadRequestException(
@@ -86,6 +91,9 @@ export class FileService {
 
       case 'factory':
         return this.factoryService.downloadExcel();
+
+      case 'option':
+        return this.optionService.downloadExcel();
 
       default:
         throw new BadRequestException(

@@ -22,6 +22,6 @@ import { OptionRepository } from './option.repository';
     ]),
   ],
   providers: [OptionService, OptionResolver, OptionRepository, OptionLoader],
-  exports: [OptionLoader],
+  exports: [OptionLoader, OptionResolver, OptionService],
 })
-export class FactoryModule {}
+export class OptionModule {}

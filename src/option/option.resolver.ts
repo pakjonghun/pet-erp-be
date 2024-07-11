@@ -27,7 +27,7 @@ export class OptionResolver {
 
   @LogData({ description: '옵션생성', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
-  @Mutation(() => Option)
+  @Mutation(() => OutputOption)
   createOption(
     @Args('createOptionInput') createOptionInput: CreateOptionInput,
   ) {
@@ -53,8 +53,8 @@ export class OptionResolver {
   @LogData({ description: '옵션삭제', logType: LogTypeEnum.DELETE })
   @Roles([AuthRoleEnum.BACK_DELETE])
   @Mutation(() => OutputOption)
-  removeOption(@Args('_id', { type: () => String }) _id: string) {
-    return this.optionService.remove(_id);
+  removeOption(@Args('id', { type: () => String }) id: string) {
+    return this.optionService.remove(id);
   }
 
   @ResolveField(() => [String])

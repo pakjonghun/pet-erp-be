@@ -31,6 +31,7 @@ import { GqlConfigService } from 'src/common/services/graphql.service';
 import { UtilModule } from './util/util.module';
 import { AccessInterceptor } from './common/interceptors/access.interceptor';
 import { VoidScalar } from './common/scalars/void.scalar';
+import { OptionModule } from './option/option.module';
 import * as Joi from 'joi';
 
 @Module({
@@ -79,7 +80,13 @@ import * as Joi from 'joi';
     GraphQLModule.forRootAsync({
       driver: ApolloDriver,
       useClass: GqlConfigService,
-      imports: [FactoryModule, ProductModule, StorageModule, ClientModule],
+      imports: [
+        FactoryModule,
+        ProductModule,
+        StorageModule,
+        ClientModule,
+        OptionModule,
+      ],
     }),
     ScheduleModule.forRoot(),
     DatabaseModule,
@@ -98,6 +105,7 @@ import * as Joi from 'joi';
     StorageModule,
     ProductOrderModule,
     UtilModule,
+    OptionModule,
   ],
   exports: [FileService],
   controllers: [AppController],
