@@ -25,7 +25,7 @@ import { InternalServerErrorException } from '@nestjs/common';
 export class FactoryResolver {
   constructor(private readonly factoryService: FactoryService) {}
 
-  @LogData({ description: '공장생성', logType: LogTypeEnum.UPDATE })
+  @LogData({ description: '공장생성', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => Factory)
   createFactory(
@@ -41,7 +41,7 @@ export class FactoryResolver {
     return result;
   }
 
-  @LogData({ description: '공장업데이트', logType: LogTypeEnum.CREATE })
+  @LogData({ description: '공장업데이트', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.BACK_EDIT])
   @Mutation(() => Factory)
   updateFactory(
