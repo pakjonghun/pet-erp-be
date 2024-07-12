@@ -9,7 +9,7 @@ import { LogData } from 'src/common/decorators/log.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
 import { SaleOutOutput } from './dto/sale-out.output';
 import { SaleOutCheck } from './entities/sale.out.check.entity';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
