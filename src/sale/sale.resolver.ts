@@ -8,6 +8,7 @@ import { SabandService } from './sabang.service';
 import { LogData } from 'src/common/decorators/log.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
 import { SaleOutOutput } from './dto/sale-out.output';
+import { SaleOutCheck } from './entities/sale.out.check.entity';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
@@ -43,6 +44,14 @@ export class SaleResolver {
   async outSaleData(@Context() ctx: any) {
     const userId = ctx.req.user.id;
     const result = await this.sabangService.out(userId);
+    await this.saleService.setCheckSaleOut(true);
+    return result;
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => SaleOutCheck, { nullable: true })
+  async saleOutCheck() {
+    const result = await this.saleService.saleOutCheck();
     return result;
   }
 }

@@ -14,20 +14,38 @@ import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { SetDeliveryCostInput } from './dto/delivery-cost.Input';
 import { InjectModel } from '@nestjs/mongoose';
 import { DeliveryCost } from './entities/delivery.entity';
-import { Client } from 'src/client/entities/client.entity';
+import { SaleOutCheck } from './entities/sale.out.check.entity';
 import * as dayjs from 'dayjs';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class SaleService {
   private readonly logger = new Logger(SaleService.name);
   constructor(
-    @InjectModel(Client.name)
-    private readonly clientModel: Model<Client>,
+    @InjectModel(SaleOutCheck.name)
+    private readonly saleOutCheckModel: Model<SaleOutCheck>,
     @InjectModel(DeliveryCost.name)
     private readonly deliveryCostModel: Model<DeliveryCost>,
     private readonly utilService: UtilService,
     private readonly saleRepository: SaleRepository,
   ) {}
+
+  @Cron('0 0 0 * * *')
+  async runMorningSale() {
+    await this.setCheckSaleOut(false);
+  }
+
+  async setCheckSaleOut(checked: boolean) {
+    await this.saleOutCheckModel.findOneAndUpdate(
+      {},
+      { $set: { isChecked: checked } },
+      { upsert: true, new: true },
+    );
+  }
+
+  async saleOutCheck() {
+    return this.saleOutCheckModel.findOne({}).lean<SaleOutCheck>();
+  }
 
   async productSale(productCode: string) {
     const [from, to] = this.utilService.monthDayjsRange();
