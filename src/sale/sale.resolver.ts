@@ -44,7 +44,17 @@ export class SaleResolver {
   @Mutation(() => SaleOutOutput, { nullable: true })
   async outSaleData(@Context() ctx: any) {
     const userId = ctx.req.user.id;
-    console.log('그래서 지금 시간은?', dayjs().format('YYYY-MM-DD HH:mm'));
+
+    const targetTime = dayjs().utc().set('hour', 11).set('minute', 30);
+    const nowTime = targetTime.get('hour');
+    console.log('targetTime : ', nowTime);
+    const now = dayjs();
+    console.log('nowTime : ', now.get('hour'));
+
+    const isShouldCheckTime = now.isAfter(now);
+    console.log('isShouldCheckTime : ', isShouldCheckTime);
+    if (isShouldCheckTime) {
+    }
     const result = await this.sabangService.out(userId);
 
     await this.saleService.setCheckSaleOut(true);
