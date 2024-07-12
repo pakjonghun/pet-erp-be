@@ -45,13 +45,10 @@ export class SaleResolver {
   async outSaleData(@Context() ctx: any) {
     const userId = ctx.req.user.id;
 
-    const targetTime = dayjs().utc().set('hour', 11).set('minute', 30);
-    const nowTime = targetTime.get('hour');
-    console.log('targetTime : ', nowTime);
+    const targetTime = dayjs().utc().set('hour', 7).set('minute', 30);
     const now = dayjs();
-    console.log('nowTime : ', now.get('hour'));
 
-    const isShouldCheckTime = now.isAfter(now);
+    const isShouldCheckTime = now.isAfter(targetTime);
     console.log('isShouldCheckTime : ', isShouldCheckTime);
     if (isShouldCheckTime) {
     }
