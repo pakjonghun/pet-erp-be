@@ -44,17 +44,16 @@ export class SaleResolver {
   @Mutation(() => SaleOutOutput, { nullable: true })
   async outSaleData(@Context() ctx: any) {
     const userId = ctx.req.user.id;
-
-    const targetTime = dayjs().utc().set('hour', 7).set('minute', 30);
-    const now = dayjs();
-
-    const isShouldCheckTime = now.isAfter(targetTime);
-    console.log('isShouldCheckTime : ', isShouldCheckTime);
-    if (isShouldCheckTime) {
-    }
     const result = await this.sabangService.out(userId);
 
-    await this.saleService.setCheckSaleOut(true);
+    const targetTime = dayjs().utc().set('hour', 9).set('minute', 30);
+    const now = dayjs();
+    const isShouldCheckTime = now.isAfter(targetTime);
+
+    if (isShouldCheckTime) {
+      await this.saleService.setCheckSaleOut(true);
+    }
+
     return result;
   }
 
