@@ -44,8 +44,9 @@ export class SaleResolver {
   @Mutation(() => SaleOutOutput, { nullable: true })
   async outSaleData(@Context() ctx: any) {
     const userId = ctx.req.user.id;
-    const result = await this.sabangService.out(userId);
     console.log('그래서 지금 시간은?', dayjs().format('YYYY-MM-DD HH:mm'));
+    const result = await this.sabangService.out(userId);
+
     await this.saleService.setCheckSaleOut(true);
     return result;
   }
