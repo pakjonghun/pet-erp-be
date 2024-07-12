@@ -9,6 +9,7 @@ import { LogData } from 'src/common/decorators/log.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
 import { SaleOutOutput } from './dto/sale-out.output';
 import { SaleOutCheck } from './entities/sale.out.check.entity';
+import dayjs from 'dayjs';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
@@ -44,6 +45,7 @@ export class SaleResolver {
   async outSaleData(@Context() ctx: any) {
     const userId = ctx.req.user.id;
     const result = await this.sabangService.out(userId);
+    console.log('그래서 지금 시간은?', dayjs().format('YYYY-MM-DD HH:mm'));
     await this.saleService.setCheckSaleOut(true);
     return result;
   }
