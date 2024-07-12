@@ -27,6 +27,8 @@ export class AccessInterceptor implements NestInterceptor {
     const clientIp = requestIp.getClientIp(request);
     const user = request.user as User;
 
+    const blackListIp = ['49.164.144.7'];
+    console.log('요청자 아이피', clientIp);
     if (!user) {
       console.log('인증정보가 없습니다만, 설정된 접속 아이피가 없으므로 통과!');
     }
