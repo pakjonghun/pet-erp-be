@@ -15,8 +15,10 @@ import { SetDeliveryCostInput } from './dto/delivery-cost.Input';
 import { InjectModel } from '@nestjs/mongoose';
 import { DeliveryCost } from './entities/delivery.entity';
 import { SaleOutCheck } from './entities/sale.out.check.entity';
-import * as dayjs from 'dayjs';
 import { Cron } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
+import * as dayjs from 'dayjs';
+import * as sola from 'solapi';
 
 @Injectable()
 export class SaleService {
@@ -28,11 +30,29 @@ export class SaleService {
     private readonly deliveryCostModel: Model<DeliveryCost>,
     private readonly utilService: UtilService,
     private readonly saleRepository: SaleRepository,
+    private readonly configService: ConfigService,
   ) {}
 
   @Cron('0 0 0 * * *')
   async runMorningSale() {
     await this.setCheckSaleOut(false);
+  }
+
+  @Cron('0 30 18 * * *')
+  async sendMessage() {
+    const apiKey = this.configService.get('SEND_MESSAGE_KEY');
+    const apiSecret = this.configService.get('SEND_MESSAGE_SECRET');
+    const sender = this.configService.get('SENDER');
+    const messageService = new sola.SolapiMessageService(apiKey, apiSecret);
+    console.log('send message!');
+    // messageService
+    //   .send({
+    //     text: '사방넷 판매를 전산에서 출고 시간입니다.',
+    //     to: '01039050101',
+    //     from: sender,
+    //   })
+    //   .then(console.log)
+    //   .catch(console.error);
   }
 
   async setCheckSaleOut(checked: boolean) {

@@ -29,9 +29,9 @@ import { StorageModule } from './storage/storage.module';
 import { ProductOrderModule } from './product-order/product-order.module';
 import { GqlConfigService } from 'src/common/services/graphql.service';
 import { UtilModule } from './util/util.module';
-import * as Joi from 'joi';
 import { AccessInterceptor } from './common/interceptors/access.interceptor';
 import { VoidScalar } from './common/scalars/void.scalar';
+import * as Joi from 'joi';
 
 @Module({
   imports: [
@@ -51,6 +51,9 @@ import { VoidScalar } from './common/scalars/void.scalar';
         AWS_BUCKET: Joi.string().required(),
         COMPANY_ID: Joi.string().required(),
         SEND_AUTH_KEY: Joi.string().required(),
+        SEND_MESSAGE_KEY: Joi.string().required(),
+        SEND_MESSAGE_SECRET: Joi.string().required(),
+        SENDER: Joi.string().required(),
       }),
     }),
     LoggerModule.forRootAsync({
