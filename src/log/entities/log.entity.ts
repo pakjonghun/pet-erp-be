@@ -8,6 +8,7 @@ export enum LogTypeEnum {
   UPDATE = 'UPDATE',
   UPLOAD = 'UPLOAD',
   DELETE = 'DELETE',
+  STOCK = 'STOCK',
 }
 
 export interface LogInterface {

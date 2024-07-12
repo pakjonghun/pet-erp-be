@@ -5,12 +5,15 @@ import { FindLogsDTO } from './dtos/find-log.input';
 import { ClientSession, FilterQuery } from 'mongoose';
 import { Log, LogInterface, LogTypeEnum } from './entities/log.entity';
 import { UtilService } from 'src/util/util.service';
+import { FindStockLogs } from './dtos/find-stock-logs.input';
+import { OrderEnum } from 'src/common/dtos/find-many.input';
 
 export type CreateStockLogInput = {
   userId: string;
   logType: LogTypeEnum;
   storageName: string;
   productName: string;
+  productCode: string;
   count: number;
   action?: '입고' | '출고';
 };
@@ -61,15 +64,55 @@ export class LogService {
     logType,
     storageName,
     productName,
+    productCode,
     count,
     action = '출고',
   }: CreateStockLogInput) {
     const log: LogInterface = {
       userId,
       logType,
-      description: `${storageName} 창고에서 ${productName} 제품을 ${count}개 ${action}함`,
+      description: `${storageName} 창고에서 ${productName}(${productCode}) 제품을 ${count}개 ${action}함`,
     };
 
     return log;
+  }
+
+  async findStockLogs({
+    keyword,
+    from,
+    to,
+    productCode,
+    skip,
+    limit,
+  }: FindStockLogs) {
+    const filterQuery: FilterQuery<Log> = {
+      $and: [
+        {
+          description: {
+            $regex: this.utilService.escapeRegex(keyword),
+            $options: 'i',
+          },
+        },
+        {
+          description: {
+            $regex: productCode,
+            $options: 'i',
+          },
+        },
+      ],
+      logType: LogTypeEnum.STOCK,
+      createdAt: {
+        $gte: from,
+        $lte: to,
+      },
+    };
+
+    return this.logRepository.findMany({
+      filterQuery,
+      skip,
+      limit,
+      sort: 'createdAt',
+      order: OrderEnum.DESC,
+    });
   }
 }

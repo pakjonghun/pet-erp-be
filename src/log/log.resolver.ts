@@ -6,6 +6,7 @@ import { CreateLogDTO } from './dtos/create-log.input';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { FindLogsDTO } from './dtos/find-log.input';
 import { FindLogsResponseDTO } from './dtos/find-log.output';
+import { FindStockLogs } from './dtos/find-stock-logs.input';
 
 @Resolver(() => Log)
 export class LogResolver {
@@ -21,5 +22,11 @@ export class LogResolver {
   @Query(() => FindLogsResponseDTO, { name: 'logs' })
   findMany(@Args('findLogsQuery') query: FindLogsDTO) {
     return this.logService.findMany(query);
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => FindLogsResponseDTO, { name: 'stockLogs' })
+  stockLogs(@Args('findStockLogs') query: FindStockLogs) {
+    return this.logService.findStockLogs(query);
   }
 }

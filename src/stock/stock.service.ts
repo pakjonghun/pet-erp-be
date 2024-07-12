@@ -484,8 +484,9 @@ export class StockService {
       const log = this.logService.createStockLog({
         userId,
         productName,
+        productCode: product.code,
         storageName,
-        logType: LogTypeEnum.UPDATE,
+        logType: LogTypeEnum.STOCK,
         count,
         action: '입고',
       });
@@ -738,9 +739,10 @@ export class StockService {
         const log = this.logService.createStockLog({
           userId,
           productName: targetProduct.name,
+          productCode: targetProduct.code,
           storageName: targetStorage.name,
           count,
-          logType: LogTypeEnum.UPDATE,
+          logType: LogTypeEnum.STOCK,
         });
 
         logs.push(log);
@@ -863,7 +865,8 @@ export class StockService {
 
       const log = this.logService.createStockLog({
         userId,
-        logType: LogTypeEnum.UPDATE,
+        logType: LogTypeEnum.STOCK,
+        productCode: product.code,
         storageName: storage.name,
         productName: product.name,
         count,
