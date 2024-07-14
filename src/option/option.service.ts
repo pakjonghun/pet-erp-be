@@ -166,7 +166,7 @@ export class OptionService {
       { header: '아이디', key: 'id', width: 70 },
       { header: '이름', key: 'name', width: 40 },
       { header: '제품숫자', key: 'count', width: 40 },
-      { header: '적용할수있는 제품목록', key: 'productCodeList', width: 40 },
+      { header: '적용할수있는 제품목록', key: 'productNameList', width: 40 },
     ];
 
     const productCodeList = allData.flatMap((item) => item.productCodeList);
@@ -182,7 +182,11 @@ export class OptionService {
     );
 
     for (const doc of allData) {
-      const productCodeList: string[] = [];
+      const newData = {
+        ...doc,
+        productNameList: '',
+      };
+      const productNameList: string[] = [];
       for (const code of doc.productCodeList) {
         const product = productByCode.get(code);
         if (!product) {
@@ -190,10 +194,10 @@ export class OptionService {
             `${doc.name} 옵션에 입력된 ${code} 제품코드는 존재하지 않는 제품코드 입니다.`,
           );
         }
-        productCodeList.push(product.code);
+        productNameList.push(product.name.trim());
       }
-      doc.productCodeList = productCodeList;
-      worksheet.addRow(doc);
+      newData.productNameList = productNameList.join(',');
+      worksheet.addRow(newData);
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
