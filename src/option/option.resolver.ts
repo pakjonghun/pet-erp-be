@@ -8,17 +8,20 @@ import {
   Context,
 } from '@nestjs/graphql';
 import { OptionService } from './option.service';
-import { Option } from './entities/option.entity';
+import { Option, OptionProduct } from './entities/option.entity';
 import { CreateOptionInput } from './dto/create-option.input';
 import { UpdateOptionInput } from './dto/update-option.input';
 import { OptionsInput } from './dto/options.input';
-import { OptionsOutput, OutProduct, OutputOption } from './dto/options.output';
+import {
+  OptionsOutput,
+  OutOptionProduct,
+  OutputOption,
+} from './dto/options.output';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
 import { LogData } from 'src/common/decorators/log.decorator';
 import DataLoader from 'dataloader';
-import { Product } from 'src/product/entities/product.entity';
 import { InternalServerErrorException } from '@nestjs/common';
 
 @Resolver(() => OutputOption)
@@ -58,25 +61,27 @@ export class OptionResolver {
     return this.optionService.remove(id);
   }
 
-  @ResolveField(() => [String])
-  async productCodeList(
+  @ResolveField(() => [OutOptionProduct])
+  async productOptionList(
     @Parent() option: Option,
     @Context('loaders')
-    { optionLoader }: { optionLoader: DataLoader<string, OutProduct> },
+    {
+      optionLoader,
+    }: { optionLoader: DataLoader<OptionProduct, OutOptionProduct> },
   ) {
-    const productCodeList = option.productCodeList;
-    if (!productCodeList) return [];
+    const productOptionList = option.productOptionList;
+    if (productOptionList.length == 0) return [];
 
-    const products = (await optionLoader.loadMany(
-      productCodeList,
-    )) as Product[];
+    const outOptionList = (await optionLoader.loadMany(
+      productOptionList,
+    )) as OutOptionProduct[];
 
-    if (products.some((item) => item instanceof Error)) {
+    if (productOptionList.some((item) => item instanceof Error)) {
       throw new InternalServerErrorException(
         '제품 리스트를 검색하는 도중에 오류가 발생했습니다.',
       );
     }
 
-    return products;
+    return outOptionList;
   }
 }

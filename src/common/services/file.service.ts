@@ -56,9 +56,6 @@ export class FileService {
       case 'factory':
         await this.factoryService.upload(fistSheet);
         break;
-      case 'option':
-        await this.optionService.upload(fistSheet);
-        break;
 
       default:
         throw new BadRequestException(
@@ -91,9 +88,6 @@ export class FileService {
 
       case 'factory':
         return this.factoryService.downloadExcel();
-
-      case 'option':
-        return this.optionService.downloadExcel();
 
       default:
         throw new BadRequestException(
