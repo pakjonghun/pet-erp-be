@@ -57,7 +57,7 @@ export class FileService {
         await this.factoryService.upload(fistSheet);
         break;
       case 'option':
-        this.optionService.upload(fistSheet);
+        await this.optionService.upload(fistSheet);
         break;
 
       default:
