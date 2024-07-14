@@ -6,8 +6,8 @@ export class MyInfo implements Pick<UserInterface, 'id' | 'role'> {
   @Field(() => String)
   id: string;
 
-  @Field(() => UserRoleEnum)
-  role: UserRoleEnum;
+  @Field(() => [UserRoleEnum])
+  role: UserRoleEnum[];
 
   @Field(() => Date)
   createdAt: Date;

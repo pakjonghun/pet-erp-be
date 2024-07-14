@@ -9,6 +9,7 @@ import {
   ProductOrderSchema,
 } from 'src/product-order/entities/product-order.entity';
 import { FactoryLoader } from './factory.loader';
+import { Product, productSchema } from 'src/product/entities/product.entity';
 
 @Module({
   imports: [
@@ -20,6 +21,11 @@ import { FactoryLoader } from './factory.loader';
       {
         name: ProductOrder.name,
         schema: ProductOrderSchema,
+      },
+
+      {
+        name: Product.name,
+        schema: productSchema,
       },
     ]),
   ],

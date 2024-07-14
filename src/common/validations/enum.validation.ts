@@ -9,8 +9,9 @@ import { COMMON_VALIDATE_ERROR } from './constants';
 
 @ValidatorConstraint({ name: 'customTextValidator', async: false })
 class IsOneOfValidator implements ValidatorConstraintInterface {
-  validate(value: string, args: ValidationArguments) {
+  validate(value: string[], args: ValidationArguments) {
     const [enumType] = args.constraints;
+
     return Object.values(enumType).includes(value);
   }
 

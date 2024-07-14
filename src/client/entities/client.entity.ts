@@ -59,6 +59,9 @@ export interface ClientInterface {
   manager?: string;
   managerTel?: string;
   inActive?: boolean;
+  storageId?: string;
+  deliveryFreeProductCodeList?: string[];
+  deliveryNotFreeProductCodeList?: string[];
 }
 
 @ObjectType()
@@ -126,6 +129,18 @@ export class Client extends AbstractEntity implements ClientInterface {
   @Prop({ type: Boolean, default: true })
   @Field(() => Boolean, { nullable: true })
   inActive?: boolean;
+
+  @Prop({ type: String })
+  @Field(() => String, { nullable: true })
+  storageId?: string;
+
+  @Prop({ type: [String] })
+  @Field(() => [String], { nullable: true })
+  deliveryFreeProductCodeList?: string[];
+
+  @Prop({ type: [String] })
+  @Field(() => [String], { nullable: true })
+  deliveryNotFreeProductCodeList?: string[];
 }
 
 export const clientSchema = SchemaFactory.createForClass(Client);

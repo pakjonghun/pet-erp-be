@@ -12,7 +12,7 @@ import { ProductRepository } from './product.repository';
 import { Product, ProductInterface } from './entities/product.entity';
 import { ColumnOption } from 'src/client/types';
 import { SaleService } from 'src/sale/sale.service';
-import { FilterQuery, Model, PipelineStage } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { ProductSaleInput } from './dtos/product-sale.input';
 import { ProductsInput } from './dtos/products-input';
@@ -23,12 +23,14 @@ import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { InjectModel } from '@nestjs/mongoose';
 import { ProductOrder } from 'src/product-order/entities/product-order.entity';
 import { Stock } from 'src/stock/entities/stock.entity';
+import { Storage } from 'src/storage/entities/storage.entity';
 
 @Injectable()
 export class ProductService {
   constructor(
     @Inject(forwardRef(() => ProductCategoryService))
     private readonly categoryService: ProductCategoryService,
+
     private readonly saleService: SaleService,
     private readonly utilService: UtilService,
     private readonly productRepository: ProductRepository,
@@ -37,6 +39,9 @@ export class ProductService {
     @InjectModel(ProductOrder.name)
     private readonly productOrderModel: Model<ProductOrder>,
 
+    @InjectModel(Storage.name)
+    private readonly storageModel: Model<Storage>,
+
     @InjectModel(Sale.name)
     private readonly saleModel: Model<Sale>,
 
@@ -44,13 +49,29 @@ export class ProductService {
     private readonly stockModel: Model<Stock>,
   ) {}
 
-  async totalSaleBy(range: FindDateInput, groupId?: string) {
+  async totalSaleBy(
+    { productCodeList, skip, limit, ...range }: FindDateInput,
+    groupId?: string,
+  ) {
     const prevRange = this.utilService.getBeforeDate(range);
+    const current = await this.saleService.totalSale(
+      range,
+      groupId,
+      undefined,
+      productCodeList,
+      skip,
+      limit,
+    );
 
-    const current = await this.saleService.totalSale(range, groupId);
-    const previous = await this.saleService.totalSale(prevRange, groupId);
-
-    return { current, previous };
+    const previous = await this.saleService.totalSale(
+      prevRange,
+      groupId,
+      undefined,
+      productCodeList,
+      skip,
+      limit,
+    );
+    return { current: current?.[0], previous: previous?.[0] };
   }
 
   async create(createProductInput: CreateProductInput) {
@@ -58,6 +79,16 @@ export class ProductService {
     let category;
     if (categoryName) {
       category = await this.categoryService.upsert({ name: categoryName });
+    }
+
+    let storage;
+    const storageName = createProductInput.storageName;
+    if (storageName) {
+      storage = await this.checkStorage(storageName);
+    }
+
+    if (createProductInput.name.includes(',')) {
+      throw new BadRequestException('제품이름에 , 는 포함될 수 없습니다.');
     }
 
     await this.productRepository.uniqueCheck({
@@ -71,6 +102,7 @@ export class ProductService {
     const result = await this.productRepository.create({
       ...createProductInput,
       category,
+      storageId: storage._id,
     });
 
     return this.findOne({ _id: result._id });
@@ -94,26 +126,38 @@ export class ProductService {
   }
 
   async update({ _id, ...body }: UpdateProductInput) {
+    if (body.name && body.name.includes(',')) {
+      throw new BadRequestException('제품이름에 , 는 포함될 수 없습니다.');
+    }
+
+    const newBody = {
+      ...body,
+      storageId: null,
+    };
+
+    let productCategoryDoc;
     if (body.category) {
-      const productCategory = await this.categoryService.findOne({
+      productCategoryDoc = await this.categoryService.findOne({
         name: body.category,
       });
 
-      if (!productCategory) {
+      if (!productCategoryDoc) {
         throw new NotFoundException(
           `${body.category}은 존재하지 않는 분류 입니다.`,
         );
       }
 
-      const newBody = {
-        ...body,
-        category: productCategory,
-      };
-      await this.productRepository.update({ _id }, newBody);
-      return this.findOne({ _id });
+      newBody.category = productCategoryDoc;
     }
 
-    await this.productRepository.update({ _id }, body);
+    let storageId;
+    if (body.storageName) {
+      const storage = await this.checkStorage(body.storageName);
+      storageId = storage._id.toHexString();
+      newBody.storageId = storageId;
+    }
+
+    await this.productRepository.update({ _id }, newBody);
     return this.findOne({ _id });
   }
 
@@ -190,17 +234,29 @@ export class ProductService {
       19: {
         fieldName: 'category',
       },
+      20: {
+        fieldName: 'storageId',
+      },
+      21: {
+        fieldName: 'isFreeDeliveryFee',
+      },
     };
 
-    const objectList = this.utilService.excelToObject(worksheet, colToField, 4);
+    const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
 
     for await (const object of objectList) {
       if (object.name && typeof object.name == 'string') {
         if (object.name.includes(',')) {
           throw new BadRequestException(
-            '제품이름에는 , 를 포함할 수 없습니다.',
+            '제품 이름에는 , 를 포함할 수 없습니다.',
           );
         }
+      }
+
+      const storageName = object.storageId as string;
+      if (storageName) {
+        const storage = await this.checkStorage(storageName);
+        object.storageId = storage._id.toHexString();
       }
 
       const categoryName = object.category as string;
@@ -211,10 +267,15 @@ export class ProductService {
 
         object.category = categoryDoc;
       }
+
+      if (typeof object.isFreeDeliveryFee == 'string') {
+        object.isFreeDeliveryFee = object.isFreeDeliveryFee.includes('무료');
+      }
     }
 
     const documents =
       await this.productRepository.objectToDocuments(objectList);
+
     this.utilService.checkDuplicatedField(documents, 'code');
     this.utilService.checkDuplicatedField(documents, 'name');
     await this.productRepository.docUniqueCheck(documents, 'code');
@@ -222,250 +283,14 @@ export class ProductService {
     await this.productRepository.bulkWrite(documents);
   }
 
-  private getSaleQueryByDate({
-    productCodeList,
-    from,
-    to,
-  }: {
-    productCodeList: string[];
-    from: Date;
-    to: Date;
-  }): FilterQuery<Sale> {
-    return {
-      productCode: { $in: productCodeList },
-      saleAt: {
-        $exists: true,
-        $gte: from,
-        $lte: to,
-      },
-    };
-  }
+  async salesByProduct({ keyword, ...rest }: ProductSaleInput) {
+    const productCodeList =
+      await this.productRepository.productCodeList(keyword);
 
-  async salesByProduct({
-    keyword,
-    from,
-    to,
-    order,
-    sort,
-    skip,
-    limit,
-  }: ProductSaleInput) {
-    const productFilterQuery: FilterQuery<Product> = {
-      name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
-    };
-    const productListPipeLine: PipelineStage[] = [
-      {
-        $match: productFilterQuery,
-      },
-      {
-        $lookup: {
-          as: 'stock_info',
-          foreignField: 'product',
-          localField: '_id',
-          from: 'stocks',
-        },
-      },
-      {
-        $lookup: {
-          let: { productId: '$_id' },
-          from: 'productorders',
-          as: 'order_info',
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$isDone', false] },
-                    {
-                      $gt: [
-                        {
-                          $size: {
-                            $ifNull: ['$products', []],
-                          },
-                        },
-                        0,
-                      ],
-                    },
-                    { $in: ['$$productId', '$products.product'] },
-                  ],
-                },
-              },
-            },
-            {
-              $project: {
-                orderDate: 1,
-                products: 1,
-              },
-            },
-            {
-              $unwind: '$products',
-            },
-            {
-              $lookup: {
-                as: 'order_product_info',
-                from: 'products',
-                foreignField: '_id',
-                localField: 'products.product',
-              },
-            },
-            {
-              $unwind: '$order_product_info',
-            },
-            {
-              $group: {
-                _id: '$_id',
-                orderDate: { $first: '$orderDate' },
-                maxLeadTime: { $max: '$order_product_info.leadTime' },
-                leadTimeCount: {
-                  $sum: {
-                    $cond: [
-                      { $ne: ['$order_product_info.leadTime', null] },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-              },
-            },
-            {
-              $addFields: {
-                maxLeadTime: {
-                  $cond: {
-                    if: { $eq: ['$leadTimeCount', 0] },
-                    then: null,
-                    else: '$maxLeadTime',
-                  },
-                },
-                calculatedDate: {
-                  $cond: {
-                    if: { $eq: ['$maxLeadTime', null] },
-                    then: '알 수 없음',
-                    else: {
-                      $dateToString: {
-                        format: '%Y-%m-%d',
-                        date: {
-                          $dateAdd: {
-                            startDate: '$orderDate',
-                            unit: 'day',
-                            amount: '$maxLeadTime',
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            {
-              $group: {
-                _id: null,
-                recentCreateDate: { $min: '$calculatedDate' },
-              },
-            },
-
-            {
-              $project: {
-                _id: 0,
-                recentCreateDate: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: {
-          stock: {
-            $sum: '$stock_info.count',
-          },
-          recentCreateDate: {
-            $arrayElemAt: ['$order_info.recentCreateDate', 0],
-          },
-        },
-      },
-      {
-        $addFields: {
-          totalAssetCost: { $multiply: ['$wonPrice', '$stock'] },
-        },
-      },
-      {
-        $project: {
-          stock_info: 0,
-          order_info: 0,
-        },
-      },
-      {
-        $sort: {
-          [sort]: order ?? -1,
-          _id: 1,
-        },
-      },
-      {
-        $skip: skip,
-      },
-      {
-        $limit: limit,
-      },
-    ];
-    const productList = await this.productRepository.model.aggregate<
-      Product & {
-        stock: number;
-        totalAssetCost: number;
-        recentCreateDate: string;
-      }
-    >(productListPipeLine);
-
-    const totalCount =
-      await this.productRepository.model.countDocuments(productFilterQuery);
-
-    const productCodeList = productList.map((product) => product.code);
-    const currentSaleFilterQuery = this.getSaleQueryByDate({
+    return this.productRepository.salesByProduct({
+      ...rest,
       productCodeList,
-      from,
-      to,
     });
-    const current = (await this.saleService.saleBy(currentSaleFilterQuery))[0];
-    const beforeRange = this.utilService.getBeforeDate({ from, to });
-    const previousSaleFilterQuery = this.getSaleQueryByDate({
-      productCodeList,
-      ...beforeRange,
-    });
-    const previous = (
-      await this.saleService.saleBy(previousSaleFilterQuery)
-    )[0];
-    const newProductList = productList.map((product) => {
-      const productCode = product.code;
-      const prevSales = previous.sales.filter((sale) => {
-        return sale.name == productCode;
-      });
-      const sales = current.sales.filter((sale) => {
-        return sale.name == productCode;
-      });
-      const newSales = sales.map((sale) => {
-        const previousItem = prevSales.find(
-          (prevSale) => prevSale._id === sale._id,
-        );
-
-        return {
-          ...sale,
-          prevAccPayCost: previousItem?.accPayCost,
-          prevAccCount: previousItem?.accCount,
-          prevAccProfit: previousItem?.accProfit,
-          prevAveragePayCost: previousItem?.averagePayCost,
-        };
-      });
-
-      const clients = current.clients.filter(
-        (client) => client._id.productCode == productCode,
-      );
-
-      return {
-        ...product,
-        sales: newSales[0],
-        clients,
-      };
-    });
-    // console.log('newProductList : ', newProductList);
-    return { totalCount, data: newProductList };
   }
 
   async saleProduct(productCode: string) {
@@ -477,14 +302,22 @@ export class ProductService {
   }
 
   async downloadExcel() {
-    const allData = this.productRepository.model
+    const allData = await this.productRepository.model
       .find()
       .populate({
         path: 'category',
         select: ['name'],
       })
       .select('-_id -createdAt -updatedAt')
-      .cursor();
+      .lean<Product[]>();
+
+    const storageIdList = allData.map((item) => item.storageId);
+    const storageList = await this.storageModel.find({
+      _id: { $in: storageIdList },
+    });
+    const storageById = new Map<string, Storage>(
+      storageList.map((item) => [item._id.toHexString(), item]),
+    );
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Data');
@@ -509,21 +342,34 @@ export class ProductService {
       { header: '', key: '', width: 10 },
       { header: '', key: '', width: 10 },
       { header: '분류', key: 'category', width: 40 },
+      { header: '출고창고', key: 'storageId', width: 70 },
+      { header: '착불여부', key: 'isFreeDeliveryFee', width: 70 },
     ];
 
-    for await (const doc of allData) {
-      const object = doc.toObject();
+    for await (const product of allData) {
       const newObject = {
-        ...object,
-        category: object?.category?.name ?? '',
+        ...product,
+        category: product?.category?.name ?? '',
+        storageId: storageById.get(product.storageId)?.name,
+        isFreeDeliveryFee: product?.isFreeDeliveryFee ? '무료배송' : '유료배송',
       };
 
       worksheet.addRow(newObject);
     }
 
-    await allData.close();
-
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;
+  }
+
+  private async checkStorage(storageName: string) {
+    const storage = await this.storageModel
+      .findOne({ name: storageName })
+      .lean<Storage>();
+
+    if (!storage) {
+      throw new BadRequestException(`${storageName}창고는 존재하지 않습니다.`);
+    }
+
+    return storage;
   }
 }

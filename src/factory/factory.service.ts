@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { CreateFactoryInput } from './dto/create-factory.input';
 import { UpdateFactoryInput } from './dto/update-factory.input';
 import { FactoryRepository } from './factory.repository';
@@ -11,36 +15,87 @@ import { Factory, FactoryInterface } from './entities/factory.entity';
 import { FactoriesInput } from './dto/factories.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import * as ExcelJS from 'exceljs';
+import { Product } from 'src/product/entities/product.entity';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class FactoryService {
   constructor(
     private readonly factoryRepository: FactoryRepository,
+    private readonly utilService: UtilService,
+
     @InjectModel(ProductOrder.name)
     private readonly productOrderModel: Model<ProductOrder>,
-    private readonly utilService: UtilService,
+
+    @InjectModel(Product.name)
+    private readonly productModel: Model<Product>,
   ) {}
 
   async create(createFactoryInput: CreateFactoryInput) {
+    if (
+      createFactoryInput.productList &&
+      createFactoryInput.productList.length
+    ) {
+      const productIdList = await this.getProductListByName(
+        createFactoryInput.productList,
+      );
+
+      createFactoryInput.productList = productIdList;
+    }
+
     await this.beforeCreate(createFactoryInput.name);
     return this.factoryRepository.create(createFactoryInput);
   }
 
-  findMany({ keyword, skip, limit }: FactoriesInput) {
+  async findMany({ keyword, skip, limit }: FactoriesInput) {
+    const productList = await this.productModel
+      .find({
+        name: {
+          $regex: keyword,
+          $options: 'i',
+        },
+      })
+      .select(['name', '_id'])
+      .lean<{ _id: ObjectId; name: string }[]>();
+    const productIds = productList.map((product) => {
+      return product._id.toHexString();
+    });
+
     const filterQuery: FilterQuery<Factory> = {
-      name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
+      $or: [
+        {
+          name: {
+            $regex: this.utilService.escapeRegex(keyword),
+            $options: 'i',
+          },
+        },
+        {
+          productList: {
+            $exists: true,
+            $elemMatch: {
+              $in: productIds,
+            },
+          },
+        },
+      ],
     };
     return this.factoryRepository.findMany({
       filterQuery,
       skip,
       limit,
       order: OrderEnum.DESC,
+      sort: 'updatedAt',
     });
   }
 
   async update({ _id, ...body }: UpdateFactoryInput) {
     if (body.name) {
       await this.beforeUpdate({ _id, name: body.name });
+    }
+
+    if (body.productList) {
+      const productIdList = await this.getProductListByName(body.productList);
+      body.productList = productIdList;
     }
 
     return this.factoryRepository.update({ _id }, body);
@@ -58,6 +113,21 @@ export class FactoryService {
 
     const result = await this.factoryRepository.remove({ _id });
     return result;
+  }
+
+  private async getProductListByName(productNameList: string[]) {
+    const productDocList = await this.productModel
+      .find({ name: { $in: productNameList } })
+      .select(['name', '_id'])
+      .lean<{ name: string; _id: ObjectId }[]>();
+
+    if (productNameList.length !== productDocList.length) {
+      throw new BadRequestException(
+        '제품 리스트 중에서 존재하지 않는 제품이 있습니다. 제품리스트를 확인해주세요.',
+      );
+    }
+
+    return productDocList.map((product) => product._id.toHexString());
   }
 
   private async beforeCreate(name: string) {
@@ -93,11 +163,25 @@ export class FactoryService {
       4: {
         fieldName: 'note',
       },
+      5: {
+        fieldName: 'productList',
+      },
     };
 
     const objectList = this.utilService.excelToObject(worksheet, colToField, 1);
+    for await (const object of objectList) {
+      await this.beforeUpload(object);
+    }
+
+    const newObjectList = objectList.map((obj) => {
+      if (!obj.productList) {
+        obj.productList = [];
+      }
+      return obj;
+    });
+
     const documents =
-      await this.factoryRepository.objectToDocuments(objectList);
+      await this.factoryRepository.objectToDocuments(newObjectList);
     this.utilService.checkDuplicatedField(documents, 'name');
     await this.factoryRepository.docUniqueCheck(documents, 'name');
     await this.factoryRepository.bulkWrite(documents);
@@ -127,5 +211,54 @@ export class FactoryService {
 
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;
+  }
+
+  private async beforeUpload(
+    input: Pick<Factory, 'name'> & { productList: string },
+  ) {
+    if (input.name.includes(',')) {
+      throw new BadRequestException("',' 는 공장 이름에 포함될 수 없습니다.");
+    }
+
+    if (!input.productList) {
+      input.productList = '';
+    }
+
+    const productNameList = input.productList
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item) => item);
+
+    const productNameSet = new Set(productNameList);
+
+    let productList: Product[] = [];
+
+    if (productNameList.length) {
+      productList = await this.productModel
+        .find({
+          name: { $in: productNameList },
+        })
+        .lean<Product[]>();
+
+      const productDocMapByName = new Map(
+        productList.map((item) => [item.name, item]),
+      );
+
+      if (productNameList.length !== productList.length) {
+        const notExistProductList: string[] = [];
+        productNameSet.forEach((productName) => {
+          const hasProductNameDoc = productDocMapByName.has(productName);
+          if (!hasProductNameDoc) {
+            notExistProductList.push(productName);
+          }
+        });
+
+        const notExistProductNameString = notExistProductList.join(',  ');
+
+        throw new BadRequestException(
+          `선택한 제품 중 존재하지 않는 제품이 ${notExistProductList.length}개 있습니다. 존재하지 않는 제품은 : (${notExistProductNameString}) 입니다.`,
+        );
+      }
+    }
   }
 }

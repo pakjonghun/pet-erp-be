@@ -7,16 +7,13 @@ import { ProductSaleInput } from './dtos/product-sale.input';
 import { ProductSaleChartOutput } from './dtos/product-sale-chart.output';
 import { ProductsInput } from './dtos/products-input';
 import { ProductsOutput } from './dtos/products.output';
-import {
-  ProductSaleOutput,
-  SaleInfos,
-  TotalSaleInfo,
-} from './dtos/product-sale.output';
+import { DashboardResult, TotalSaleInfo } from './dtos/product-sale.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
 import { LogData } from 'src/common/decorators/log.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
+import { ProductSaleMenuOutput } from './dtos/product-sale-menu.output';
 
 @Resolver(() => Product)
 export class ProductResolver {
@@ -46,7 +43,7 @@ export class ProductResolver {
   }
 
   @LogData({ description: '제품업데이트', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_EDIT])
   @Mutation(() => Product)
   updateProduct(
     @Args('updateProductInput') updateProductInput: UpdateProductInput,
@@ -55,14 +52,14 @@ export class ProductResolver {
   }
 
   @LogData({ description: '제품삭제', logType: LogTypeEnum.DELETE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_DELETE])
   @Mutation(() => Product)
   removeProduct(@Args('_id', { type: () => String }) _id: string) {
     return this.productService.remove(_id);
   }
 
   @Roles([AuthRoleEnum.ANY])
-  @Query(() => ProductSaleOutput, { nullable: true })
+  @Query(() => ProductSaleMenuOutput, { nullable: true })
   async productSales(
     @Args('productSalesInput') productSalesInput: ProductSaleInput,
   ) {
@@ -86,11 +83,12 @@ export class ProductResolver {
     const { current, previous } = await this.productService.totalSaleBy(
       dashboardProductInput,
     );
-    return { current: current[0], previous: previous[0] };
+
+    return { current: current.data[0], previous: previous.data[0] };
   }
 
   @Roles([AuthRoleEnum.ANY])
-  @Query(() => [SaleInfos], { nullable: true })
+  @Query(() => DashboardResult, { nullable: true })
   async dashboardProducts(
     @Args('dashboardProductsInput', { nullable: true })
     dashboardProductInputs: FindDateInput,
@@ -99,9 +97,8 @@ export class ProductResolver {
       dashboardProductInputs,
       'productCode',
     );
-
-    return current.map((item) => {
-      const previousItem = previous.find((prev) => prev._id === item._id);
+    const data = current.data.map((item) => {
+      const previousItem = previous.data.find((prev) => prev._id === item._id);
       return {
         ...item,
         prevAccPayCost: previousItem?.accPayCost,
@@ -110,5 +107,10 @@ export class ProductResolver {
         prevAveragePayCost: previousItem?.averagePayCost,
       };
     });
+
+    return {
+      data,
+      totalCount: current.totalCount,
+    };
   }
 }

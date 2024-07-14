@@ -1,5 +1,6 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { HydratedDocument } from 'mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 
 export interface SaleInterface {
@@ -18,7 +19,6 @@ export interface SaleInterface {
   originOrderNumber?: string;
   orderNumber?: string;
   productCode?: string;
-  saleAt?: Date;
   payCost?: number;
   orderStatus?: string;
   mallId?: string;
@@ -27,6 +27,10 @@ export interface SaleInterface {
   wholeSaleId?: string;
   storageId?: string;
   isDone?: boolean;
+  deliveryBoxCount?: number;
+  saleAt?: Date;
+  orderConfirmedAt?: Date;
+  isOut?: boolean;
 }
 
 @ObjectType()
@@ -119,6 +123,10 @@ export class Sale extends AbstractEntity implements SaleInterface {
   @Field(() => Int, { nullable: true })
   deliveryCost?: number;
 
+  @Prop({ default: 1 })
+  @Field(() => Int, { nullable: true })
+  deliveryBoxCount?: number;
+
   @Prop({ type: String })
   @Field(() => String, { nullable: true })
   wholeSaleId?: string;
@@ -130,6 +138,11 @@ export class Sale extends AbstractEntity implements SaleInterface {
   @Prop({ type: Boolean })
   @Field(() => Boolean, { nullable: true })
   isDone: boolean;
+
+  @Prop({ type: Boolean, default: true })
+  @Field(() => Boolean, { nullable: true })
+  isOut: boolean;
 }
 
 export const saleSchema = SchemaFactory.createForClass(Sale);
+export type SaleDocument = HydratedDocument<Sale>;

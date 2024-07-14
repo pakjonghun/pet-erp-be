@@ -17,4 +17,7 @@ export class CreateFactoryInput implements FactoryInterface {
 
   @Field(() => String, { nullable: true })
   phoneNumber: string;
+
+  @Field(() => [String], { nullable: true })
+  productList?: string[];
 }

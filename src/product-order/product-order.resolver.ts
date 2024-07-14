@@ -24,27 +24,39 @@ import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
 import { LogData } from 'src/common/decorators/log.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
+import { CompleteOrderInput } from './dto/complete-order.input';
 
 @Resolver(() => ProductOrder)
 export class ProductOrderResolver {
   constructor(private readonly orderService: ProductOrderService) {}
 
   @LogData({ description: '발주', logType: LogTypeEnum.CREATE })
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.ORDER_CREATE])
   @Mutation(() => ProductOrder)
   createOrder(@Args('createOrderInput') createOrderInput: CreateOrderInput) {
     return this.orderService.create(createOrderInput);
   }
 
   @LogData({ description: '발주편집', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.ORDER_EDIT])
   @Mutation(() => ProductOrder)
   updateOrder(@Args('updateOrderInput') updateOrderInput: UpdateOrderInput) {
     return this.orderService.update(updateOrderInput);
   }
 
+  @LogData({ description: '발주완료', logType: LogTypeEnum.UPDATE })
+  @Roles([AuthRoleEnum.ORDER_EDIT])
+  @Mutation(() => ProductOrder)
+  completeOrder(
+    @Args('completeOrderInput') completeOrder: CompleteOrderInput,
+    @Context() ctx: any,
+  ) {
+    const userId = ctx.req.user.id;
+    return this.orderService.completeOrder(completeOrder, userId);
+  }
+
   @LogData({ description: '발주삭제', logType: LogTypeEnum.DELETE })
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.ORDER_DELETE])
   @Mutation(() => ProductOrder)
   removeOrder(@Args('_id', { type: () => String }) _id: string) {
     return this.orderService.remove(_id);

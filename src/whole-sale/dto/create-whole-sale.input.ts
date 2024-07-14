@@ -7,10 +7,11 @@ import {
   IsOptional,
   IsString,
   Min,
+  ValidateNested,
 } from 'class-validator';
-import { SaleInterface } from './../../sale/entities/sale.entity';
 import { InputType, Field, Int } from '@nestjs/graphql';
 import { IsDateValidate } from 'src/common/validations/date.validation';
+import { Type } from 'class-transformer';
 
 @InputType()
 export class CreateWholeSaleProduct {
@@ -45,9 +46,14 @@ export class CreateWholeSaleProduct {
   @Field(() => Int, { nullable: true })
   wonCost?: number;
 }
-
 @InputType()
-export class CreateWholeSaleInput implements Omit<SaleInterface, 'code'> {
+export class CreateWholeSaleInput {
+  @IsOptional()
+  @IsNumber()
+  @Min(1, { message: '송강 개수는 1 이상의 값을 입력해주세요.' })
+  @Field(() => Int, { nullable: true })
+  deliveryBoxCount?: number;
+
   @IsBoolean()
   @Field(() => Boolean, { nullable: true })
   isDone: boolean;
@@ -69,6 +75,8 @@ export class CreateWholeSaleInput implements Omit<SaleInterface, 'code'> {
 
   @IsArray()
   @ArrayNotEmpty({ message: '1개 이상의 제품을 입력해주세요.' })
+  @ValidateNested({ each: true })
+  @Type(() => CreateWholeSaleProduct)
   @Field(() => [CreateWholeSaleProduct])
   productList: CreateWholeSaleProduct[];
 }

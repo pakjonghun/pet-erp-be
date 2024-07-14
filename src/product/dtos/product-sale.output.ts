@@ -27,6 +27,9 @@ export class SaleInfo {
   @Field(() => Float, { nullable: true })
   averagePayCost: number;
 
+  @Field(() => Float, { nullable: true })
+  deliveryCost: number;
+
   _id: string;
 }
 
@@ -41,6 +44,9 @@ export class TotalSaleInfo {
 
 @ObjectType()
 export class SaleInfos {
+  @Field(() => String, { nullable: true })
+  _id?: string;
+
   @Field(() => Int, { nullable: true })
   accPayCost: number;
 
@@ -67,6 +73,21 @@ export class SaleInfos {
 
   @Field(() => Float, { nullable: true })
   prevAveragePayCost: number;
+
+  @Field(() => Float, { nullable: true })
+  deliveryCost: number;
+
+  @Field(() => Float, { nullable: true })
+  prevDeliveryCost: number;
+}
+
+@ObjectType()
+export class DashboardResult {
+  @Field(() => [SaleInfos], { nullable: true })
+  data?: SaleInfos[];
+
+  @Field(() => Int, { nullable: true })
+  totalCount: number;
 }
 
 @ObjectType()
@@ -105,13 +126,4 @@ export class ProductSaleData extends Product {
 
   @Field(() => String, { nullable: true })
   recentCreateDate: string;
-}
-
-@ObjectType()
-export class ProductSaleOutput {
-  @Field(() => Int)
-  totalCount: number;
-
-  @Field(() => [ProductSaleData])
-  data: ProductSaleData[];
 }

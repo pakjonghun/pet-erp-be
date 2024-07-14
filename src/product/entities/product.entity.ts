@@ -12,6 +12,8 @@ export interface ProductInterface {
   salePrice?: number;
   leadTime?: number;
   category?: ProductCategory;
+  storageId?: string;
+  isFreeDeliveryFee?: boolean;
 }
 
 @Schema({ versionKey: false, timestamps: true })
@@ -58,6 +60,14 @@ export class Product extends AbstractEntity implements ProductInterface {
   @Field(() => ProductCategory, { nullable: true })
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: ProductCategory.name })
   category?: ProductCategory;
+
+  @Field(() => String, { nullable: true })
+  @Prop({ type: String })
+  storageId?: string;
+
+  @Field(() => Boolean, { nullable: true })
+  @Prop({ type: Boolean })
+  isFreeDeliveryFee?: boolean;
 }
 
 export const productSchema = SchemaFactory.createForClass(Product);

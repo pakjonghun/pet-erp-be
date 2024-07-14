@@ -5,7 +5,10 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateWholeSaleInput } from './dto/create-whole-sale.input';
+import {
+  CreateWholeSaleInput,
+  CreateWholeSaleProduct,
+} from './dto/create-whole-sale.input';
 import { UpdateWholeSaleInput } from './dto/update-whole-sale.input';
 import { WholeSaleRepository } from './whole-sale.repository';
 import { Sale, SaleInterface } from 'src/sale/entities/sale.entity';
@@ -28,6 +31,7 @@ import { WholeSaleItem } from './dto/whole-sales.output';
 import { StockService } from 'src/stock/stock.service';
 import { CreateSingleStockInput } from 'src/stock/dto/create-stock.input';
 import * as uuid from 'uuid';
+import { DeliveryCost } from 'src/sale/entities/delivery.entity';
 
 @Injectable()
 export class WholeSaleService {
@@ -35,6 +39,8 @@ export class WholeSaleService {
     private readonly utilService: UtilService,
     private readonly wholeSaleRepository: WholeSaleRepository,
     private readonly stockService: StockService,
+    @InjectModel(DeliveryCost.name)
+    private readonly deliveryCostModel: Model<DeliveryCost>,
     @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Client.name) private readonly clientModel: Model<Client>,
@@ -49,8 +55,10 @@ export class WholeSaleService {
       saleAt,
       telephoneNumber1,
       isDone,
+      deliveryBoxCount = 1,
     }: CreateWholeSaleInput,
     session: ClientSession,
+    isEdit = false,
   ) {
     const client = await this.clientModel.findOne({ name: mallId });
     if (!client) {
@@ -83,6 +91,11 @@ export class WholeSaleService {
     const stockDocList: AnyBulkWriteOperation<Stock>[] = [];
     const wholeSaleId = uuid.v4();
 
+    const deliveryCostDocs = await this.deliveryCostModel
+      .find({})
+      .lean<DeliveryCost[]>();
+    const deliveryCost = deliveryCostDocs?.[0]?.deliveryCost ?? 0;
+
     for await (const {
       count,
       payCost,
@@ -112,7 +125,7 @@ export class WholeSaleService {
         );
       }
 
-      if (stockDoc.count < count) {
+      if (!isEdit && stockDoc.count < count) {
         throw new ConflictException(
           `${storageName}에 ${productName}재고가 부족합니다. 남은재고 ${stockDoc.count}`,
         );
@@ -142,9 +155,9 @@ export class WholeSaleService {
         wholeSaleId,
         storageId: targetStorage._id.toHexString(),
         isDone,
-        // deliveryCost?: number,
+        deliveryBoxCount,
+        deliveryCost: (deliveryCost * deliveryCost) / productList.length,
       };
-
       const saleItem = new this.wholeSaleRepository.model(newWholeSale);
       saleDocList.push({
         insertOne: {
@@ -155,6 +168,7 @@ export class WholeSaleService {
 
     await this.wholeSaleRepository.model.bulkWrite(saleDocList, { session });
     await this.stockModel.bulkWrite(stockDocList, { session });
+    return wholeSaleId;
   }
 
   async create(createWholeSaleInput: CreateWholeSaleInput) {
@@ -239,6 +253,25 @@ export class WholeSaleService {
                 saleAt: { $first: '$saleAt' },
                 telephoneNumber1: { $first: '$telephoneNumber1' },
                 isDone: { $first: '$isDone' },
+                deliveryCost: {
+                  $sum: {
+                    $cond: {
+                      if: { $ifNull: ['$deliveryBoxCount', false] },
+                      then: '$deliveryCost',
+                      else: 0,
+                    },
+                  },
+                },
+                deliveryBoxCount: {
+                  $first: {
+                    $cond: {
+                      if: { $ifNull: ['$deliveryBoxCount', false] },
+                      then: '$deliveryBoxCount',
+                      else: 1,
+                    },
+                  },
+                },
+
                 productList: {
                   $push: {
                     storageName: '$storage_info.name',
@@ -286,51 +319,233 @@ export class WholeSaleService {
       totalCount: { count: number }[];
     }>(salePipeLine);
 
-    console.log('sales : ', sales);
-
     return {
       data: sales[0].data,
       totalCount: sales[0].totalCount[0]?.count ?? 0,
     };
   }
 
-  async update({
-    wholeSaleId,
-    mallId,
-    productList: curProductList,
-    saleAt,
-    telephoneNumber1,
-    isDone,
-  }: UpdateWholeSaleInput) {
+  async findOne(wholeSaleId: string) {
+    const filterQuery: Record<string, any> = {
+      wholeSaleId,
+    };
+
+    const salePipeLine: PipelineStage[] = [
+      {
+        $match: filterQuery,
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $addFields: {
+                storageObjectId: {
+                  $convert: {
+                    input: '$storageId',
+                    to: 'objectId',
+                    onError: null,
+                    onNull: null,
+                  },
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: 'storages',
+                localField: 'storageObjectId',
+                foreignField: '_id',
+                as: 'storage_info',
+              },
+            },
+            {
+              $unwind: '$storage_info',
+            },
+            {
+              $group: {
+                _id: '$wholeSaleId',
+                mallId: { $first: '$mallId' },
+                saleAt: { $first: '$saleAt' },
+                telephoneNumber1: { $first: '$telephoneNumber1' },
+                isDone: { $first: '$isDone' },
+                deliveryCost: {
+                  $sum: {
+                    $cond: {
+                      if: { $ifNull: ['$deliveryBoxCount', false] },
+                      then: '$deliveryCost',
+                      else: 0,
+                    },
+                  },
+                },
+                deliveryBoxCount: {
+                  $first: {
+                    $cond: {
+                      if: { $ifNull: ['$deliveryBoxCount', false] },
+                      then: '$deliveryBoxCount',
+                      else: 1,
+                    },
+                  },
+                },
+                productList: {
+                  $push: {
+                    storageName: '$storage_info.name',
+                    productName: '$productName',
+                    productCode: '$productCode',
+                    count: '$count',
+                    payCost: '$payCost',
+                    wonCost: '$wonCost',
+                  },
+                },
+              },
+            },
+            {
+              $sort: {
+                createdAt: -1,
+                _id: 1,
+              },
+            },
+          ],
+        },
+      },
+    ];
+
+    const sales = await this.wholeSaleRepository.model.aggregate<{
+      data: WholeSaleItem[];
+    }>(salePipeLine);
+
+    return sales[0].data;
+  }
+
+  async update(
+    {
+      wholeSaleId,
+      mallId,
+      productList: curProductList,
+      saleAt,
+      telephoneNumber1,
+      isDone,
+      deliveryBoxCount = 1,
+    }: UpdateWholeSaleInput,
+    userId: string,
+  ) {
     const session = await this.connection.startSession();
     session.startTransaction();
     try {
       // 제품 코드 제품 이름 날짜 모든게 다 바뀔수 있음. 생성, 삭제 업데이트 할 것을 구분 할 수 없음.
       // 모두 지우고 새로 온 아이템으로 새로 만들어야 함.
-      await this.remove(wholeSaleId, session);
-      await this.createWholeSale(
+      const prevWholeSale = await this.findOne(wholeSaleId);
+      if (!Array.isArray(prevWholeSale) || !prevWholeSale[0]) {
+        throw new BadRequestException('해당 도매판매는 존재하지 않습니다.');
+      }
+
+      const prevProductMapByCode = new Map<string, CreateWholeSaleProduct>();
+      const prevProductList = prevWholeSale[0].productList;
+      prevProductList.forEach((item) => {
+        prevProductMapByCode.set(item.productCode, item);
+      });
+
+      //창고가 같고 제품도 같은 것들만 추려내서
+      //count 가 줄었으면 통과
+      //count 가 늘었으면 현재 재고를 찾아서 현재 재고 + 이전 count 보다 새로운 count 가 크면 오류를 띄운다.
+      const shouldCheckList = curProductList.filter((item) => {
+        const prevProduct = prevProductMapByCode.get(item.productCode);
+        if (!prevProduct) return;
+
+        const isSameStorage = prevProduct.storageName == item.storageName;
+        const isIncrease = prevProduct.count < item.count;
+        return isIncrease && isSameStorage;
+      });
+
+      if (shouldCheckList.length) {
+        const storageNameList = shouldCheckList.map((item) => item.storageName);
+        const storageList = await this.storageModel
+          .find({
+            name: { $in: storageNameList },
+          })
+          .lean<Storage[]>();
+
+        const storageMapByName = new Map<string, Storage>();
+        storageList.forEach((item) => {
+          storageMapByName.set(item.name, item);
+        });
+
+        const productNameList = shouldCheckList.map((item) => item.productName);
+        const productList = await this.productModel
+          .find({
+            name: { $in: productNameList },
+          })
+          .lean<Product[]>();
+        const productMapByName = new Map<string, Product>();
+        productList.forEach((item) => productMapByName.set(item.name, item));
+
+        for await (const product of shouldCheckList) {
+          const targetStorage = storageMapByName.get(product.storageName)._id;
+          if (!targetStorage) {
+            throw new BadRequestException(
+              `${product.storageName}은 존재하지 않는 창고입니다.`,
+            );
+          }
+
+          const targetProduct = productMapByName.get(product.productName)._id;
+          if (!targetProduct) {
+            throw new BadRequestException(
+              `${product.productName}은 존재하지 않는 제품입니다.`,
+            );
+          }
+
+          const stock = await this.stockModel
+            .findOne({
+              storage: targetStorage,
+              product: targetProduct,
+            })
+            .lean<Stock>();
+
+          if (!stock) {
+            throw new BadRequestException('재고가 존재하지 않습니다.');
+          }
+
+          const prevProduct = prevProductMapByCode.get(product.productCode);
+
+          if (stock.count + prevProduct.count < product.count) {
+            throw new BadRequestException(
+              `${product.productName} 제품의 판매가능 재고는 ${stock.count + prevProduct.count}이하입니다.`,
+            );
+          }
+        }
+      }
+
+      await this.remove(wholeSaleId, userId, session);
+      const newWholeSaleId = await this.createWholeSale(
         {
           isDone,
           saleAt,
           mallId,
           telephoneNumber1,
           productList: curProductList,
+          deliveryBoxCount,
         },
         session,
+        true,
       );
+
       await session.commitTransaction();
+      const updateOne = await this.findOne(newWholeSaleId);
+      return updateOne;
     } catch (err) {
+      const errorMessage = err.message;
       await session.abortTransaction();
+      throw new BadRequestException(
+        errorMessage ?? '서버에서 오류가 발생 했습니다.',
+      );
     } finally {
       await session.endSession();
     }
   }
 
-  async removeAllWholeSaleById(wholeSaleId: string) {
+  async removeAllWholeSaleById(wholeSaleId: string, userId: string) {
     const session = await this.connection.startSession();
     session.startTransaction();
     try {
-      await this.remove(wholeSaleId, session);
+      await this.remove(wholeSaleId, userId, session);
       await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction();
@@ -342,9 +557,9 @@ export class WholeSaleService {
     }
   }
 
-  async remove(wholeSaleId: string, session: ClientSession) {
+  async remove(wholeSaleId: string, userId: string, session: ClientSession) {
     const stockList = await this.salesToStocks(wholeSaleId);
-    await this.stockService.add({ stocks: stockList }, session);
+    await this.stockService.add({ stocks: stockList }, userId, session);
     await this.wholeSaleRepository.model.deleteMany(
       { wholeSaleId },
       { session },

@@ -1,4 +1,11 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Product } from 'src/product/entities/product.entity';
+//
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { UtilService } from 'src/util/util.service';
 import { ConfigService } from '@nestjs/config';
 import { DateRange } from './types';
@@ -12,22 +19,90 @@ import { DATE_FORMAT, FULL_DATE_FORMAT } from 'src/common/constants';
 import * as https from 'https';
 import * as crypto from 'crypto';
 import * as dayjs from 'dayjs';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model } from 'mongoose';
+import { Client } from 'src/client/entities/client.entity';
+import * as utc from 'dayjs/plugin/utc';
+import { Sale, SaleDocument } from './entities/sale.entity';
+import { StockService } from 'src/stock/stock.service';
+import { DeliveryCost } from './entities/delivery.entity';
+dayjs.extend(utc);
 
 @Injectable()
 export class SabandService {
   private readonly logger = new Logger(SabandService.name);
   constructor(
+    @InjectConnection() private readonly connection: Connection,
+    @InjectModel(Product.name) private readonly productModel: Model<Product>,
+    @InjectModel(Client.name) private readonly clientModel: Model<Client>,
+    @InjectModel(DeliveryCost.name)
+    private readonly deliveryCostModel: Model<DeliveryCost>,
+    private readonly stockService: StockService,
     private readonly configService: ConfigService,
     private readonly utilService: UtilService,
     private readonly awsS3Service: AwsS3Service,
     private readonly saleRepository: SaleRepository,
   ) {}
 
-  @Cron('0 59 19 * * *')
+  @Cron('0 0 7 * * *')
+  async runMorningSale() {
+    await this.run();
+  }
+
+  @Cron('0 0 12 * * *')
+  async runAfternoonSale() {
+    await this.run();
+  }
+
+  @Cron('0 0 19 * * *')
+  async runEveningSale() {
+    await this.run();
+  }
+
+  async out(userId: string) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
+    try {
+      const { errors, filteredSaleList } = await this.stockService.saleOut({
+        session,
+        userId,
+      });
+      const orderNumberList = filteredSaleList.map((item) => item.orderNumber);
+      await this.saleRepository.saleModel.updateMany(
+        {
+          orderNumber: { $in: orderNumberList },
+        },
+        {
+          $set: {
+            isOut: true,
+          },
+        },
+        {
+          session,
+        },
+      );
+
+      await session.commitTransaction();
+      this.logger.log(`사방넷 데이터가 모두 저장되었습니다.`);
+      return errors;
+    } catch (error) {
+      await session.abortTransaction();
+      throw new InternalServerErrorException(
+        `서버에서 오류가 발생했습니다. ${error.message}`,
+      );
+    } finally {
+      await session.endSession();
+    }
+  }
+
   async run() {
-    const startDate = this.utilService.yesterdayDayjs().format(DATE_FORMAT);
-    // const startDate = dayjs().subtract(1, 'year').format(DATE_FORMAT);
+    const startDate = dayjs()
+      .subtract(4, 'day')
+      .startOf('day')
+      .format(DATE_FORMAT);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
+
     const xmlBuffer = await this.createXmlBuffer({ startDate, endDate });
     const params = {
       Bucket: this.configService.get('AWS_BUCKET'),
@@ -39,9 +114,96 @@ export class SabandService {
 
     const result = await this.awsS3Service.upload(params);
     const location = result.Location;
-    const saleData = await this.getSaleData(location);
-    await this.saleRepository.bulkUpsert(saleData);
+    const saleData = (await this.getSaleData(location)) as SaleDocument[];
+
+    const productCodeList = saleData.map((sale) => sale.productCode);
+    const productList = await this.productModel
+      .find({
+        code: { $in: productCodeList },
+      })
+      .lean<Product[]>();
+
+    const productByCode = new Map<string, Product>(
+      productList.map((p) => [p.code, p]),
+    );
+
+    const mallIdList = saleData.map((sale) => sale.mallId);
+    const clientList = await this.clientModel
+      .find({ name: mallIdList })
+      .lean<Client[]>();
+    const clientByName = new Map<string, Client>(
+      clientList.map((c) => [c.name, c]),
+    );
+
+    const orderNumberList = saleData.map((item) => item.orderNumber);
+    const savedSaleList = await this.saleRepository.findMany(
+      {
+        orderNumber: { $in: orderNumberList },
+        isOut: true,
+      },
+      ['orderNumber', '-_id', 'productCode', 'mallId'],
+    );
+
+    const savedSaleByOrderNumber = new Map<
+      string,
+      Pick<Sale, 'productCode' | 'orderNumber' | 'mallId'>
+    >(savedSaleList.map((sale) => [sale.orderNumber, sale]));
+
+    const deliveryCost = await this.deliveryCostModel
+      .findOne()
+      .lean<DeliveryCost>();
+
+    // deliveryCost.
+    //아직 출고안된 제품은 모두 false
+    //거래처에 해당 제품이 유료배송이면 택배비에 평균 택배비 넣기
+    //거래처에 해당 제품이 무료배송이면 택배비는 0원
+    //해당 제품이 유배 설정이고 거래처에 해당 제품이 무료배송으로 안들어가 있으면 배송비 넣기
+    saleData.forEach((sale) => {
+      const isNotOutSale = !savedSaleByOrderNumber.has(sale.orderNumber);
+      if (isNotOutSale) {
+        sale.isOut = false;
+      }
+
+      const product = productByCode.get(sale.productCode);
+      const client = clientByName.get(sale.mallId);
+      const freeDeliveryProductCodeList =
+        client?.deliveryFreeProductCodeList ?? [];
+      const notFreeDeliveryProductCodeList =
+        client?.deliveryNotFreeProductCodeList ?? [];
+      const isFreeDelivery = freeDeliveryProductCodeList.some(
+        (item) => item === sale.postalCode,
+      );
+      const isNotFreeDelivery = notFreeDeliveryProductCodeList.some(
+        (item) => item === sale.postalCode,
+      );
+      const isProductNotFree = !product?.isFreeDeliveryFee;
+
+      if (isFreeDelivery) {
+        sale.deliveryCost = 0;
+      }
+
+      if (isNotFreeDelivery || (isProductNotFree && !isFreeDelivery)) {
+        sale.deliveryCost = deliveryCost.deliveryCost ?? 0;
+      }
+    });
+
     await this.awsS3Service.delete(params);
+
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
+    try {
+      await this.saleRepository.bulkUpsert(saleData, session);
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw new InternalServerErrorException(
+        `서버에서 오류가 발생했습니다. ${error.message}`,
+      );
+    } finally {
+      await session.endSession();
+    }
+
     this.logger.log(`사방넷 데이터가 모두 저장되었습니다.`);
   }
 
@@ -67,16 +229,40 @@ export class SabandService {
     const result = await parseStringPromise(xmlData);
 
     const list = result?.SABANG_ORDER_LIST?.DATA ?? [];
-    const newList = (list as any[]).map((item) => {
+    const newList: any[] = [];
+
+    for await (const item of list) {
       const document = this.saleRepository.emptyDocument;
-      const saleAt = item['ORDER_DATE']?.[0] //
-        ? dayjs(item['ORDER_DATE']?.[0], { format: FULL_DATE_FORMAT }).toDate()
+      const deliveryTime = item['DELIVERY_CONFIRM_DATE']?.[0];
+      const saleAt = deliveryTime //
+        ? dayjs.utc(deliveryTime, FULL_DATE_FORMAT).subtract(9, 'hour').toDate()
         : null;
+
+      const orderConfirmDate = item['ORD_CONFIRM_DATE']?.[0];
+      const orderConfirmedAt = orderConfirmDate //
+        ? dayjs
+            .utc(orderConfirmDate, FULL_DATE_FORMAT)
+            .subtract(9, 'hour')
+            .toDate()
+        : null;
+
+      const mallId = item['MALL_ID']?.[0];
+      const payCost = item['PAY_COST']?.[0];
+      const productCode = item['PRODUCT_ID']?.[0];
+      const count = item['P_EA']?.[0];
+      let mallWonCost = item['MALL_WON_COST']?.[0];
+      if (!mallWonCost) {
+        const product = await this.productModel.findOne({ code: productCode });
+        const client = await this.clientModel.findOne({ name: mallId });
+        mallWonCost =
+          (product?.wonPrice ?? 0) * (count ?? 0) +
+          (payCost ?? 0) * (client?.feeRate ?? 0);
+      }
 
       document['code'] = item.IDX.join('_');
       document['shoppingMall'] = item.ORDER_ID?.[0];
       document['consignee'] = item['RECEIVE_NAME'][0];
-      document['count'] = item['P_EA']?.[0];
+      document['count'] = count;
       document['barCode'] = item.BARCODE?.[0];
       document['address1'] = item.RECEIVE_ADDR?.[0];
       document['postalCode'] = item.RECEIVE_ZIPCODE?.[0];
@@ -87,16 +273,18 @@ export class SabandService {
       document['invoiceNumber'] = item.INVOICE_NO?.[0];
       document['originOrderNumber'] = item['copy_idx']?.[0];
       document['orderNumber'] = item.IDX?.[0];
-      document['productCode'] = item['PRODUCT_ID']?.[0];
-      document['saleAt'] = saleAt;
-      document['payCost'] = item['PAY_COST']?.[0];
+      document['productCode'] = productCode;
+      document['payCost'] = payCost;
       document['orderStatus'] = item['ORDER_STATUS']?.[0];
-      document['mallId'] = item['MALL_ID']?.[0];
-      document['wonCost'] = item['MALL_WON_COST']?.[0];
+      document['mallId'] = mallId;
+      document['wonCost'] = mallWonCost;
       document['deliveryCost'] = 0;
+      document['saleAt'] = saleAt;
+      document['orderConfirmedAt'] = orderConfirmedAt;
 
-      return document;
-    });
+      newList.push(document);
+    }
+
     return newList;
   }
 
@@ -114,9 +302,10 @@ export class SabandService {
         </HEADER>		
         <DATA>
             <LANG>UTF-8</LANG>	
+            <ORDER_STATUS>004</ORDER_STATUS>
             <ORD_ST_DATE>${startDate}</ORD_ST_DATE>
             <ORD_ED_DATE>${endDate}</ORD_ED_DATE>
-            <ORD_FIELD><![CDATA[IDX|ORDER_ID|P_EA|BARCODE|RECEIVE_NAME|RECEIVE_ADDR|RECEIVE_ZIPCODE|RECEIVE_TEL|DELV_MSG1|GOODS_KEYWORD|DELIVERY_ID|INVOICE_NO|RECEIVE_CEL|copy_idx|IDX|PRODUCT_ID|ORDER_DATE|PAY_COST|ORDER_STATUS|MALL_ID|MALL_WON_COST]]></ORD_FIELD>		
+            <ORD_FIELD><![CDATA[IDX|ORDER_ID|P_EA|BARCODE|RECEIVE_NAME|RECEIVE_ADDR|RECEIVE_ZIPCODE|RECEIVE_TEL|DELV_MSG1|GOODS_KEYWORD|DELIVERY_ID|INVOICE_NO|RECEIVE_CEL|copy_idx|IDX|PRODUCT_ID|ORDER_DATE|PAY_COST|ORDER_STATUS|MALL_ID|MALL_WON_COST|ORD_CONFIRM_DATE|DELIVERY_CONFIRM_DATE]]></ORD_FIELD>		
         </DATA>
     </SABANG_CS_LIST>
     `;

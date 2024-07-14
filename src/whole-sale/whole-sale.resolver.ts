@@ -6,6 +6,7 @@ import {
   ResolveField,
   Parent,
   Int,
+  Context,
 } from '@nestjs/graphql';
 import { WholeSaleService } from './whole-sale.service';
 import { UpdateWholeSaleInput } from './dto/update-whole-sale.input';
@@ -30,16 +31,22 @@ export class WholeSaleResolver {
   }
 
   @LogData({ description: '도매판매 업데이트', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
-  @Mutation(() => [Sale], { nullable: true })
-  updateWholeSale(
+  @Roles([AuthRoleEnum.SALE_EDIT])
+  @Mutation(() => [WholeSaleItem], { nullable: true })
+  async updateWholeSale(
     @Args('updateWholeSaleInput') updateWholeSaleInput: UpdateWholeSaleInput,
+    @Context() ctx: any,
   ) {
-    return this.wholeSaleService.update(updateWholeSaleInput);
+    const userId = ctx.req.user.id;
+    const result = await this.wholeSaleService.update(
+      updateWholeSaleInput,
+      userId,
+    );
+    return result;
   }
 
   @LogData({ description: '도매판매생성', logType: LogTypeEnum.CREATE })
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.SALE_CREATE])
   @Mutation(() => [Sale], { nullable: true })
   createWholeSale(
     @Args('createWholeSaleInput') createWholeSaleInput: CreateWholeSaleInput,
@@ -48,10 +55,14 @@ export class WholeSaleResolver {
   }
 
   @LogData({ description: '도매판매삭제', logType: LogTypeEnum.DELETE })
-  @Roles([AuthRoleEnum.ADMIN, AuthRoleEnum.MANAGER])
+  @Roles([AuthRoleEnum.SALE_DELETE])
   @Mutation(() => WholeSaleItem, { nullable: true })
-  async removeWholeSale(@Args('_id', { type: () => String }) _id: string) {
-    await this.wholeSaleService.removeAllWholeSaleById(_id);
+  async removeWholeSale(
+    @Args('_id', { type: () => String }) _id: string,
+    @Context() ctx: any,
+  ) {
+    const userId = ctx.req.user.id;
+    await this.wholeSaleService.removeAllWholeSaleById(_id, userId);
     return { _id };
   }
 

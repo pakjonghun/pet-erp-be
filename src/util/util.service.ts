@@ -39,7 +39,7 @@ export class UtilService {
         if (fieldName) {
           let value = cell.value;
           if (typeof value === 'string') {
-            value = value.trim().replace(/[\b]/g, '');
+            value = value.trim().replace(/[\b]/g, '').trim();
           }
 
           if (colToField[cellIndex]?.transform) {
@@ -86,7 +86,7 @@ export class UtilService {
 
   recentDayjsMonthRange() {
     const toady = dayjs();
-    return [toady.subtract(30, 'month').startOf('date'), dayjs().endOf('date')];
+    return [toady.subtract(1, 'month').startOf('date'), toady.endOf('date')];
   }
 
   getRandomNumber(length: number) {
@@ -110,5 +110,9 @@ export class UtilService {
 
   escapeRegex(string: string) {
     return string.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  }
+
+  afterCheckIsEmpty(string: string) {
+    return string ? string : '입력안됨';
   }
 }

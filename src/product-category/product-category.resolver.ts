@@ -31,7 +31,7 @@ export class ProductCategoryResolver {
   }
 
   @LogData({ description: '제품분류 업데이트', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_EDIT])
   @Mutation(() => ProductCategory)
   updateCategory(
     @Args('updateCategoryInput') updateCategoryInput: UpdateCategoryInput,
@@ -40,7 +40,7 @@ export class ProductCategoryResolver {
   }
 
   @LogData({ description: '제품분류 삭제', logType: LogTypeEnum.DELETE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_DELETE])
   @Mutation(() => ProductCategory)
   async removeCategory(@Args('_id', { type: () => String }) _id: string) {
     const result = await this.categoryService.remove(_id);

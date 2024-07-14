@@ -6,8 +6,10 @@ import {
   IsNumber,
   IsString,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { StockInterface } from '../entities/stock.entity';
+import { Type } from 'class-transformer';
 
 @InputType()
 export class CreateSingleStockInput
@@ -38,5 +40,7 @@ export class CreateSingleStockInput
 export class CreateStockInput {
   @ArrayNotEmpty({ message: '1개 이상의 재고를 입력하세요.' })
   @Field(() => [CreateSingleStockInput], { nullable: false })
+  @Type(() => CreateSingleStockInput)
+  @ValidateNested({ each: true })
   stocks: CreateSingleStockInput[];
 }

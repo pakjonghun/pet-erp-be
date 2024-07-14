@@ -43,7 +43,8 @@ export class UsersService {
     }
 
     const { id, ...body } = updateInput;
-    return this.userRepository.update({ id }, body);
+    const result = await this.userRepository.update({ id }, body);
+    return result;
   }
 
   async remove(id: string) {

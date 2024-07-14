@@ -49,7 +49,10 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
         throw new UnauthorizedException(UNAUTHORIZE_ERROR);
 
       default:
-        if (roles.includes(user.role)) return user;
+        const hasRole = roles.some((item) => {
+          return user.role.includes(item);
+        });
+        if (hasRole) return user;
         else throw new ForbiddenException(FORBIDDEN_ERROR);
     }
   }

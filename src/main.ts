@@ -8,6 +8,7 @@ import { FileService } from './common/services/file.service';
 import { ErrorExceptionFilter } from './common/filter/error-exception';
 import { AllErrorExceptionFilter } from './common/filter/all-exception';
 import * as cookieParser from 'cookie-parser';
+import { ValidationError } from 'class-validator';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -34,19 +35,8 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       forbidUnknownValues: true,
       exceptionFactory: (errors) => {
-        const messages = errors.map((error) => {
-          const attr = error.property;
-          const value = error.value;
-          const constraints = error.constraints;
-          if (Object.keys(constraints).length === 0) {
-            return `${attr}의 값 ${value}는 잘못된 값입니다.`;
-          } else {
-            return Object.values(constraints)[0];
-          }
-        });
-        return new BadRequestException(
-          messages?.[0] ?? BadRequestException.name,
-        );
+        const messages = formatErrors(errors);
+        return new BadRequestException(messages.join(', '));
       },
     }),
   );
@@ -54,3 +44,28 @@ async function bootstrap() {
   await app.listen(port ? Number(port) : 8000);
 }
 bootstrap();
+
+function formatErrors(errors: ValidationError[]): string[] {
+  const result = [];
+
+  function recursiveErrorParser(error: ValidationError, path: string[] = []) {
+    const currentPath = [...path, error.property];
+    if (error.constraints) {
+      for (const key in error.constraints) {
+        result.push(error.constraints[key]);
+      }
+    }
+
+    if (error.children && error.children.length > 0) {
+      for (const childError of error.children) {
+        recursiveErrorParser(childError, currentPath);
+      }
+    }
+  }
+
+  for (const error of errors) {
+    recursiveErrorParser(error);
+  }
+
+  return result;
+}

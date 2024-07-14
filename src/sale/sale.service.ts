@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -11,25 +12,67 @@ import { SaleInfo, SaleInfoList } from 'src/product/dtos/product-sale.output';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { SetDeliveryCostInput } from './dto/delivery-cost.Input';
-import * as dayjs from 'dayjs';
 import { InjectModel } from '@nestjs/mongoose';
 import { DeliveryCost } from './entities/delivery.entity';
+import { SaleOutCheck } from './entities/sale.out.check.entity';
+import { Cron } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
+import * as dayjs from 'dayjs';
+import * as sola from 'solapi';
 
 @Injectable()
 export class SaleService {
   private readonly logger = new Logger(SaleService.name);
   constructor(
+    @InjectModel(SaleOutCheck.name)
+    private readonly saleOutCheckModel: Model<SaleOutCheck>,
     @InjectModel(DeliveryCost.name)
     private readonly deliveryCostModel: Model<DeliveryCost>,
     private readonly utilService: UtilService,
     private readonly saleRepository: SaleRepository,
+    private readonly configService: ConfigService,
   ) {}
+
+  @Cron('0 0 0 * * *')
+  async runMorningSale() {
+    await this.setCheckSaleOut(false);
+  }
+
+  @Cron('0 30 18 * * *')
+  async sendMessage() {
+    const apiKey = this.configService.get('SEND_MESSAGE_KEY');
+    const apiSecret = this.configService.get('SEND_MESSAGE_SECRET');
+    const sender = this.configService.get('SENDER');
+    const messageService = new sola.SolapiMessageService(apiKey, apiSecret);
+    console.log('send message!');
+    // messageService
+    //   .send({
+    //     text: '사방넷 판매를 전산에서 출고 시간입니다.',
+    //     to: '01039050101',
+    //     from: sender,
+    //   })
+    //   .then(console.log)
+    //   .catch(console.error);
+  }
+
+  async setCheckSaleOut(checked: boolean) {
+    await this.saleOutCheckModel.findOneAndUpdate(
+      {},
+      { $set: { isChecked: checked } },
+      { upsert: true, new: true },
+    );
+  }
+
+  async saleOutCheck() {
+    return this.saleOutCheckModel.findOne({}).lean<SaleOutCheck>();
+  }
 
   async productSale(productCode: string) {
     const [from, to] = this.utilService.monthDayjsRange();
     const pipeLine: PipelineStage[] = [
       {
         $match: {
+          orderStatus: '출고완료',
           productCode,
           count: { $exists: true },
           payCost: { $exists: true },
@@ -79,23 +122,36 @@ export class SaleService {
     { from, to }: FindDateInput,
     groupId?: string,
     originName: string = 'productName',
+    productCodeList?: string[],
+    skip: number = 0,
+    limit: number = 10,
   ) {
     const _id = groupId ? `$${groupId}` : null;
-    const name = `$${originName}`;
+    const name = originName;
+
     const pipeline = this.getTotalSalePipeline({
       from,
       to,
       _id,
       name,
+      productCodeList,
+      skip,
+      limit,
     });
 
-    return this.saleRepository.saleModel.aggregate<SaleInfo>(pipeline);
+    const result = await this.saleRepository.saleModel.aggregate<{
+      data: SaleInfo[];
+      totalCount: number;
+    }>(pipeline);
+
+    return result;
   }
 
   async saleBy(filterQuery: FilterQuery<Sale>) {
     const pipeLine: PipelineStage[] = [
       {
         $match: {
+          orderStatus: '출고완료',
           productCode: { $exists: true },
           mallId: { $exists: true },
           count: { $exists: true },
@@ -207,70 +263,187 @@ export class SaleService {
     to,
     _id,
     name,
+    productCodeList,
+    skip,
+    limit,
   }: {
     from: Date;
     to: Date;
     _id: string;
     name: string;
+    productCodeList?: string[];
+    skip: number;
+    limit: number;
   }): PipelineStage[] {
-    return [
-      {
-        $match: {
-          productCode: { $exists: true },
-          mallId: { $exists: true },
-          count: { $exists: true },
-          payCost: { $exists: true },
-          wonCost: { $exists: true },
-          saleAt: {
-            $exists: true,
-            $gte: from,
-            $lte: to,
+    if (productCodeList) {
+      return [
+        {
+          $match: {
+            orderStatus: '출고완료',
+            productCode: { $exists: true, $in: productCodeList },
+            mallId: { $exists: true, $ne: '로켓그로스' },
+            count: { $exists: true },
+            payCost: { $exists: true },
+            wonCost: { $exists: true },
+            saleAt: {
+              $exists: true,
+              $gte: from,
+              $lt: to,
+            },
           },
         },
-      },
-      {
-        $group: {
-          _id,
-          name: { $first: name },
-          accPayCost: { $sum: '$payCost' },
-          accCount: { $sum: '$count' },
-          accWonCost: { $sum: '$wonCost' },
-        },
-      },
-      {
-        $addFields: {
-          accProfit: {
-            $subtract: ['$accPayCost', '$accWonCost'],
+        {
+          $group: {
+            _id,
+            name: { $first: name },
+            accPayCost: { $sum: '$payCost' },
+            accCount: { $sum: '$count' },
+            accWonCost: { $sum: '$wonCost' },
+            wholeSaleId: { $first: '$wholeSaleId' },
+            deliveryCost: { $sum: { $ifNull: ['$deliveryCost', 0] } },
           },
-          averagePayCost: {
-            $round: [
+        },
+        {
+          $addFields: {
+            accProfit: {
+              $subtract: ['$accPayCost', '$accWonCost'],
+            },
+            averagePayCost: {
+              $round: [
+                {
+                  $cond: {
+                    if: { $ne: ['$accCount', 0] },
+                    then: { $divide: ['$accPayCost', '$accCount'] },
+                    else: 0,
+                  },
+                },
+                2,
+              ],
+            },
+          },
+        },
+        {
+          $facet: {
+            data: [
               {
-                $cond: {
-                  if: { $ne: ['$accCount', 0] },
-                  then: { $divide: ['$accPayCost', '$accCount'] },
-                  else: 0,
+                $sort: {
+                  accPayCost: -1,
+                  accCount: -1,
+                  _id: -1,
                 },
               },
-              2,
+              {
+                $skip: skip,
+              },
+              {
+                $limit: limit,
+              },
+              {
+                $project: {
+                  wonCost: 0,
+                },
+              },
+            ],
+            totalCount: [
+              {
+                $count: 'count',
+              },
             ],
           },
         },
-      },
-      {
-        $sort: {
-          accPayCost: -1,
-          accCount: -1,
+        {
+          $addFields: {
+            totalCount: {
+              $arrayElemAt: ['$totalCount.count', 0],
+            },
+          },
         },
-      },
-      {
-        $limit: 10,
-      },
-      {
-        $project: {
-          wonCost: 0,
+      ];
+    } else {
+      return [
+        {
+          $match: {
+            orderStatus: '출고완료',
+            productCode: { $exists: true },
+            mallId: { $exists: true, $ne: '로켓그로스' },
+            count: { $exists: true },
+            payCost: { $exists: true },
+            wonCost: { $exists: true },
+            saleAt: {
+              $exists: true,
+              $gte: from,
+              $lt: to,
+            },
+          },
         },
-      },
-    ];
+        {
+          $group: {
+            _id,
+            name: { $first: '$productName' },
+            accPayCost: { $sum: '$payCost' },
+            accCount: { $sum: '$count' },
+            accWonCost: { $sum: '$wonCost' },
+            wholeSaleId: { $first: '$wholeSaleId' },
+            deliveryCost: { $sum: { $ifNull: ['$deliveryCost', 0] } },
+          },
+        },
+        {
+          $addFields: {
+            accProfit: {
+              $subtract: ['$accPayCost', '$accWonCost'],
+            },
+            averagePayCost: {
+              $round: [
+                {
+                  $cond: {
+                    if: { $ne: ['$accCount', 0] },
+                    then: { $divide: ['$accPayCost', '$accCount'] },
+                    else: 0,
+                  },
+                },
+                2,
+              ],
+            },
+          },
+        },
+        {
+          $facet: {
+            data: [
+              {
+                $project: {
+                  wonCost: 0,
+                },
+              },
+              {
+                $sort: {
+                  accPayCost: -1,
+                  accCount: -1,
+                  _id: -1,
+                },
+              },
+              {
+                $skip: skip,
+              },
+              {
+                $limit: limit,
+              },
+            ],
+            totalCount: [
+              {
+                $count: 'count',
+              },
+            ],
+          },
+        },
+        {
+          $addFields: {
+            totalCount: {
+              $arrayElemAt: ['$totalCount.count', 0],
+            },
+          },
+        },
+      ];
+    }
   }
 
   async setDeliveryCost({
@@ -287,14 +460,19 @@ export class SaleService {
         $match: {
           saleAt: {
             $gte: from,
-            $lte: to,
+            $lt: to,
           },
+          orderStatus: '출고완료',
+          mallId: { $ne: '로켓그로스' },
+          // count: { $exists: true },
         },
       },
       {
         $group: {
           _id: null,
-          count: { $sum: 1 },
+          count: {
+            $sum: '$count',
+          },
         },
       },
     ];
@@ -303,20 +481,31 @@ export class SaleService {
       count: number;
     }>(pipeLine);
 
+    if (!saleCount.length) {
+      throw new BadRequestException(
+        `${year}년 ${month}월 에는 출고완료된 판매 존재하지 않습니다.`,
+      );
+    }
+
     const count = saleCount[0].count;
     const newDeliveryCost = !count //
       ? 0
       : monthDeliveryPayCost / count;
     const result = await this.deliveryCostModel.findOneAndUpdate(
       {},
-      { $set: { deliveryCost: newDeliveryCost, year, month } },
+      {
+        $set: {
+          deliveryCost: newDeliveryCost,
+          year,
+          month,
+          monthDeliveryPayCost,
+        },
+      },
       { upsert: true, new: true },
     );
 
     if (!result) {
-      throw new InternalServerErrorException(
-        '서버에서 예상치 못한 발생했습니다.',
-      );
+      throw new InternalServerErrorException('서버에서 오류가 발생했습니다.');
     }
 
     return result;

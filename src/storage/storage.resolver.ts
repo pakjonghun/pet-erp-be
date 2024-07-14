@@ -30,7 +30,7 @@ export class StorageResolver {
   }
 
   @LogData({ description: '창고업데이트', logType: LogTypeEnum.UPDATE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_EDIT])
   @Mutation(() => Storage)
   updateStorage(
     @Args('updateStorageInput') updateStorageInput: UpdateStorageInput,
@@ -39,7 +39,7 @@ export class StorageResolver {
   }
 
   @LogData({ description: '창고삭제', logType: LogTypeEnum.DELETE })
-  @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.BACK_DELETE])
   @Mutation(() => Storage)
   removeStorage(@Args('_id', { type: () => String }) id: string) {
     return this.storageService.remove(id);

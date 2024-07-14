@@ -7,6 +7,9 @@ export class StockColumn {
   productName: string;
 
   @Field(() => String)
+  productCode: string;
+
+  @Field(() => String)
   stockCount: string;
 
   @Field(() => Int)
