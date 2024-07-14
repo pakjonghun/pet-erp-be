@@ -28,10 +28,11 @@ export class OptionResolver {
   @LogData({ description: '옵션생성', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => OutputOption)
-  createOption(
+  async createOption(
     @Args('createOptionInput') createOptionInput: CreateOptionInput,
   ) {
-    return this.optionService.create(createOptionInput);
+    const result = await this.optionService.create(createOptionInput);
+    return result;
   }
 
   @Roles([AuthRoleEnum.ANY])
@@ -58,7 +59,7 @@ export class OptionResolver {
   }
 
   @ResolveField(() => [String])
-  async productList(
+  async productCodeList(
     @Parent() option: Option,
     @Context('loaders')
     { optionLoader }: { optionLoader: DataLoader<string, OutProduct> },

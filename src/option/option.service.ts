@@ -114,9 +114,8 @@ export class OptionService {
         );
       }
     }
-
     const productNameList = objectList.flatMap((obj) => {
-      (obj.productCodeList as unknown as string)
+      return (obj.productCodeList as unknown as string)
         .split(',')
         .map((item) => item.trim())
         .filter((item) => !!item);
@@ -166,7 +165,7 @@ export class OptionService {
       { header: '아이디', key: 'id', width: 70 },
       { header: '이름', key: 'name', width: 40 },
       { header: '제품숫자', key: 'count', width: 40 },
-      { header: '적용할수있는 제품목록', key: 'productNameList', width: 40 },
+      { header: '적용할수있는 제품목록', key: 'productNameList', width: 300 },
     ];
 
     const productCodeList = allData.flatMap((item) => item.productCodeList);

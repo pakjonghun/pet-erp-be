@@ -20,7 +20,11 @@ export class Option extends AbstractEntity implements OptionInterface {
   @Field(() => String)
   name: string;
 
-  @Prop({ type: Number, max: 1, required: true })
+  @Prop({
+    type: Number,
+    min: [1, '제품 숫자는 1이상의 값을 입력하세요'],
+    required: true,
+  })
   @Field(() => Int)
   count: number;
 
