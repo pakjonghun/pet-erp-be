@@ -98,7 +98,7 @@ export class SabandService {
 
   async run() {
     const startDate = dayjs()
-      .subtract(720, 'day')
+      .subtract(4, 'day')
       .startOf('day')
       .format(DATE_FORMAT);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
