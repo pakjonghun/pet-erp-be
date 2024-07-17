@@ -330,7 +330,8 @@ export class SabandService {
       document['postalCode'] = item.RECEIVE_ZIPCODE?.[0];
       document['telephoneNumber1'] = item['RECEIVE_TEL']?.[0];
       document['message'] = item['DELV_MSG1']?.[0];
-      document['productName'] = item['GOODS_KEYWORD']?.[0];
+      // document['productName'] = item['GOODS_KEYWORD']?.[0];
+      document['productName'] = product.name;
       document['deliveryName'] = item['DELIVERY_ID']?.[0];
       document['invoiceNumber'] = item.INVOICE_NO?.[0];
       document['originOrderNumber'] = item['copy_idx']?.[0];
