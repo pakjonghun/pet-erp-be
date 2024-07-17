@@ -28,10 +28,11 @@ export class ClientRepository extends AbstractRepository<Client> {
         $match: {
           orderStatus: '출고완료',
           productCode: { $exists: true },
-          mallId: { $exists: true, $ne: '로켓그로스' },
+          mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
           count: { $exists: true },
           payCost: { $exists: true },
           wonCost: { $exists: true },
+          totalPayment: { $exists: true },
           saleAt: {
             $gte: from,
             $lt: to,
@@ -46,6 +47,7 @@ export class ClientRepository extends AbstractRepository<Client> {
           wonCost: 1,
           productCode: 1,
           deliveryCost: 1,
+          totalPayment: 1,
         },
       },
       {
@@ -60,47 +62,11 @@ export class ClientRepository extends AbstractRepository<Client> {
           accCount: {
             $sum: '$count',
           },
-          deliveryCost: {
+          accDeliveryCost: {
             $sum: '$deliveryCost',
           },
-        },
-      },
-      {
-        $addFields: {
-          accProfit: {
-            $subtract: ['$accPayCost', '$accWonCost'],
-          },
-        },
-      },
-      {
-        $addFields: {
-          profitRate: {
-            $round: [
-              {
-                $multiply: [
-                  {
-                    $cond: {
-                      if: {
-                        $or: [
-                          {
-                            $eq: ['$accWonCost', 0],
-                          },
-                          {
-                            $eq: ['$accWonCost', null],
-                          },
-                        ],
-                      },
-                      then: 0,
-                      else: {
-                        $divide: ['$accProfit', '$accWonCost'],
-                      },
-                    },
-                  },
-                  100,
-                ],
-              },
-              2,
-            ],
+          accTotalPayment: {
+            $sum: '$totalPayment',
           },
         },
       },
@@ -243,47 +209,11 @@ export class ClientRepository extends AbstractRepository<Client> {
                       accWonCost: {
                         $sum: '$wonCost',
                       },
-                      deliveryCost: {
+                      accDeliveryCost: {
                         $sum: '$deliveryCost',
                       },
-                    },
-                  },
-                  {
-                    $addFields: {
-                      accProfit: {
-                        $subtract: ['$accPayCost', '$accWonCost'],
-                      },
-                    },
-                  },
-                  {
-                    $addFields: {
-                      profitRate: {
-                        $round: [
-                          {
-                            $multiply: [
-                              {
-                                $cond: {
-                                  if: {
-                                    $or: [
-                                      {
-                                        $eq: ['$accWonCost', 0],
-                                      },
-                                      {
-                                        $eq: ['$accWonCost', null],
-                                      },
-                                    ],
-                                  },
-                                  then: 0,
-                                  else: {
-                                    $divide: ['$accProfit', '$accWonCost'],
-                                  },
-                                },
-                              },
-                              100,
-                            ],
-                          },
-                          2,
-                        ],
+                      accTotalPayment: {
+                        $sum: '$totalPayment',
                       },
                     },
                   },
@@ -307,9 +237,8 @@ export class ClientRepository extends AbstractRepository<Client> {
                 prevAccCount: '$prevSale.accCount',
                 prevAccPayCost: '$prevSale.accPayCost',
                 prevAccWonCost: '$prevSale.accWonCost',
-                prevAccProfit: '$prevSale.accProfit',
-                prevProfitRate: '$prevSale.profitRate',
-                prevDeliveryCost: '$prevSale.deliveryCost',
+                prevAccDeliveryCost: '$prevSale.accDeliveryCost',
+                prevAccTotalPayment: '$prevSale.accTotalPayment',
               },
             },
             {

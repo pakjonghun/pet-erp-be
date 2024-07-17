@@ -12,8 +12,6 @@ const sortKey: SortKeyType & { totalAssetCost: string } = {
   accPayCost: 'accPayCost',
   accWonCost: 'accWonCost',
   accCount: 'accCount',
-  accProfit: 'accProfit',
-  profitRate: 'profitRate',
   stock: 'stock',
   recentCreateDate: 'recentCreateDate',
   totalAssetCost: 'totalAssetCost',

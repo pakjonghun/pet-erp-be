@@ -15,17 +15,17 @@ import axios from 'axios';
 import { SaleRepository } from './sale.repository';
 import { Cron } from '@nestjs/schedule';
 import { DATE_FORMAT, FULL_DATE_FORMAT } from 'src/common/constants';
-
-import * as https from 'https';
-import * as crypto from 'crypto';
-import * as dayjs from 'dayjs';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Connection, Model } from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
-import * as utc from 'dayjs/plugin/utc';
 import { Sale, SaleDocument } from './entities/sale.entity';
 import { StockService } from 'src/stock/stock.service';
 import { DeliveryCost } from './entities/delivery.entity';
+import * as https from 'https';
+import * as crypto from 'crypto';
+import * as dayjs from 'dayjs';
+import * as utc from 'dayjs/plugin/utc';
+
 dayjs.extend(utc);
 
 @Injectable()
@@ -98,7 +98,7 @@ export class SabandService {
 
   async run() {
     const startDate = dayjs()
-      .subtract(4, 'day')
+      .subtract(7, 'day')
       .startOf('day')
       .format(DATE_FORMAT);
     const endDate = dayjs().endOf('day').format(DATE_FORMAT);
@@ -114,78 +114,7 @@ export class SabandService {
 
     const result = await this.awsS3Service.upload(params);
     const location = result.Location;
-    const saleData = (await this.getSaleData(location)) as SaleDocument[];
-
-    const productCodeList = saleData.map((sale) => sale.productCode);
-    const productList = await this.productModel
-      .find({
-        code: { $in: productCodeList },
-      })
-      .lean<Product[]>();
-
-    const productByCode = new Map<string, Product>(
-      productList.map((p) => [p.code, p]),
-    );
-
-    const mallIdList = saleData.map((sale) => sale.mallId);
-    const clientList = await this.clientModel
-      .find({ name: mallIdList })
-      .lean<Client[]>();
-    const clientByName = new Map<string, Client>(
-      clientList.map((c) => [c.name, c]),
-    );
-
-    const orderNumberList = saleData.map((item) => item.orderNumber);
-    const savedSaleList = await this.saleRepository.findMany(
-      {
-        orderNumber: { $in: orderNumberList },
-        isOut: true,
-      },
-      ['orderNumber', '-_id', 'productCode', 'mallId'],
-    );
-
-    const savedSaleByOrderNumber = new Map<
-      string,
-      Pick<Sale, 'productCode' | 'orderNumber' | 'mallId'>
-    >(savedSaleList.map((sale) => [sale.orderNumber, sale]));
-
-    const deliveryCost = await this.deliveryCostModel
-      .findOne()
-      .lean<DeliveryCost>();
-
-    // deliveryCost.
-    //아직 출고안된 제품은 모두 false
-    //거래처에 해당 제품이 유료배송이면 택배비에 평균 택배비 넣기
-    //거래처에 해당 제품이 무료배송이면 택배비는 0원
-    //해당 제품이 유배 설정이고 거래처에 해당 제품이 무료배송으로 안들어가 있으면 배송비 넣기
-    saleData.forEach((sale) => {
-      const isNotOutSale = !savedSaleByOrderNumber.has(sale.orderNumber);
-      if (isNotOutSale) {
-        sale.isOut = false;
-      }
-
-      const product = productByCode.get(sale.productCode);
-      const client = clientByName.get(sale.mallId);
-      const freeDeliveryProductCodeList =
-        client?.deliveryFreeProductCodeList ?? [];
-      const notFreeDeliveryProductCodeList =
-        client?.deliveryNotFreeProductCodeList ?? [];
-      const isFreeDelivery = freeDeliveryProductCodeList.some(
-        (item) => item === sale.postalCode,
-      );
-      const isNotFreeDelivery = notFreeDeliveryProductCodeList.some(
-        (item) => item === sale.postalCode,
-      );
-      const isProductNotFree = !product?.isFreeDeliveryFee;
-
-      if (isFreeDelivery) {
-        sale.deliveryCost = 0;
-      }
-
-      if (isNotFreeDelivery || (isProductNotFree && !isFreeDelivery)) {
-        sale.deliveryCost = deliveryCost.deliveryCost ?? 0;
-      }
-    });
+    const { saleData, noPayCost } = await this.getSaleData(location);
 
     await this.awsS3Service.delete(params);
 
@@ -195,6 +124,8 @@ export class SabandService {
     try {
       await this.saleRepository.bulkUpsert(saleData, session);
       await session.commitTransaction();
+      this.logger.log(`사방넷 데이터가 모두 저장되었습니다.`);
+      return noPayCost;
     } catch (error) {
       await session.abortTransaction();
       throw new InternalServerErrorException(
@@ -203,8 +134,6 @@ export class SabandService {
     } finally {
       await session.endSession();
     }
-
-    this.logger.log(`사방넷 데이터가 모두 저장되었습니다.`);
   }
 
   private async getSaleData(xmlLocation: string) {
@@ -228,10 +157,121 @@ export class SabandService {
   private async xmlToJson(xmlData: Record<any, any>) {
     const result = await parseStringPromise(xmlData);
 
-    const list = result?.SABANG_ORDER_LIST?.DATA ?? [];
+    const initList = result?.SABANG_ORDER_LIST?.DATA ?? [];
     const newList: any[] = [];
 
-    for await (const item of list) {
+    const allProduct = await this.productModel.find({}).lean<Product[]>();
+    const allClient = await this.clientModel.find({}).lean<Client[]>();
+
+    const productByCode = new Map<string, Product>(
+      allProduct.map((p) => [p.code, p]),
+    );
+
+    const clientByName = new Map<string, Client>(
+      allClient.map((c) => [c.name, c]),
+    );
+
+    const filterProductCode = {
+      ['100006' as string]: 1,
+      '100274': 1,
+      '100211': 1,
+    };
+
+    const filterMallId = {
+      // ['로켓그로스' as string]: 1,
+      // 정글북: 1,
+      라이펫: 1,
+      '에스제이크리웍스(한국반려동물아카데미)': 1,
+    };
+
+    const changeMallId = {
+      ['강아지대통령/고양이대통령' as string]: '펀앤씨',
+      포동_일반결제: '포동',
+      포동_포인트결제: '포동',
+      AliExpress: '알리익스프레스',
+      '펫그라운드 (견생냥품)': '견생냥품',
+    };
+
+    type RawSale = Pick<Sale, 'mallId' | 'productCode' | 'productName'>;
+
+    const list = initList
+      .filter((item) => {
+        const productName = item['GOODS_KEYWORD']?.[0];
+        const productCode = item['PRODUCT_ID']?.[0] as string;
+        const mallId = item['MALL_ID']?.[0] as string;
+        if (!productCode || !mallId || !productName) return false;
+
+        if (filterProductCode[productCode] || filterMallId[mallId]) {
+          return false;
+        }
+
+        return true;
+      })
+      .map((item) => {
+        const mallId = item['MALL_ID']?.[0] as string;
+        const newMallId = changeMallId[mallId];
+        if (newMallId) {
+          item['MALL_ID'][0] = newMallId;
+        }
+        return item;
+      });
+
+    const saleRawDataList: RawSale[] = [];
+
+    for (const item of list) {
+      const productCode = item['PRODUCT_ID']?.[0] as string;
+      const mallId = item['MALL_ID']?.[0] as string;
+      const productName = item['GOODS_KEYWORD']?.[0];
+      if (!productCode || !mallId || !productName) continue;
+
+      const object = {
+        productCode,
+        mallId,
+        productName,
+      };
+      saleRawDataList.push(object);
+    }
+
+    const saleRawDataByProductCode = new Map<string, RawSale>(
+      saleRawDataList.map((s) => [s.productCode, s]),
+    );
+
+    const noProductCodeList: string[] = [];
+    const productCodeSet = new Set(
+      saleRawDataList.map((item) => item.productCode),
+    );
+    productCodeSet.forEach((p) => {
+      if (!productByCode.has(p)) {
+        const product = saleRawDataByProductCode.get(p);
+        const productWord = `${product.productName}(${product.productCode})`;
+        noProductCodeList.push(productWord);
+      }
+    });
+
+    const noClientCodeList: string[] = [];
+    const mallIdSet = new Set(saleRawDataList.map((item) => item.mallId));
+    mallIdSet.forEach((mallId) => {
+      if (!clientByName.has(mallId)) {
+        noClientCodeList.push(mallId);
+      }
+    });
+
+    let errorMessage = '';
+
+    if (noProductCodeList.length) {
+      errorMessage = `백데이터에 없는 제품이 있습니다. 제품목록 ${noProductCodeList.join(', ')}`;
+    }
+
+    if (noClientCodeList.length) {
+      errorMessage += `백데이터에 없는 거래처가 있습니다. 거래처이름 ${noClientCodeList.join(', ')}`;
+    }
+
+    if (noProductCodeList.length || noClientCodeList.length) {
+      throw new BadRequestException(errorMessage);
+    }
+
+    const noPayCostList: Sale[] = [];
+    for (const item of list) {
       const document = this.saleRepository.emptyDocument;
       const deliveryTime = item['DELIVERY_CONFIRM_DATE']?.[0];
       const saleAt = deliveryTime //
@@ -247,18 +287,40 @@ export class SabandService {
         : null;
 
       const mallId = item['MALL_ID']?.[0];
-      const payCost = item['PAY_COST']?.[0];
+      const realPayCost = item['PAY_COST']?.[0];
       const productCode = item['PRODUCT_ID']?.[0];
       const count = item['P_EA']?.[0];
-      let mallWonCost = item['MALL_WON_COST']?.[0];
-      if (!mallWonCost) {
-        const product = await this.productModel.findOne({ code: productCode });
-        const client = await this.clientModel.findOne({ name: mallId });
-        mallWonCost =
-          (product?.wonPrice ?? 0) * (count ?? 0) +
-          (payCost ?? 0) * (client?.feeRate ?? 0);
+      let payCost = item['MALL_WON_COST']?.[0];
+      const product = productByCode.get(productCode)!;
+      const client = clientByName.get(mallId)!;
+      // console.log('판매액', realPayCost, '정산액', payCost);
+
+      if (payCost == 0) {
+        const feeRate = client.feeRate;
+        payCost = Math.floor(realPayCost * (1 - feeRate));
+        if (productCode == '100145') {
+          console.log(
+            '정산액이 없을때 정산액 계산',
+            'feeRate',
+            feeRate,
+            '계산된 정산액',
+            payCost,
+            '판매액',
+            realPayCost,
+          );
+        }
       }
 
+      const wonCost = product.wonPrice * count;
+      // console.log(
+      //   '원가계산',
+      //   '제품원가',
+      //   product.wonPrice,
+      //   '개수',
+      //   count,
+      //   '계산금액',
+      //   wonCost,
+      // );
       document['code'] = item.IDX.join('_');
       document['shoppingMall'] = item.ORDER_ID?.[0];
       document['consignee'] = item['RECEIVE_NAME'][0];
@@ -277,15 +339,80 @@ export class SabandService {
       document['payCost'] = payCost;
       document['orderStatus'] = item['ORDER_STATUS']?.[0];
       document['mallId'] = mallId;
-      document['wonCost'] = mallWonCost;
+      document['wonCost'] = wonCost;
       document['deliveryCost'] = 0;
       document['saleAt'] = saleAt;
       document['orderConfirmedAt'] = orderConfirmedAt;
+      document['totalPayment'] = realPayCost;
 
       newList.push(document);
+
+      if (realPayCost == 0) {
+        noPayCostList.push(document);
+      }
     }
 
-    return newList;
+    //////////
+    //택배비 계산
+
+    const orderNumberList = newList.map((item) => item.orderNumber);
+    const savedSaleList = await this.saleRepository.findMany(
+      {
+        orderNumber: { $in: orderNumberList },
+        isOut: true,
+      },
+      ['orderNumber', '-_id', 'productCode', 'mallId'],
+    );
+
+    const savedSaleByOrderNumber = new Map<
+      string,
+      Pick<Sale, 'productCode' | 'orderNumber' | 'mallId'>
+    >(savedSaleList.map((sale) => [sale.orderNumber, sale]));
+
+    const deliveryCost = await this.deliveryCostModel
+      .findOne()
+      .lean<DeliveryCost>();
+
+    // deliveryCost.
+    //아직 출고안된 제품은 모두 false
+    //거래처에 해당 제품이 유료배송이면 택배비에 평균 택배비 넣기
+    //거래처에 해당 제품이 무료배송이면 택배비는 0원
+    //해당 제품이 유배 설정이고 거래처에 해당 제품이 무료배송으로 안들어가 있으면 배송비 넣기
+    newList.forEach((sale) => {
+      const isNotOutSale = !savedSaleByOrderNumber.has(sale.orderNumber);
+      if (isNotOutSale) {
+        sale.isOut = false;
+      }
+
+      const product = productByCode.get(sale.productCode);
+      const client = clientByName.get(sale.mallId);
+      const freeDeliveryProductCodeList =
+        client?.deliveryFreeProductCodeList ?? [];
+      const notFreeDeliveryProductCodeList =
+        client?.deliveryNotFreeProductCodeList ?? [];
+      const isFreeDelivery = freeDeliveryProductCodeList.some(
+        (item) => item == sale.productCode,
+      );
+      const isNotFreeDelivery = notFreeDeliveryProductCodeList.some(
+        (item) => item == sale.productCode,
+      );
+      const isProductNotFree = !product?.isFreeDeliveryFee;
+
+      if (isFreeDelivery) {
+        sale.deliveryCost = 0;
+      }
+
+      if (isNotFreeDelivery || (isProductNotFree && !isFreeDelivery)) {
+        sale.deliveryCost = deliveryCost.deliveryCost ?? 0;
+      }
+    });
+
+    /////////
+
+    return {
+      saleData: newList as SaleDocument[],
+      noPayCost: noPayCostList,
+    };
   }
 
   private async createXmlBuffer({ startDate, endDate }: DateRange) {

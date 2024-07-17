@@ -121,6 +121,10 @@ export class Sale extends AbstractEntity implements SaleInterface {
 
   @Prop({ default: 0 })
   @Field(() => Int, { nullable: true })
+  totalPayment?: number;
+
+  @Prop({ default: 0 })
+  @Field(() => Int, { nullable: true })
   deliveryCost?: number;
 
   @Prop({ default: 1 })

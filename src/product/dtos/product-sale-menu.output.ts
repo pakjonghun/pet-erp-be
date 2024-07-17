@@ -21,11 +21,11 @@ export class ProductSaleMenu extends Product {
   @Field(() => Int, { nullable: true })
   accCount: number;
 
-  @Field(() => Int, { nullable: true })
-  accProfit: number;
+  @Field(() => Float, { nullable: true })
+  accDeliveryCost: number;
 
   @Field(() => Float, { nullable: true })
-  profitRate: number;
+  accTotalPayment: number;
 
   @Field(() => Int, { nullable: true })
   stock: number;
@@ -48,14 +48,11 @@ export class ProductSaleMenu extends Product {
   @Field(() => Int, { nullable: true })
   prevAccProfit: number;
 
-  @Field(() => Float, { nullable: true })
-  prevAccProfitRate: number;
+  @Field(() => Int, { nullable: true })
+  prevAccTotalPayment: number;
 
   @Field(() => Float, { nullable: true })
-  deliveryCost: number;
-
-  @Field(() => Float, { nullable: true })
-  prevDeliveryCost: number;
+  prevAccDeliveryCost: number;
 }
 
 @ObjectType()

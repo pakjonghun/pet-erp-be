@@ -13,6 +13,9 @@ export class ClientId {
 @ObjectType()
 export class SaleInfo {
   @Field(() => Int, { nullable: true })
+  accWonCost: number;
+
+  @Field(() => Int, { nullable: true })
   accPayCost: number;
 
   @Field(() => Int, { nullable: true })
@@ -22,13 +25,10 @@ export class SaleInfo {
   name: string;
 
   @Field(() => Float, { nullable: true })
-  accProfit: number;
+  accTotalPayment: number;
 
   @Field(() => Float, { nullable: true })
-  averagePayCost: number;
-
-  @Field(() => Float, { nullable: true })
-  deliveryCost: number;
+  accDeliveryCost: number;
 
   _id: string;
 }
@@ -48,19 +48,25 @@ export class SaleInfos {
   _id?: string;
 
   @Field(() => Int, { nullable: true })
+  accWonCost: number;
+
+  @Field(() => Int, { nullable: true })
   accPayCost: number;
 
   @Field(() => Int, { nullable: true })
   accCount: number;
 
+  @Field(() => Int, { nullable: true })
+  accTotalPayment: number;
+
+  @Field(() => Float, { nullable: true })
+  accDeliveryCost: number;
+
   @Field(() => String, { nullable: true })
   name: string;
 
-  @Field(() => Float, { nullable: true })
-  accProfit: number;
-
-  @Field(() => Float, { nullable: true })
-  averagePayCost: number;
+  @Field(() => Int, { nullable: true })
+  prevAccTotalPayment: number;
 
   @Field(() => Int, { nullable: true })
   prevAccPayCost: number;
@@ -68,17 +74,11 @@ export class SaleInfos {
   @Field(() => Int, { nullable: true })
   prevAccCount: number;
 
-  @Field(() => Float, { nullable: true })
-  prevAccProfit: number;
+  @Field(() => Int, { nullable: true })
+  prevAccWonCost: number;
 
   @Field(() => Float, { nullable: true })
-  prevAveragePayCost: number;
-
-  @Field(() => Float, { nullable: true })
-  deliveryCost: number;
-
-  @Field(() => Float, { nullable: true })
-  prevDeliveryCost: number;
+  prevAccDeliveryCost: number;
 }
 
 @ObjectType()

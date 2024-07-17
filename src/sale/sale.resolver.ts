@@ -10,6 +10,7 @@ import { LogTypeEnum } from 'src/log/entities/log.entity';
 import { SaleOutOutput } from './dto/sale-out.output';
 import { SaleOutCheck } from './entities/sale.out.check.entity';
 import * as dayjs from 'dayjs';
+import { Sale } from './entities/sale.entity';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
@@ -35,9 +36,10 @@ export class SaleResolver {
   }
 
   @Roles([AuthRoleEnum.ANY])
-  @Mutation(() => DeliveryCost, { nullable: true })
+  @Mutation(() => [Sale], { nullable: true })
   async loadSabangData() {
-    await this.sabangService.run();
+    const result = await this.sabangService.run();
+    return result;
   }
 
   @Roles([AuthRoleEnum.STOCK_SALE_OUT])

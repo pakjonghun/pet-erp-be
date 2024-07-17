@@ -18,7 +18,7 @@ import { SaleOutCheck } from './entities/sale.out.check.entity';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import * as dayjs from 'dayjs';
-import * as sola from 'solapi';
+// import * as sola from 'solapi';
 
 @Injectable()
 export class SaleService {
@@ -40,14 +40,14 @@ export class SaleService {
 
   @Cron('0 30 18 * * *')
   async sendMessage() {
-    const apiKey = this.configService.get('SEND_MESSAGE_KEY');
-    const apiSecret = this.configService.get('SEND_MESSAGE_SECRET');
-    const sender = this.configService.get('SENDER');
-    const messageService = new sola.SolapiMessageService(apiKey, apiSecret);
+    // const apiKey = this.configService.get('SEND_MESSAGE_KEY');
+    // const apiSecret = this.configService.get('SEND_MESSAGE_SECRET');
+    // const sender = this.configService.get('SENDER');
+    // const messageService = new sola.SolapiMessageService(apiKey, apiSecret);
     console.log('send message!');
     // messageService
     //   .send({
-    //     text: '사방넷 판매를 전산에서 출고 시간입니다.',
+    //     text: '사방넷 판매를 전산에서 출고할 시간입니다.',
     //     to: '01039050101',
     //     from: sender,
     //   })
@@ -285,6 +285,7 @@ export class SaleService {
             count: { $exists: true },
             payCost: { $exists: true },
             wonCost: { $exists: true },
+            totalPayment: { $exists: true },
             saleAt: {
               $exists: true,
               $gte: from,
@@ -300,26 +301,8 @@ export class SaleService {
             accCount: { $sum: '$count' },
             accWonCost: { $sum: '$wonCost' },
             wholeSaleId: { $first: '$wholeSaleId' },
-            deliveryCost: { $sum: { $ifNull: ['$deliveryCost', 0] } },
-          },
-        },
-        {
-          $addFields: {
-            accProfit: {
-              $subtract: ['$accPayCost', '$accWonCost'],
-            },
-            averagePayCost: {
-              $round: [
-                {
-                  $cond: {
-                    if: { $ne: ['$accCount', 0] },
-                    then: { $divide: ['$accPayCost', '$accCount'] },
-                    else: 0,
-                  },
-                },
-                2,
-              ],
-            },
+            accDeliveryCost: { $sum: { $ifNull: ['$deliveryCost', 0] } },
+            accTotalPayment: { $sum: '$totalPayment' },
           },
         },
         {
@@ -327,8 +310,8 @@ export class SaleService {
             data: [
               {
                 $sort: {
-                  accPayCost: -1,
                   accCount: -1,
+                  accPayCost: -1,
                   _id: -1,
                 },
               },
@@ -369,6 +352,7 @@ export class SaleService {
             count: { $exists: true },
             payCost: { $exists: true },
             wonCost: { $exists: true },
+            totalPayment: { $exists: true },
             saleAt: {
               $exists: true,
               $gte: from,
@@ -384,26 +368,8 @@ export class SaleService {
             accCount: { $sum: '$count' },
             accWonCost: { $sum: '$wonCost' },
             wholeSaleId: { $first: '$wholeSaleId' },
-            deliveryCost: { $sum: { $ifNull: ['$deliveryCost', 0] } },
-          },
-        },
-        {
-          $addFields: {
-            accProfit: {
-              $subtract: ['$accPayCost', '$accWonCost'],
-            },
-            averagePayCost: {
-              $round: [
-                {
-                  $cond: {
-                    if: { $ne: ['$accCount', 0] },
-                    then: { $divide: ['$accPayCost', '$accCount'] },
-                    else: 0,
-                  },
-                },
-                2,
-              ],
-            },
+            accDeliveryCost: { $sum: { $ifNull: ['$deliveryCost', 0] } },
+            accTotalPayment: { $sum: '$totalPayment' },
           },
         },
         {
@@ -416,8 +382,8 @@ export class SaleService {
               },
               {
                 $sort: {
-                  accPayCost: -1,
                   accCount: -1,
+                  accPayCost: -1,
                   _id: -1,
                 },
               },

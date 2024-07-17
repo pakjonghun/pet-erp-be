@@ -95,10 +95,11 @@ export class ProductRepository extends AbstractRepository<Product> {
       {
         $match: {
           orderStatus: '출고완료',
-          mallId: { $exists: true, $ne: '로켓그로스' },
+          mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
           count: { $exists: true },
           payCost: { $exists: true },
           wonCost: { $exists: true },
+          totalPayment: { $exists: true },
           productCode: {
             $in: productCodeList,
           },
@@ -116,11 +117,15 @@ export class ProductRepository extends AbstractRepository<Product> {
           wonCost: 1,
           productCode: 1,
           deliveryCost: 1,
+          totalPayment: 1,
         },
       },
       {
         $group: {
           _id: '$productCode',
+          accTotalPayment: {
+            $sum: '$totalPayment',
+          },
           accPayCost: {
             $sum: '$payCost',
           },
@@ -130,43 +135,8 @@ export class ProductRepository extends AbstractRepository<Product> {
           accCount: {
             $sum: '$count',
           },
-          deliveryCost: {
+          accDeliveryCost: {
             $sum: '$deliveryCost',
-          },
-        },
-      },
-      {
-        $addFields: {
-          accProfit: {
-            $subtract: ['$accPayCost', '$accWonCost'],
-          },
-        },
-      },
-      {
-        $addFields: {
-          profitRate: {
-            $round: [
-              {
-                $multiply: [
-                  {
-                    $cond: {
-                      if: {
-                        $or: [
-                          { $eq: ['$accWonCost', null] },
-                          { $eq: ['$accWonCost', 0] },
-                        ],
-                      },
-                      then: 0,
-                      else: {
-                        $divide: ['$accProfit', '$accWonCost'],
-                      },
-                    },
-                  },
-                  100,
-                ],
-              },
-              2,
-            ],
           },
         },
       },
@@ -345,10 +315,11 @@ export class ProductRepository extends AbstractRepository<Product> {
                   {
                     $match: {
                       orderStatus: '출고완료',
-                      mallId: { $exists: true, $ne: '로켓그로스' },
+                      mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
                       count: { $exists: true },
                       payCost: { $exists: true },
                       wonCost: { $exists: true },
+                      totalPayment: { $exists: true },
                       saleAt: {
                         $gte: from,
                         $lt: to,
@@ -395,10 +366,11 @@ export class ProductRepository extends AbstractRepository<Product> {
                   {
                     $match: {
                       orderStatus: '출고완료',
-                      mallId: { $exists: true, $ne: '로켓그로스' },
+                      mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
                       count: { $exists: true },
                       payCost: { $exists: true },
                       wonCost: { $exists: true },
+                      totalPayment: { $exists: true },
                       saleAt: {
                         $gte: prevDate.from,
                         $lt: prevDate.to,
@@ -411,6 +383,9 @@ export class ProductRepository extends AbstractRepository<Product> {
                   {
                     $group: {
                       _id: null,
+                      accTotalPayment: {
+                        $sum: '$totalPayment',
+                      },
                       accCount: {
                         $sum: '$count',
                       },
@@ -420,43 +395,8 @@ export class ProductRepository extends AbstractRepository<Product> {
                       accWonCost: {
                         $sum: '$wonCost',
                       },
-                      deliveryCost: {
+                      accDeliveryCost: {
                         $sum: '$deliveryCost',
-                      },
-                    },
-                  },
-                  {
-                    $addFields: {
-                      accProfit: {
-                        $subtract: ['$accPayCost', '$accWonCost'],
-                      },
-                    },
-                  },
-                  {
-                    $addFields: {
-                      profitRate: {
-                        $round: [
-                          {
-                            $multiply: [
-                              {
-                                $cond: {
-                                  if: {
-                                    $or: [
-                                      { $eq: ['$accWonCost', 0] },
-                                      { $eq: ['$accWonCost', null] },
-                                    ],
-                                  },
-                                  then: 0,
-                                  else: {
-                                    $divide: ['$accProfit', '$accWonCost'],
-                                  },
-                                },
-                              },
-                              100,
-                            ],
-                          },
-                          2,
-                        ],
                       },
                     },
                   },
@@ -477,12 +417,11 @@ export class ProductRepository extends AbstractRepository<Product> {
             },
             {
               $addFields: {
+                prevAccTotalPayment: '$prevSale.accTotalPayment',
                 prevAccCount: '$prevSale.accCount',
                 prevAccPayCost: '$prevSale.accPayCost',
                 prevAccWonCost: '$prevSale.accWonCost',
-                prevAccProfit: '$prevSale.accProfit',
-                prevAccProfitRate: '$prevSale.profitRate',
-                prevDeliveryCost: '$prevSale.deliveryCost',
+                prevAccDeliveryCost: '$prevSale.accDeliveryCost',
               },
             },
             {

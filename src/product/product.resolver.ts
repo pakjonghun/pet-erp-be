@@ -64,6 +64,7 @@ export class ProductResolver {
     @Args('productSalesInput') productSalesInput: ProductSaleInput,
   ) {
     const result = await this.productService.salesByProduct(productSalesInput);
+    console.log('result : ', result);
     return result;
   }
 
@@ -101,10 +102,10 @@ export class ProductResolver {
       const previousItem = previous.data.find((prev) => prev._id === item._id);
       return {
         ...item,
+        prevAccDeliveryCost: previousItem?.accDeliveryCost,
         prevAccPayCost: previousItem?.accPayCost,
         prevAccCount: previousItem?.accCount,
-        prevAccProfit: previousItem?.accProfit,
-        prevAveragePayCost: previousItem?.averagePayCost,
+        prevAccTotalPayment: previousItem?.accTotalPayment,
       };
     });
 

@@ -22,12 +22,6 @@ export class ClientSaleMenu extends Client {
   accCount: number;
 
   @Field(() => Int, { nullable: true })
-  accProfit: number;
-
-  @Field(() => Float, { nullable: true })
-  profitRate: number;
-
-  @Field(() => Int, { nullable: true })
   prevAccCount: number;
 
   @Field(() => Int, { nullable: true })
@@ -36,17 +30,17 @@ export class ClientSaleMenu extends Client {
   @Field(() => Int, { nullable: true })
   prevAccWonCost: number;
 
-  @Field(() => Int, { nullable: true })
-  prevAccProfit: number;
+  @Field(() => Float, { nullable: true })
+  prevAccDeliveryCost: number;
 
   @Field(() => Float, { nullable: true })
-  prevProfitRate: number;
+  accDeliveryCost: number;
 
   @Field(() => Float, { nullable: true })
-  prevDeliveryCost: number;
+  accTotalPayment: number;
 
   @Field(() => Float, { nullable: true })
-  deliveryCost: number;
+  prevAccTotalPayment: number;
 
   @Field(() => [ProductSaleInfo])
   products: ProductSaleInfo[];

@@ -53,9 +53,8 @@ export class ClientResolver {
         ...item,
         prevAccPayCost: previousItem?.accPayCost,
         prevAccCount: previousItem?.accCount,
-        prevAccProfit: previousItem?.accProfit,
-        prevAveragePayCost: previousItem?.averagePayCost,
-        prevDeliveryCost: previousItem?.deliveryCost,
+        prevAccDeliveryCost: previousItem?.accDeliveryCost,
+        prevAccTotalPayment: previousItem?.accTotalPayment,
       };
     });
     return {
