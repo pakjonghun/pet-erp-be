@@ -64,7 +64,6 @@ export class ProductResolver {
     @Args('productSalesInput') productSalesInput: ProductSaleInput,
   ) {
     const result = await this.productService.salesByProduct(productSalesInput);
-    console.log('result : ', result);
     return result;
   }
 

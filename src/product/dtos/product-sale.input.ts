@@ -15,6 +15,7 @@ const sortKey: SortKeyType & { totalAssetCost: string } = {
   stock: 'stock',
   recentCreateDate: 'recentCreateDate',
   totalAssetCost: 'totalAssetCost',
+  accTotalPayment: 'accTotalPayment',
 };
 
 @InputType()
