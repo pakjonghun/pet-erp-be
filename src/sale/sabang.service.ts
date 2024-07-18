@@ -295,20 +295,22 @@ export class SabandService {
       const client = clientByName.get(mallId)!;
       // console.log('판매액', realPayCost, '정산액', payCost);
 
+      if (mallId == '카카오톡선물하기') {
+        payCost = payCost * count;
+
+        // console.log(
+        //   count,
+        //   product.name,
+        //   '정산액',
+        //   payCost,
+        //   '판매액',
+        //   realPayCost,
+        // );
+      }
+
       if (payCost == 0) {
         const feeRate = client.feeRate;
         payCost = Math.floor(realPayCost * (1 - feeRate));
-        // if (productCode == '100145') {
-        //   console.log(
-        //     '정산액이 없을때 정산액 계산',
-        //     'feeRate',
-        //     feeRate,
-        //     '계산된 정산액',
-        //     payCost,
-        //     '판매액',
-        //     realPayCost,
-        //   );
-        // }
       }
 
       const wonCost = product.wonPrice * count;
