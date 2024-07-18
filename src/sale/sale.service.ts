@@ -6,18 +6,20 @@ import {
 } from '@nestjs/common';
 import { UtilService } from 'src/util/util.service';
 import { SaleRepository } from './sale.repository';
-import { FilterQuery, Model, PipelineStage } from 'mongoose';
+import { Connection, FilterQuery, Model, PipelineStage } from 'mongoose';
 import { Sale } from './entities/sale.entity';
 import { SaleInfo, SaleInfoList } from 'src/product/dtos/product-sale.output';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { SetDeliveryCostInput } from './dto/delivery-cost.Input';
-import { InjectModel } from '@nestjs/mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { DeliveryCost } from './entities/delivery.entity';
 import { SaleOutCheck } from './entities/sale.out.check.entity';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import * as dayjs from 'dayjs';
+import * as ExcelJS from 'exceljs';
+import { ColumnOption } from 'src/client/types';
 // import * as sola from 'solapi';
 
 @Injectable()
@@ -31,6 +33,7 @@ export class SaleService {
     private readonly utilService: UtilService,
     private readonly saleRepository: SaleRepository,
     private readonly configService: ConfigService,
+    @InjectConnection() private readonly connection: Connection,
   ) {}
 
   @Cron('0 0 0 * * *')
@@ -281,7 +284,7 @@ export class SaleService {
           $match: {
             orderStatus: '출고완료',
             productCode: { $exists: true, $in: productCodeList },
-            mallId: { $exists: true, $ne: '로켓그로스' },
+            mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
             count: { $exists: true },
             payCost: { $exists: true },
             wonCost: { $exists: true },
@@ -301,7 +304,14 @@ export class SaleService {
             accCount: { $sum: '$count' },
             accWonCost: { $sum: '$wonCost' },
             wholeSaleId: { $first: '$wholeSaleId' },
-            accDeliveryCost: { $sum: { $ifNull: ['$deliveryCost', 0] } },
+            accDeliveryCost: {
+              $sum: {
+                $multiply: [
+                  { $ifNull: ['$deliveryCost', 0] },
+                  '$deliveryBoxCount',
+                ],
+              },
+            },
             accTotalPayment: { $sum: '$totalPayment' },
           },
         },
@@ -348,7 +358,7 @@ export class SaleService {
           $match: {
             orderStatus: '출고완료',
             productCode: { $exists: true },
-            mallId: { $exists: true, $ne: '로켓그로스' },
+            mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
             count: { $exists: true },
             payCost: { $exists: true },
             wonCost: { $exists: true },
@@ -368,7 +378,14 @@ export class SaleService {
             accCount: { $sum: '$count' },
             accWonCost: { $sum: '$wonCost' },
             wholeSaleId: { $first: '$wholeSaleId' },
-            accDeliveryCost: { $sum: { $ifNull: ['$deliveryCost', 0] } },
+            accDeliveryCost: {
+              $sum: {
+                $multiply: [
+                  { $ifNull: ['$deliveryCost', 0] },
+                  '$deliveryBoxCount',
+                ],
+              },
+            },
             accTotalPayment: { $sum: '$totalPayment' },
           },
         },
@@ -429,7 +446,7 @@ export class SaleService {
             $lt: to,
           },
           orderStatus: '출고완료',
-          mallId: { $ne: '로켓그로스' },
+          mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
           // count: { $exists: true },
         },
       },
@@ -475,6 +492,79 @@ export class SaleService {
     }
 
     return result;
+  }
+
+  async uploadArg(worksheet: ExcelJS.Worksheet) {
+    const colToField: Record<number, ColumnOption<Sale>> = {
+      4: {
+        fieldName: 'shoppingMall',
+      },
+      11: {
+        fieldName: 'deliveryBoxCount',
+      },
+    };
+
+    const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
+    const filteredArgList = objectList.filter(
+      (item) =>
+        Object.keys(item).length > 0 &&
+        item.shoppingMall !== '주문번호' &&
+        item.deliveryBoxCount !== 'SKU 개수',
+    );
+
+    const argListByShoppingMall = new Map<
+      string,
+      Pick<Sale, 'shoppingMall' | 'deliveryBoxCount'>
+    >(filteredArgList.map((f) => [f.shoppingMall, f]));
+
+    const matchSaleList = await this.saleRepository.saleModel
+      .find({
+        shoppingMall: {
+          $in: filteredArgList.map((i) => i.shoppingMall).filter((i) => !!i),
+        },
+      })
+      .select(['-_id', 'shoppingMall', 'deliveryBoxCount'])
+      .lean<Pick<Sale, 'shoppingMall' | 'deliveryBoxCount'>[]>();
+
+    const changeBoxCountDocs = matchSaleList
+      .slice(0, 5)
+      .map((m) => {
+        const targetItem = argListByShoppingMall.get(m.shoppingMall);
+        if (targetItem) {
+          if (m.deliveryBoxCount !== targetItem.deliveryBoxCount) {
+            m.deliveryBoxCount = targetItem.deliveryBoxCount;
+            return m;
+          }
+        }
+      })
+      .filter((i) => !!i);
+
+    const session = await this.connection.startSession();
+    session.startTransaction();
+    try {
+      await this.saleRepository.saleModel.bulkWrite(
+        changeBoxCountDocs.map((item) => ({
+          updateOne: {
+            filter: { shoppingMall: item.shoppingMall },
+            update: {
+              $set: {
+                deliveryBoxCount: item.deliveryBoxCount,
+              },
+            },
+            upsert: true,
+          },
+        })),
+        { session },
+      );
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw new InternalServerErrorException(
+        `서버에서 오류가 발생했습니다. ${error.message}`,
+      );
+    } finally {
+      await session.endSession();
+    }
   }
 
   async deliveryCost() {

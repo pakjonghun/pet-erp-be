@@ -118,6 +118,7 @@ export class ProductRepository extends AbstractRepository<Product> {
           productCode: 1,
           deliveryCost: 1,
           totalPayment: 1,
+          deliveryBoxCount: 1,
         },
       },
       {
@@ -136,7 +137,12 @@ export class ProductRepository extends AbstractRepository<Product> {
             $sum: '$count',
           },
           accDeliveryCost: {
-            $sum: '$deliveryCost',
+            $sum: {
+              $multiply: [
+                { $ifNull: ['$deliveryCost', 0] },
+                '$deliveryBoxCount',
+              ],
+            },
           },
         },
       },
@@ -342,14 +348,16 @@ export class ProductRepository extends AbstractRepository<Product> {
                       name: '$_id',
                     },
                   },
-                  {
-                    $project: {
-                      _id: 0,
-                    },
-                  },
+
                   {
                     $sort: {
                       accCount: -1,
+                      _id: 1,
+                    },
+                  },
+                  {
+                    $project: {
+                      _id: 0,
                     },
                   },
                 ],
@@ -396,7 +404,12 @@ export class ProductRepository extends AbstractRepository<Product> {
                         $sum: '$wonCost',
                       },
                       accDeliveryCost: {
-                        $sum: '$deliveryCost',
+                        $sum: {
+                          $multiply: [
+                            { $ifNull: ['$deliveryCost', 0] },
+                            '$deliveryBoxCount',
+                          ],
+                        },
                       },
                     },
                   },
@@ -433,6 +446,7 @@ export class ProductRepository extends AbstractRepository<Product> {
             {
               $sort: {
                 [sort]: order,
+                code: 1,
               },
             },
             {

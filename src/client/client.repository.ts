@@ -48,6 +48,7 @@ export class ClientRepository extends AbstractRepository<Client> {
           productCode: 1,
           deliveryCost: 1,
           totalPayment: 1,
+          deliveryBoxCount: 1,
         },
       },
       {
@@ -63,7 +64,9 @@ export class ClientRepository extends AbstractRepository<Client> {
             $sum: '$count',
           },
           accDeliveryCost: {
-            $sum: '$deliveryCost',
+            $sum: {
+              $multiply: ['$deliveryCost', '$deliveryBoxCount'],
+            },
           },
           accTotalPayment: {
             $sum: '$totalPayment',
@@ -138,6 +141,7 @@ export class ClientRepository extends AbstractRepository<Client> {
                   {
                     $sort: {
                       accCount: -1,
+                      _id: 1,
                     },
                   },
                   {
@@ -210,7 +214,9 @@ export class ClientRepository extends AbstractRepository<Client> {
                         $sum: '$wonCost',
                       },
                       accDeliveryCost: {
-                        $sum: '$deliveryCost',
+                        $sum: {
+                          $multiply: ['$deliveryCost', '$deliveryBoxCount'],
+                        },
                       },
                       accTotalPayment: {
                         $sum: '$totalPayment',
@@ -250,6 +256,7 @@ export class ClientRepository extends AbstractRepository<Client> {
             {
               $sort: {
                 accCount: -1,
+                _id: 1,
               },
             },
             {

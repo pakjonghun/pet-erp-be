@@ -7,7 +7,7 @@ import { ProductCategoryService } from 'src/product-category/product-category.se
 import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-category.service';
 import { FactoryService } from 'src/factory/factory.service';
 import { StorageService } from 'src/storage/storage.service';
-import { OptionService } from 'src/option/option.service';
+import { SaleService } from 'src/sale/sale.service';
 import * as fs from 'fs';
 import * as ExcelJS from 'exceljs';
 
@@ -21,7 +21,7 @@ export class FileService {
     private readonly clientService: ClientService,
     private readonly factoryService: FactoryService,
     private readonly storageService: StorageService,
-    private readonly optionService: OptionService,
+    private readonly saleService: SaleService,
   ) {}
 
   async upload(file: Express.Multer.File, service: string) {
@@ -55,6 +55,10 @@ export class FileService {
 
       case 'factory':
         await this.factoryService.upload(fistSheet);
+        break;
+
+      case 'argo':
+        await this.saleService.uploadArg(fistSheet);
         break;
 
       default:
