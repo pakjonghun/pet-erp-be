@@ -297,7 +297,14 @@ export class SabandService {
       const client = clientByName.get(mallId)!;
       // console.log('판매액', realPayCost, '정산액', payCost);
 
-      if (mallId == '카카오톡선물하기') {
+      const notMultiplyMallIdList = [
+        '펫비투비(장강고)',
+        '카카오톡선물하기',
+        '투비펫',
+        '펫도매',
+        '딱펫',
+      ];
+      if (notMultiplyMallIdList.includes(mallId)) {
         payCost = payCost * count;
 
         // console.log(
