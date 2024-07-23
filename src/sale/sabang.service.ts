@@ -273,18 +273,20 @@ export class SabandService {
     const noPayCostList: Sale[] = [];
     for (const item of list) {
       const document = this.saleRepository.emptyDocument;
-      const deliveryTime = item['DELIVERY_CONFIRM_DATE']?.[0];
-      const saleAt = deliveryTime //
-        ? dayjs.utc(deliveryTime, FULL_DATE_FORMAT).subtract(9, 'hour').toDate()
-        : null;
-
-      const orderConfirmDate = item['ORD_CONFIRM_DATE']?.[0];
+      const orderConfirmDate = item['ORDER_DATE']?.[0];
       const orderConfirmedAt = orderConfirmDate //
         ? dayjs
             .utc(orderConfirmDate, FULL_DATE_FORMAT)
             .subtract(9, 'hour')
             .toDate()
         : null;
+
+      // const deliveryTime = item['DELIVERY_CONFIRM_DATE']?.[0];
+      // const saleAt = deliveryTime //
+      //   ? dayjs.utc(deliveryTime, FULL_DATE_FORMAT).subtract(9, 'hour').toDate()
+      //   : null;
+
+      const saleAt = orderConfirmedAt;
 
       const mallId = item['MALL_ID']?.[0];
       const realPayCost = item['PAY_COST']?.[0];
