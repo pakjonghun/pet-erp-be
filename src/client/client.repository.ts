@@ -152,6 +152,20 @@ export class ClientRepository extends AbstractRepository<Client> {
                       accCount: {
                         $sum: '$count',
                       },
+                      accPayCost: {
+                        $sum: '$payCost',
+                      },
+                      accWonCost: {
+                        $sum: '$wonCost',
+                      },
+                      accDeliveryCost: {
+                        $sum: {
+                          $multiply: ['$deliveryCost', '$deliveryBoxCount'],
+                        },
+                      },
+                      accTotalPayment: {
+                        $sum: '$totalPayment',
+                      },
                     },
                   },
                   {
