@@ -507,6 +507,28 @@ export class ClientService {
   }
 
   async clientSaleMenu(clientSaleMenuInput: FindDateScrollInput) {
-    return this.clientRepository.clientSaleMenu(clientSaleMenuInput);
+    const clientList = await this.clientRepository.model
+      .find({
+        $or: [
+          {
+            name: {
+              $regex: this.utilService.escapeRegex(clientSaleMenuInput.keyword),
+            },
+          },
+          {
+            code: {
+              $regex: this.utilService.escapeRegex(clientSaleMenuInput.keyword),
+            },
+          },
+        ],
+      })
+      .select(['-_id', 'name'])
+      .lean<Pick<Product, 'name'>[]>();
+
+    const clientNameList = clientList.map((item) => item.name);
+    return this.clientRepository.clientSaleMenu({
+      ...clientSaleMenuInput,
+      clientNameList,
+    });
   }
 }

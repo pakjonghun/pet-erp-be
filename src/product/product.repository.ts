@@ -84,8 +84,6 @@ export class ProductRepository extends AbstractRepository<Product> {
   async salesByProduct({
     from,
     to,
-    order = -1,
-    sort = 'accCount',
     skip,
     limit,
     productCodeList,
@@ -445,7 +443,7 @@ export class ProductRepository extends AbstractRepository<Product> {
             },
             {
               $sort: {
-                [sort]: order,
+                accCount: -1,
                 code: 1,
               },
             },
