@@ -19,7 +19,6 @@ import { ProductsInput } from './dtos/products-input';
 import { ProductCategoryService } from 'src/product-category/product-category.service';
 import { UtilService } from 'src/util/util.service';
 import { ProductSubsidiaryRepository } from './subsidiary.repository';
-import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { InjectModel } from '@nestjs/mongoose';
 import { ProductOrder } from 'src/product-order/entities/product-order.entity';
 import { Stock } from 'src/stock/entities/stock.entity';
@@ -48,31 +47,6 @@ export class ProductService {
     @InjectModel(Stock.name)
     private readonly stockModel: Model<Stock>,
   ) {}
-
-  async totalSaleBy(
-    { productCodeList, skip, limit, ...range }: FindDateInput,
-    groupId?: string,
-  ) {
-    const prevRange = this.utilService.getBeforeDate(range);
-    const current = await this.saleService.totalSale(
-      range,
-      groupId,
-      undefined,
-      productCodeList,
-      skip,
-      limit,
-    );
-
-    const previous = await this.saleService.totalSale(
-      prevRange,
-      groupId,
-      undefined,
-      productCodeList,
-      skip,
-      limit,
-    );
-    return { current: current?.[0], previous: previous?.[0] };
-  }
 
   async create(createProductInput: CreateProductInput) {
     const categoryName = createProductInput.category;
