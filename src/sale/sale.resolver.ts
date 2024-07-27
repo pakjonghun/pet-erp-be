@@ -10,9 +10,9 @@ import { LogTypeEnum } from 'src/log/entities/log.entity';
 import { SaleOutOutput } from './dto/sale-out.output';
 import { SaleOutCheck } from './entities/sale.out.check.entity';
 import { Sale } from './entities/sale.entity';
-import * as dayjs from 'dayjs';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { TotalSaleInfo } from './dto/sale.output';
+import * as dayjs from 'dayjs';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
@@ -24,6 +24,18 @@ export class SaleResolver {
   @Roles([AuthRoleEnum.ANY])
   @Query(() => TotalSaleInfo, { nullable: true })
   async totalSale(
+    @Args('totalSaleInput', { nullable: true })
+    totalSaleInput: FindDateInput,
+  ) {
+    const { current, previous } =
+      await this.saleService.totalSaleBy(totalSaleInput);
+
+    return { current: current, previous: previous };
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => TotalSaleInfo, { nullable: true })
+  async saleDetail(
     @Args('totalSaleInput', { nullable: true })
     totalSaleInput: FindDateInput,
   ) {

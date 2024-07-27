@@ -121,25 +121,10 @@ export class SaleService {
     return result;
   }
 
-  async totalSale(
-    { from, to }: FindDateInput,
-    groupId?: string,
-    originName: string = 'productName',
-    productCodeList?: string[],
-    skip: number = 0,
-    limit: number = 10,
-  ) {
-    const _id = groupId ? `$${groupId}` : null;
-    const name = originName;
-
+  async totalSale({ from, to }: FindDateInput) {
     const pipeline = this.getTotalSalePipeline({
       from,
       to,
-      _id,
-      name,
-      productCodeList,
-      skip,
-      limit,
     });
 
     const result = await this.saleRepository.saleModel.aggregate<{
@@ -264,169 +249,47 @@ export class SaleService {
   private getTotalSalePipeline({
     from,
     to,
-    _id,
-    name,
-    productCodeList,
-    skip,
-    limit,
   }: {
     from: Date;
     to: Date;
-    _id: string;
-    name: string;
-    productCodeList?: string[];
-    skip: number;
-    limit: number;
   }): PipelineStage[] {
-    if (productCodeList) {
-      return [
-        {
-          $match: {
-            orderStatus: '출고완료',
-            productCode: { $exists: true, $in: productCodeList },
-            mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
-            count: { $exists: true },
-            payCost: { $exists: true },
-            wonCost: { $exists: true },
-            totalPayment: { $exists: true },
-            saleAt: {
-              $exists: true,
-              $gte: from,
-              $lt: to,
+    return [
+      {
+        $match: {
+          orderStatus: '출고완료',
+          productCode: { $exists: true },
+          mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
+          count: { $exists: true },
+          payCost: { $exists: true },
+          wonCost: { $exists: true },
+          totalPayment: { $exists: true },
+          saleAt: {
+            $exists: true,
+            $gte: from,
+            $lt: to,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          name: { $first: '$productName' },
+          accPayCost: { $sum: '$payCost' },
+          accCount: { $sum: '$count' },
+          accWonCost: { $sum: '$wonCost' },
+          wholeSaleId: { $first: '$wholeSaleId' },
+          accDeliveryCost: {
+            $sum: {
+              $multiply: [
+                { $ifNull: ['$deliveryCost', 0] },
+                '$deliveryBoxCount',
+              ],
             },
           },
+          accTotalPayment: { $sum: '$totalPayment' },
         },
-        {
-          $group: {
-            _id,
-            name: { $first: name },
-            accPayCost: { $sum: '$payCost' },
-            accCount: { $sum: '$count' },
-            accWonCost: { $sum: '$wonCost' },
-            wholeSaleId: { $first: '$wholeSaleId' },
-            accDeliveryCost: {
-              $sum: {
-                $multiply: [
-                  { $ifNull: ['$deliveryCost', 0] },
-                  '$deliveryBoxCount',
-                ],
-              },
-            },
-            accTotalPayment: { $sum: '$totalPayment' },
-          },
-        },
-        {
-          $facet: {
-            data: [
-              {
-                $sort: {
-                  accCount: -1,
-                  accPayCost: -1,
-                  _id: -1,
-                },
-              },
-              {
-                $skip: skip,
-              },
-              {
-                $limit: limit,
-              },
-              {
-                $project: {
-                  wonCost: 0,
-                },
-              },
-            ],
-            totalCount: [
-              {
-                $count: 'count',
-              },
-            ],
-          },
-        },
-        {
-          $addFields: {
-            totalCount: {
-              $arrayElemAt: ['$totalCount.count', 0],
-            },
-          },
-        },
-      ];
-    } else {
-      return [
-        {
-          $match: {
-            orderStatus: '출고완료',
-            productCode: { $exists: true },
-            mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
-            count: { $exists: true },
-            payCost: { $exists: true },
-            wonCost: { $exists: true },
-            totalPayment: { $exists: true },
-            saleAt: {
-              $exists: true,
-              $gte: from,
-              $lt: to,
-            },
-          },
-        },
-        {
-          $group: {
-            _id,
-            name: { $first: '$productName' },
-            accPayCost: { $sum: '$payCost' },
-            accCount: { $sum: '$count' },
-            accWonCost: { $sum: '$wonCost' },
-            wholeSaleId: { $first: '$wholeSaleId' },
-            accDeliveryCost: {
-              $sum: {
-                $multiply: [
-                  { $ifNull: ['$deliveryCost', 0] },
-                  '$deliveryBoxCount',
-                ],
-              },
-            },
-            accTotalPayment: { $sum: '$totalPayment' },
-          },
-        },
-        {
-          $facet: {
-            data: [
-              {
-                $project: {
-                  wonCost: 0,
-                },
-              },
-              {
-                $sort: {
-                  accCount: -1,
-                  accPayCost: -1,
-                  _id: -1,
-                },
-              },
-              {
-                $skip: skip,
-              },
-              {
-                $limit: limit,
-              },
-            ],
-            totalCount: [
-              {
-                $count: 'count',
-              },
-            ],
-          },
-        },
-        {
-          $addFields: {
-            totalCount: {
-              $arrayElemAt: ['$totalCount.count', 0],
-            },
-          },
-        },
-      ];
-    }
+      },
+    ];
   }
 
   async setDeliveryCost({
@@ -498,31 +361,14 @@ export class SaleService {
     return this.deliveryCostModel.findOne().lean<DeliveryCost>();
   }
 
-  async totalSaleBy(
-    { from, to, limit = 10, skip = 0 }: FindDateInput,
-    groupId?: string,
-  ) {
+  async totalSaleBy({ from, to }: FindDateInput) {
     const prevRange = this.utilService.getBeforeDate({
       from,
       to,
     });
 
-    const current = await this.totalSale(
-      { from, to },
-      groupId,
-      'mallId',
-      undefined,
-      skip,
-      limit,
-    );
-    const previous = await this.totalSale(
-      prevRange,
-      groupId,
-      'mallId',
-      undefined,
-      skip,
-      limit,
-    );
+    const current = await this.totalSale({ from, to });
+    const previous = await this.totalSale(prevRange);
 
     return { current: current?.[0], previous: previous?.[0] };
   }
