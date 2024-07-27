@@ -8,7 +8,7 @@ import { UtilService } from 'src/util/util.service';
 import { SaleRepository } from './sale.repository';
 import { Connection, FilterQuery, Model, PipelineStage } from 'mongoose';
 import { Sale } from './entities/sale.entity';
-import { SaleInfo, SaleInfoList } from 'src/product/dtos/product-sale.output';
+import { SaleInfo, SaleInfoList } from 'src/sale/dto/sale.output';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { SetDeliveryCostInput } from './dto/delivery-cost.Input';
@@ -494,80 +494,36 @@ export class SaleService {
     return result;
   }
 
-  // async uploadArg(worksheet: ExcelJS.Worksheet) {
-  //   const colToField: Record<number, ColumnOption<Sale>> = {
-  //     4: {
-  //       fieldName: 'shoppingMall',
-  //     },
-  //     11: {
-  //       fieldName: 'deliveryBoxCount',
-  //     },
-  //   };
-
-  //   const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
-  //   const filteredArgList = objectList.filter(
-  //     (item) =>
-  //       Object.keys(item).length > 0 &&
-  //       item.shoppingMall !== '주문번호' &&
-  //       item.deliveryBoxCount !== 'SKU 개수',
-  //   );
-
-  //   const argListByShoppingMall = new Map<
-  //     string,
-  //     Pick<Sale, 'shoppingMall' | 'deliveryBoxCount'>
-  //   >(filteredArgList.map((f) => [f.shoppingMall, f]));
-
-  //   const matchSaleList = await this.saleRepository.saleModel
-  //     .find({
-  //       shoppingMall: {
-  //         $in: filteredArgList.map((i) => i.shoppingMall).filter((i) => !!i),
-  //       },
-  //     })
-  //     .select(['-_id', 'shoppingMall', 'deliveryBoxCount'])
-  //     .lean<Pick<Sale, 'shoppingMall' | 'deliveryBoxCount'>[]>();
-
-  //   const changeBoxCountDocs = matchSaleList
-  //     .slice(0, 5)
-  //     .map((m) => {
-  //       const targetItem = argListByShoppingMall.get(m.shoppingMall);
-  //       if (targetItem) {
-  //         if (m.deliveryBoxCount !== targetItem.deliveryBoxCount) {
-  //           m.deliveryBoxCount = targetItem.deliveryBoxCount;
-  //           return m;
-  //         }
-  //       }
-  //     })
-  //     .filter((i) => !!i);
-
-  //   const session = await this.connection.startSession();
-  //   session.startTransaction();
-  //   try {
-  //     await this.saleRepository.saleModel.bulkWrite(
-  //       changeBoxCountDocs.map((item) => ({
-  //         updateOne: {
-  //           filter: { shoppingMall: item.shoppingMall },
-  //           update: {
-  //             $set: {
-  //               deliveryBoxCount: item.deliveryBoxCount,
-  //             },
-  //           },
-  //           upsert: true,
-  //         },
-  //       })),
-  //       { session },
-  //     );
-  //     await session.commitTransaction();
-  //   } catch (error) {
-  //     await session.abortTransaction();
-  //     throw new InternalServerErrorException(
-  //       `서버에서 오류가 발생했습니다. ${error.message}`,
-  //     );
-  //   } finally {
-  //     await session.endSession();
-  //   }
-  // }
-
   async deliveryCost() {
     return this.deliveryCostModel.findOne().lean<DeliveryCost>();
+  }
+
+  async totalSaleBy(
+    { from, to, limit = 10, skip = 0 }: FindDateInput,
+    groupId?: string,
+  ) {
+    const prevRange = this.utilService.getBeforeDate({
+      from,
+      to,
+    });
+
+    const current = await this.totalSale(
+      { from, to },
+      groupId,
+      'mallId',
+      undefined,
+      skip,
+      limit,
+    );
+    const previous = await this.totalSale(
+      prevRange,
+      groupId,
+      'mallId',
+      undefined,
+      skip,
+      limit,
+    );
+
+    return { current: current?.[0], previous: previous?.[0] };
   }
 }

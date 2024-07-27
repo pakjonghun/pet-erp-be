@@ -18,7 +18,6 @@ import { ColumnOption } from './types';
 import { SaleService } from 'src/sale/sale.service';
 import { ClientsInput } from './dtos/clients.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
-import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { FilterQuery, Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Sale } from 'src/sale/entities/sale.entity';
@@ -505,35 +504,6 @@ export class ClientService {
 
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;
-  }
-
-  async totalSaleBy(
-    { from, to, limit = 10, skip = 0 }: FindDateInput,
-    groupId?: string,
-  ) {
-    const prevRange = this.utilService.getBeforeDate({
-      from,
-      to,
-    });
-
-    const current = await this.saleService.totalSale(
-      { from, to },
-      groupId,
-      'mallId',
-      undefined,
-      skip,
-      limit,
-    );
-    const previous = await this.saleService.totalSale(
-      prevRange,
-      groupId,
-      'mallId',
-      undefined,
-      skip,
-      limit,
-    );
-
-    return { current: current?.[0], previous: previous?.[0] };
   }
 
   async clientSaleMenu(clientSaleMenuInput: FindDateScrollInput) {
