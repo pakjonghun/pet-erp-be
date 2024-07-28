@@ -23,13 +23,12 @@ export class SaleResolver {
     private readonly sabangService: SabandService,
   ) {}
 
-  // @Roles([AuthRoleEnum.ANY])
+  @Roles([AuthRoleEnum.ANY])
   @Query(() => SaleOrdersOutput)
   async saleOrders(
     @Args('saleOrdersInput', { nullable: true })
     saleOrdersInput: SaleOrdersInput,
   ) {
-    console.log('saleOrdersInput : ', saleOrdersInput);
     return this.saleService.orders(saleOrdersInput);
   }
 

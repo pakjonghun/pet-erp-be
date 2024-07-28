@@ -89,10 +89,20 @@ export class SaleService {
               $regex: orderNumberKeyword,
               $options: 'i',
             },
-            productName: {
-              $regex: productNameKeyword,
-              $options: 'i',
-            },
+            $or: [
+              {
+                productName: {
+                  $regex: productNameKeyword,
+                  $options: 'i',
+                },
+              },
+              {
+                productCode: {
+                  $regex: productNameKeyword,
+                  $options: 'i',
+                },
+              },
+            ],
             saleAt: {
               $gte: from ?? new Date(-8640000000000),
               $lt: to ?? new Date(8640000000000),

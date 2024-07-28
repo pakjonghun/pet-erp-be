@@ -2,7 +2,7 @@ import { Field, Int, ObjectType, PartialType, PickType } from '@nestjs/graphql';
 import { Sale } from '../entities/sale.entity';
 
 @ObjectType()
-export class SaleOutOrderSale extends PartialType(
+export class OutSaleOrdersItem extends PartialType(
   PickType(Sale, [
     'count',
     'deliveryCost',
@@ -21,6 +21,6 @@ export class SaleOrdersOutput {
   @Field(() => Int)
   totalCount: number;
 
-  @Field(() => [SaleOutOrderSale], { nullable: true })
-  data: SaleOutOrderSale[];
+  @Field(() => [OutSaleOrdersItem], { nullable: true })
+  data: OutSaleOrdersItem[];
 }
