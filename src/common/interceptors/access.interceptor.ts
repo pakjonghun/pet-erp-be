@@ -29,13 +29,13 @@ export class AccessInterceptor implements NestInterceptor {
 
     if (!user) {
       console.log('인증정보가 없습니다만, 설정된 접속 아이피가 없으므로 통과!');
-    }
-
-    const canAllAccess = user.role.includes(UserRoleEnum.ADMIN_ACCESS);
-    if (!canAllAccess) {
-      throw new UnauthorizedException(
-        `올엑세스 권한이 없는 당신의 아이피는 ${clientIp} 입니다..`,
-      );
+    } else {
+      const canAllAccess = user?.role.includes(UserRoleEnum.ADMIN_ACCESS);
+      if (!canAllAccess) {
+        throw new UnauthorizedException(
+          `올엑세스 권한이 없는 당신의 아이피는 ${clientIp} 입니다..`,
+        );
+      }
     }
 
     return next.handle().pipe();

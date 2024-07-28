@@ -13,6 +13,8 @@ import { Sale } from './entities/sale.entity';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { TotalSaleInfo } from './dto/sale.output';
 import * as dayjs from 'dayjs';
+import { SaleOrdersOutput } from './dto/orders.output';
+import { SaleOrdersInput } from './dto/orders.input';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
@@ -20,6 +22,16 @@ export class SaleResolver {
     private readonly saleService: SaleService,
     private readonly sabangService: SabandService,
   ) {}
+
+  // @Roles([AuthRoleEnum.ANY])
+  @Query(() => SaleOrdersOutput)
+  async saleOrders(
+    @Args('saleOrdersInput', { nullable: true })
+    saleOrdersInput: SaleOrdersInput,
+  ) {
+    console.log('saleOrdersInput : ', saleOrdersInput);
+    return this.saleService.orders(saleOrdersInput);
+  }
 
   @Roles([AuthRoleEnum.ANY])
   @Query(() => TotalSaleInfo, { nullable: true })

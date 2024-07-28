@@ -17,7 +17,9 @@ import { DeliveryCost } from './entities/delivery.entity';
 import { SaleOutCheck } from './entities/sale.out.check.entity';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
+import { SaleOrdersInput } from './dto/orders.input';
 import * as dayjs from 'dayjs';
+import { SaleOrdersOutput } from './dto/orders.output';
 // import * as ExcelJS from 'exceljs';
 // import { ColumnOption } from 'src/client/types';
 // import * as sola from 'solapi';
@@ -56,6 +58,92 @@ export class SaleService {
     //   })
     //   .then(console.log)
     //   .catch(console.error);
+  }
+
+  async orders(saleOrdersInput: SaleOrdersInput) {
+    const {
+      from = null,
+      to = null,
+      skip = 0,
+      limit = 10,
+      sort = 'saleAt',
+      order = -1,
+      orderNumber = '',
+      mallId = '',
+      productName = '',
+    } = saleOrdersInput;
+
+    const orderNumberKeyword = this.utilService.escapeRegex(orderNumber ?? '');
+    const mallIdKeyword = this.utilService.escapeRegex(mallId ?? '');
+    const productNameKeyword = this.utilService.escapeRegex(productName ?? '');
+
+    const result =
+      await this.saleRepository.saleModel.aggregate<SaleOrdersOutput>([
+        {
+          $match: {
+            mallId: {
+              $regex: mallIdKeyword,
+              $options: 'i',
+            },
+            orderNumber: {
+              $regex: orderNumberKeyword,
+              $options: 'i',
+            },
+            productName: {
+              $regex: productNameKeyword,
+              $options: 'i',
+            },
+            saleAt: {
+              $gte: from ?? new Date(-8640000000000),
+              $lt: to ?? new Date(8640000000000),
+            },
+          },
+        },
+        {
+          $facet: {
+            data: [
+              {
+                $sort: {
+                  [sort]: order,
+                  _id: 1,
+                },
+              },
+              {
+                $skip: skip,
+              },
+              {
+                $limit: limit,
+              },
+            ],
+            totalCount: [
+              {
+                $count: 'count',
+              },
+            ],
+          },
+        },
+        {
+          $addFields: {
+            totalCount: {
+              $ifNull: [
+                {
+                  $arrayElemAt: ['$totalCount.count', 0],
+                },
+                0,
+              ],
+            },
+          },
+        },
+      ]);
+    console.log('result : ', result);
+    return result[0];
+
+    // .find({
+    //   mallId: {},
+    // })
+    // .skip(skip)
+    // .limit(limit)
+    // .sort({ saleAt: -1, mallId: 1 });
   }
 
   async setCheckSaleOut(checked: boolean) {

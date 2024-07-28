@@ -4,8 +4,8 @@ import { FindManyDTO } from './find-many.input';
 
 @InputType()
 export class FindDateScrollInput extends OmitType(FindManyDTO, [
-  'order',
   'sort',
+  'order',
 ]) {
   @Field(() => Date)
   @IsDateValidate({ message: '올바른 날짜 형식을 입력하세요.' })

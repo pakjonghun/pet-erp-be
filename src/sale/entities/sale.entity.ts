@@ -31,6 +31,7 @@ export interface SaleInterface {
   saleAt?: Date;
   orderConfirmedAt?: Date;
   isOut?: boolean;
+  totalPayment?: number;
 }
 
 @ObjectType()
