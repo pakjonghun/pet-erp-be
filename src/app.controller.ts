@@ -68,16 +68,19 @@ export class AppController {
   }
 
   @Roles([AuthRoleEnum.ANY])
-  @Post('/download/:service')
-  async download(@Param('service') service: string) {
-    return this.fileService.download(service);
+  @Post('/sale-orders/download')
+  async saleOrdersDownload(@Body() saleOrdersInput: SaleOrdersInput) {
+    const from = new Date(saleOrdersInput.from);
+    const to = new Date(saleOrdersInput.to);
+    saleOrdersInput.from = from;
+    saleOrdersInput.to = to;
+
+    return this.saleService.downloadExcel(saleOrdersInput);
   }
 
   @Roles([AuthRoleEnum.ANY])
-  @Post('/download/sale-orders')
-  async saleOrdersDownload(
-    @Body('saleOrdersInput') saleOrdersInput: SaleOrdersInput,
-  ) {
-    return this.saleService.downloadExcel(saleOrdersInput);
+  @Post('/download/:service')
+  async download(@Param('service') service: string) {
+    return this.fileService.download(service);
   }
 }

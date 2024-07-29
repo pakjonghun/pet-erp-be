@@ -145,7 +145,7 @@ export class SaleService {
           },
         },
       ]);
-    console.log('result : ', result);
+
     return result[0];
 
     // .find({
@@ -478,25 +478,29 @@ export class SaleService {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Data');
     worksheet.columns = [
-      { header: '거래처', key: 'mallId', width: 100 },
-      { header: '제품명', key: 'productName', width: 100 },
-      { header: '제품코드', key: 'productCode', width: 100 },
-      { header: '판매수', key: 'count', width: 100 },
-      { header: '바코드', key: 'barCode', width: 100 },
-      { header: '주소', key: 'address1', width: 100 },
-      { header: '연락처', key: 'telephoneNumber1', width: 100 },
-      { header: '메세지', key: 'message', width: 100 },
-      { header: '매출', key: 'totalPayment', width: 100 },
-      { header: '정산금액', key: 'payCost', width: 100 },
-      { header: '원가', key: 'wonCost', width: 100 },
-      { header: '택배비용', key: 'deliveryCost', width: 100 },
-      { header: '주문날짜', key: 'saleAt', width: 100 },
-      { header: '주문확인날짜', key: 'orderConfirmedAt', width: 100 },
-      { header: '주문번호', key: 'orderNumber', width: 100 },
+      { header: '거래처', key: 'mallId', width: 30 },
+      { header: '제품명', key: 'productName', width: 30 },
+      { header: '제품코드', key: 'productCode', width: 30 },
+      { header: '판매수', key: 'count', width: 10 },
+      { header: '바코드', key: 'barCode', width: 20 },
+      { header: '주소', key: 'address1', width: 50 },
+      { header: '연락처', key: 'telephoneNumber1', width: 30 },
+      { header: '메세지', key: 'message', width: 50 },
+      { header: '매출', key: 'totalPayment', width: 20 },
+      { header: '정산금액', key: 'payCost', width: 20 },
+      { header: '원가', key: 'wonCost', width: 20 },
+      { header: '택배비용', key: 'deliveryCost', width: 20 },
+      { header: '주문날짜', key: 'saleAt', width: 20 },
+      { header: '주문확인날짜', key: 'orderConfirmedAt', width: 20 },
+      { header: '주문번호', key: 'orderNumber', width: 20 },
     ];
 
     for (const doc of allData) {
-      worksheet.addRow(doc);
+      const newDoc = {
+        ...doc,
+        saleAt: dayjs(doc.saleAt).format('YYYY-MM-DD HH:mm'),
+      };
+      worksheet.addRow(newDoc);
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
