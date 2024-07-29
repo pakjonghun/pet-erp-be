@@ -1,5 +1,6 @@
 import { FileService } from './common/services/file.service';
 import {
+  Body,
   Controller,
   Get,
   Param,
@@ -21,12 +22,15 @@ import {
 import { diskStorage } from 'multer';
 import { Roles } from './common/decorators/role.decorator';
 import { AuthRoleEnum } from './users/entities/user.entity';
+import { SaleOrdersInput } from './sale/dto/orders.input';
+import { SaleService } from './sale/sale.service';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
     private readonly fileService: FileService,
+    private readonly saleService: SaleService,
   ) {}
 
   @Get()
@@ -67,5 +71,13 @@ export class AppController {
   @Post('/download/:service')
   async download(@Param('service') service: string) {
     return this.fileService.download(service);
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Post('/download/sale-orders')
+  async saleOrdersDownload(
+    @Body('saleOrdersInput') saleOrdersInput: SaleOrdersInput,
+  ) {
+    return this.saleService.downloadExcel(saleOrdersInput);
   }
 }
