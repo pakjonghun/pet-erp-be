@@ -111,6 +111,18 @@ export class SaleService {
         },
         {
           $facet: {
+            total: [
+              {
+                $group: {
+                  _id: null,
+                  accCount: { $sum: '$count' },
+                  accTotalPayment: { $sum: '$totalPayment' },
+                  accWonCost: { $sum: '$wonCost' },
+                  accPayCost: { $sum: '$payCost' },
+                  accDeliveryCost: { $sum: '$deliveryCost' },
+                },
+              },
+            ],
             data: [
               {
                 $sort: {
@@ -134,6 +146,9 @@ export class SaleService {
         },
         {
           $addFields: {
+            total: {
+              $arrayElemAt: ['$total', 0],
+            },
             totalCount: {
               $ifNull: [
                 {
@@ -145,7 +160,7 @@ export class SaleService {
           },
         },
       ]);
-
+    console.log('result[0] : ', result[0]);
     return result[0];
 
     // .find({
