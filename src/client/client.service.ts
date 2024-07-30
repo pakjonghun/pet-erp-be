@@ -292,6 +292,9 @@ export class ClientService {
       13: {
         fieldName: 'deliveryNotFreeProductCodeList',
       },
+      14: {
+        fieldName: 'isSabangService',
+      },
     };
 
     const objectList = this.utilService.excelToObject(worksheet, colToField, 3);
@@ -339,6 +342,10 @@ export class ClientService {
     );
 
     objectList.forEach((object) => {
+      const isSabangService =
+        (object.isSabangService as string).trim() === '지원';
+      object.isSabangService = isSabangService;
+
       if (object.storageId) {
         object.storageId =
           storageByName.get(object.storageId)?._id.toHexString() ?? '';
@@ -421,6 +428,11 @@ export class ClientService {
         key: 'deliveryNotFreeProductCodeList',
         width: 70,
       },
+      {
+        header: '사방넷 지원여부',
+        key: 'isSabangService',
+        width: 20,
+      },
     ];
 
     const storageIdList = allData.map((item) => item.storageId);
@@ -457,7 +469,9 @@ export class ClientService {
 
     type OmitClient = Omit<
       Client,
-      'deliveryFreeProductCodeList' | 'deliveryNotFreeProductCodeList'
+      | 'deliveryFreeProductCodeList'
+      | 'deliveryNotFreeProductCodeList'
+      | 'isSabangService'
     > & {
       deliveryNotFreeProductCodeList: string;
       deliveryFreeProductCodeList: string;
@@ -475,6 +489,7 @@ export class ClientService {
         clientType: handleClientType ?? '',
         deliveryFreeProductCodeList: '',
         deliveryNotFreeProductCodeList: '',
+        isSabangService: object.isSabangService ? '지원' : '미지원',
       } as OmitClient;
 
       if (newObject.storageId) {

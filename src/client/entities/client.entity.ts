@@ -144,7 +144,7 @@ export class Client extends AbstractEntity implements ClientInterface {
   deliveryNotFreeProductCodeList?: string[];
 
   @Prop({ type: Boolean })
-  @Field(() => Boolean)
+  @Field(() => Boolean, { nullable: true })
   isSabangService: boolean;
 }
 
