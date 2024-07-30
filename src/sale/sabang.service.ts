@@ -298,13 +298,13 @@ export class SabandService {
       // console.log('판매액', realPayCost, '정산액', payCost);
 
       const notMultiplyMallIdList = [
-        '펫비투비(장강고)',
+        // '펫비투비(장강고)',
         '카카오톡선물하기',
-        '투비펫',
-        '펫도매',
-        '딱펫',
+        // '투비펫',
+        // '펫도매',
+        // '딱펫',
       ];
-      if (notMultiplyMallIdList.includes(mallId)) {
+      if (payCost && notMultiplyMallIdList.includes(mallId)) {
         payCost = payCost * count;
 
         // console.log(
@@ -317,7 +317,7 @@ export class SabandService {
         // );
       }
 
-      if (payCost == 0) {
+      if (!client.isSabangService) {
         const feeRate = client.feeRate;
         payCost = Math.floor(realPayCost * (1 - feeRate));
       }

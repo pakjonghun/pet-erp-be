@@ -1,10 +1,14 @@
 import { InputType, Field, Float, Int } from '@nestjs/graphql';
-import { IsNotEmpty, IsOptional, Max, Min } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, Max, Min } from 'class-validator';
 import { IsOneOf } from 'src/common/validations/enum.validation';
 import { ClientInterface, ClientType } from '../entities/client.entity';
 
 @InputType()
 export class CreateClientInput implements ClientInterface {
+  @Field(() => Boolean)
+  @IsBoolean({ message: '사방넷 지원여부를 입력하세요.' })
+  isSabangService: boolean;
+
   @Field(() => String)
   @IsNotEmpty({ message: '거래처 코드를 입력하세요.' })
   code: string;
