@@ -112,6 +112,8 @@ export class ClientRepository extends AbstractRepository<Client> {
           businessName: '$client_info.businessName',
           businessNumber: '$client_info.businessNumber',
           inActive: '$client_info.inActive',
+          payDate: '$client_info.payDate',
+          isSabangService: '$client_info.isSabangService',
         },
       },
       {

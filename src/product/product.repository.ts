@@ -93,14 +93,19 @@ export class ProductRepository extends AbstractRepository<Product> {
       {
         $match: {
           orderStatus: '출고완료',
-          mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
+          productCode:
+            productCodeList.length > 0
+              ? {
+                  $exists: true,
+                  $in: productCodeList,
+                }
+              : {
+                  $exists: true,
+                },
           count: { $exists: true },
           payCost: { $exists: true },
           wonCost: { $exists: true },
           totalPayment: { $exists: true },
-          productCode: {
-            $in: productCodeList,
-          },
           saleAt: {
             $gte: from,
             $lt: to,
@@ -166,6 +171,7 @@ export class ProductRepository extends AbstractRepository<Product> {
           wonPrice: '$product_info.wonPrice',
           leadTime: '$product_info.leadTime',
           salePrice: '$product_info.salePrice',
+          isFreeDeliveryFee: '$product_info.isFreeDeliveryFee',
         },
       },
       {
@@ -339,6 +345,20 @@ export class ProductRepository extends AbstractRepository<Product> {
                       accCount: {
                         $sum: '$count',
                       },
+                      accPayCost: {
+                        $sum: '$payCost',
+                      },
+                      accWonCost: {
+                        $sum: '$wonCost',
+                      },
+                      accDeliveryCost: {
+                        $sum: {
+                          $multiply: ['$deliveryCost', '$deliveryBoxCount'],
+                        },
+                      },
+                      accTotalPayment: {
+                        $sum: '$totalPayment',
+                      },
                     },
                   },
                   {
@@ -473,6 +493,7 @@ export class ProductRepository extends AbstractRepository<Product> {
 
     const result =
       await this.saleModel.aggregate<ProductSaleMenuOutput>(pipeline);
+    console.log('result?.[0] : ', result?.[0]);
 
     return result?.[0];
   }

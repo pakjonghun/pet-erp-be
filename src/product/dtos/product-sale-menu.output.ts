@@ -1,4 +1,4 @@
-import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, Int, ObjectType, PickType } from '@nestjs/graphql';
 import { Product } from '../entities/product.entity';
 
 @ObjectType()
@@ -6,12 +6,39 @@ export class ClientInfoMenu {
   @Field(() => Int, { nullable: true })
   accCount: number;
 
+  @Field(() => Int, { nullable: true })
+  accPayCost: number;
+
+  @Field(() => Int, { nullable: true })
+  accWonCost: number;
+
+  @Field(() => Float, { nullable: true })
+  accDeliveryCost: number;
+
+  @Field(() => Float, { nullable: true })
+  accTotalPayment: number;
+
   @Field(() => String, { nullable: true })
   name: string;
 }
 
 @ObjectType()
-export class ProductSaleMenu extends Product {
+export class ProductSaleMenu extends PickType(Product, [
+  '_id',
+  'code',
+  'barCode',
+  'name',
+  'wonPrice',
+  'leadTime',
+  'salePrice',
+  'isFreeDeliveryFee',
+]) {
+  @Field(() => Int, { nullable: true })
+  stock: number;
+
+  @Field(() => String)
+  recentCreateDate: string;
+
   @Field(() => Int, { nullable: true })
   accPayCost: number;
 
@@ -20,21 +47,6 @@ export class ProductSaleMenu extends Product {
 
   @Field(() => Int, { nullable: true })
   accCount: number;
-
-  @Field(() => Float, { nullable: true })
-  accDeliveryCost: number;
-
-  @Field(() => Float, { nullable: true })
-  accTotalPayment: number;
-
-  @Field(() => Int, { nullable: true })
-  stock: number;
-
-  @Field(() => String)
-  recentCreateDate: string;
-
-  @Field(() => [ClientInfoMenu])
-  clients: ClientInfoMenu[];
 
   @Field(() => Int, { nullable: true })
   prevAccCount: number;
@@ -45,14 +57,20 @@ export class ProductSaleMenu extends Product {
   @Field(() => Int, { nullable: true })
   prevAccWonCost: number;
 
-  @Field(() => Int, { nullable: true })
-  prevAccProfit: number;
-
-  @Field(() => Int, { nullable: true })
-  prevAccTotalPayment: number;
-
   @Field(() => Float, { nullable: true })
   prevAccDeliveryCost: number;
+
+  @Field(() => Float, { nullable: true })
+  accDeliveryCost: number;
+
+  @Field(() => Float, { nullable: true })
+  accTotalPayment: number;
+
+  @Field(() => Float, { nullable: true })
+  prevAccTotalPayment: number;
+
+  @Field(() => [ClientInfoMenu])
+  clients: ClientInfoMenu[];
 }
 
 @ObjectType()
