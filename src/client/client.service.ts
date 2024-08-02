@@ -18,7 +18,6 @@ import { ColumnOption } from './types';
 import { SaleService } from 'src/sale/sale.service';
 import { ClientsInput } from './dtos/clients.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
-import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { FilterQuery, Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Sale } from 'src/sale/entities/sale.entity';
@@ -293,6 +292,9 @@ export class ClientService {
       13: {
         fieldName: 'deliveryNotFreeProductCodeList',
       },
+      14: {
+        fieldName: 'isSabangService',
+      },
     };
 
     const objectList = this.utilService.excelToObject(worksheet, colToField, 3);
@@ -340,6 +342,10 @@ export class ClientService {
     );
 
     objectList.forEach((object) => {
+      const isSabangService =
+        (object.isSabangService as string).trim() === '지원';
+      object.isSabangService = isSabangService;
+
       if (object.storageId) {
         object.storageId =
           storageByName.get(object.storageId)?._id.toHexString() ?? '';
@@ -422,6 +428,11 @@ export class ClientService {
         key: 'deliveryNotFreeProductCodeList',
         width: 70,
       },
+      {
+        header: '사방넷 지원여부',
+        key: 'isSabangService',
+        width: 20,
+      },
     ];
 
     const storageIdList = allData.map((item) => item.storageId);
@@ -458,7 +469,9 @@ export class ClientService {
 
     type OmitClient = Omit<
       Client,
-      'deliveryFreeProductCodeList' | 'deliveryNotFreeProductCodeList'
+      | 'deliveryFreeProductCodeList'
+      | 'deliveryNotFreeProductCodeList'
+      | 'isSabangService'
     > & {
       deliveryNotFreeProductCodeList: string;
       deliveryFreeProductCodeList: string;
@@ -476,6 +489,7 @@ export class ClientService {
         clientType: handleClientType ?? '',
         deliveryFreeProductCodeList: '',
         deliveryNotFreeProductCodeList: '',
+        isSabangService: object.isSabangService ? '지원' : '미지원',
       } as OmitClient;
 
       if (newObject.storageId) {
@@ -507,36 +521,29 @@ export class ClientService {
     return buffer;
   }
 
-  async totalSaleBy(
-    { from, to, limit = 10, skip = 0 }: FindDateInput,
-    groupId?: string,
-  ) {
-    const prevRange = this.utilService.getBeforeDate({
-      from,
-      to,
-    });
-
-    const current = await this.saleService.totalSale(
-      { from, to },
-      groupId,
-      'mallId',
-      undefined,
-      skip,
-      limit,
-    );
-    const previous = await this.saleService.totalSale(
-      prevRange,
-      groupId,
-      'mallId',
-      undefined,
-      skip,
-      limit,
-    );
-
-    return { current: current?.[0], previous: previous?.[0] };
-  }
-
   async clientSaleMenu(clientSaleMenuInput: FindDateScrollInput) {
-    return this.clientRepository.clientSaleMenu(clientSaleMenuInput);
+    const clientList = await this.clientRepository.model
+      .find({
+        $or: [
+          {
+            name: {
+              $regex: this.utilService.escapeRegex(clientSaleMenuInput.keyword),
+            },
+          },
+          {
+            code: {
+              $regex: this.utilService.escapeRegex(clientSaleMenuInput.keyword),
+            },
+          },
+        ],
+      })
+      .select(['-_id', 'name'])
+      .lean<Pick<Product, 'name'>[]>();
+
+    const clientNameList = clientList.map((item) => item.name);
+    return this.clientRepository.clientSaleMenu({
+      ...clientSaleMenuInput,
+      clientNameList,
+    });
   }
 }

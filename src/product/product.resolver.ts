@@ -7,8 +7,6 @@ import { ProductSaleInput } from './dtos/product-sale.input';
 import { ProductSaleChartOutput } from './dtos/product-sale-chart.output';
 import { ProductsInput } from './dtos/products-input';
 import { ProductsOutput } from './dtos/products.output';
-import { DashboardResult, TotalSaleInfo } from './dtos/product-sale.output';
-import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthRoleEnum } from 'src/users/entities/user.entity';
 import { LogData } from 'src/common/decorators/log.decorator';
@@ -72,45 +70,5 @@ export class ProductResolver {
   async productSale(@Args('productCode') productCode: string) {
     const result = await this.productService.saleProduct(productCode);
     return result;
-  }
-
-  @Roles([AuthRoleEnum.ANY])
-  @Query(() => TotalSaleInfo, { nullable: true })
-  async dashboardProduct(
-    @Args('dashboardProductInput', { nullable: true })
-    dashboardProductInput: FindDateInput,
-  ) {
-    const { current, previous } = await this.productService.totalSaleBy(
-      dashboardProductInput,
-    );
-
-    return { current: current.data[0], previous: previous.data[0] };
-  }
-
-  @Roles([AuthRoleEnum.ANY])
-  @Query(() => DashboardResult, { nullable: true })
-  async dashboardProducts(
-    @Args('dashboardProductsInput', { nullable: true })
-    dashboardProductInputs: FindDateInput,
-  ) {
-    const { current, previous } = await this.productService.totalSaleBy(
-      dashboardProductInputs,
-      'productCode',
-    );
-    const data = current.data.map((item) => {
-      const previousItem = previous.data.find((prev) => prev._id === item._id);
-      return {
-        ...item,
-        prevAccDeliveryCost: previousItem?.accDeliveryCost,
-        prevAccPayCost: previousItem?.accPayCost,
-        prevAccCount: previousItem?.accCount,
-        prevAccTotalPayment: previousItem?.accTotalPayment,
-      };
-    });
-
-    return {
-      data,
-      totalCount: current.totalCount,
-    };
   }
 }

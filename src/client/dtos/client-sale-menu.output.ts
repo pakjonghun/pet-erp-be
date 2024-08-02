@@ -1,4 +1,4 @@
-import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, Int, ObjectType, PickType } from '@nestjs/graphql';
 import { Client } from '../entities/client.entity';
 
 @ObjectType()
@@ -6,12 +6,35 @@ class ProductSaleInfo {
   @Field(() => Int, { nullable: true })
   accCount: number;
 
+  @Field(() => Int, { nullable: true })
+  accPayCost: number;
+
+  @Field(() => Int, { nullable: true })
+  accWonCost: number;
+
+  @Field(() => Float, { nullable: true })
+  accDeliveryCost: number;
+
+  @Field(() => Float, { nullable: true })
+  accTotalPayment: number;
+
   @Field(() => String)
   name: string;
 }
 
 @ObjectType()
-export class ClientSaleMenu extends Client {
+export class ClientSaleMenu extends PickType(Client, [
+  '_id',
+  'code',
+  'feeRate',
+  'name',
+  'clientType',
+  'businessName',
+  'businessNumber',
+  'inActive',
+  'payDate',
+  'isSabangService',
+]) {
   @Field(() => Int, { nullable: true })
   accPayCost: number;
 

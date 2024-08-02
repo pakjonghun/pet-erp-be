@@ -20,7 +20,13 @@ export class ClientRepository extends AbstractRepository<Client> {
     super(clientModel);
   }
 
-  async clientSaleMenu({ from, to, skip, limit }: FindDateScrollInput) {
+  async clientSaleMenu({
+    from,
+    to,
+    skip,
+    limit,
+    clientNameList,
+  }: FindDateScrollInput & { clientNameList: string[] }) {
     const prevRange = this.utilService.getBeforeDate({ from, to });
 
     const pipeline: PipelineStage[] = [
@@ -28,7 +34,17 @@ export class ClientRepository extends AbstractRepository<Client> {
         $match: {
           orderStatus: '출고완료',
           productCode: { $exists: true },
-          mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
+          mallId:
+            clientNameList.length > 0
+              ? {
+                  $exists: true,
+                  $nin: ['로켓그로스', '정글북'],
+                  $in: clientNameList,
+                }
+              : {
+                  $exists: true,
+                  $nin: ['로켓그로스', '정글북'],
+                },
           count: { $exists: true },
           payCost: { $exists: true },
           wonCost: { $exists: true },
@@ -96,6 +112,8 @@ export class ClientRepository extends AbstractRepository<Client> {
           businessName: '$client_info.businessName',
           businessNumber: '$client_info.businessNumber',
           inActive: '$client_info.inActive',
+          payDate: '$client_info.payDate',
+          isSabangService: '$client_info.isSabangService',
         },
       },
       {
@@ -135,6 +153,20 @@ export class ClientRepository extends AbstractRepository<Client> {
                       _id: '$productCode',
                       accCount: {
                         $sum: '$count',
+                      },
+                      accPayCost: {
+                        $sum: '$payCost',
+                      },
+                      accWonCost: {
+                        $sum: '$wonCost',
+                      },
+                      accDeliveryCost: {
+                        $sum: {
+                          $multiply: ['$deliveryCost', '$deliveryBoxCount'],
+                        },
+                      },
+                      accTotalPayment: {
+                        $sum: '$totalPayment',
                       },
                     },
                   },

@@ -62,6 +62,7 @@ export interface ClientInterface {
   storageId?: string;
   deliveryFreeProductCodeList?: string[];
   deliveryNotFreeProductCodeList?: string[];
+  isSabangService: boolean;
 }
 
 @ObjectType()
@@ -141,6 +142,10 @@ export class Client extends AbstractEntity implements ClientInterface {
   @Prop({ type: [String] })
   @Field(() => [String], { nullable: true })
   deliveryNotFreeProductCodeList?: string[];
+
+  @Prop({ type: Boolean })
+  @Field(() => Boolean, { nullable: true })
+  isSabangService: boolean;
 }
 
 export const clientSchema = SchemaFactory.createForClass(Client);

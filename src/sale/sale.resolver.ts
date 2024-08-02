@@ -9,8 +9,12 @@ import { LogData } from 'src/common/decorators/log.decorator';
 import { LogTypeEnum } from 'src/log/entities/log.entity';
 import { SaleOutOutput } from './dto/sale-out.output';
 import { SaleOutCheck } from './entities/sale.out.check.entity';
-import * as dayjs from 'dayjs';
 import { Sale } from './entities/sale.entity';
+import { FindDateInput } from 'src/common/dtos/find-date.input';
+import { TotalSaleInfo } from './dto/sale.output';
+import * as dayjs from 'dayjs';
+import { SaleOrdersOutput } from './dto/orders.output';
+import { SaleOrdersInput } from './dto/orders.input';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
@@ -18,6 +22,38 @@ export class SaleResolver {
     private readonly saleService: SaleService,
     private readonly sabangService: SabandService,
   ) {}
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => SaleOrdersOutput)
+  async saleOrders(
+    @Args('saleOrdersInput', { nullable: true })
+    saleOrdersInput: SaleOrdersInput,
+  ) {
+    return this.saleService.orders(saleOrdersInput);
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => TotalSaleInfo, { nullable: true })
+  async totalSale(
+    @Args('totalSaleInput', { nullable: true })
+    totalSaleInput: FindDateInput,
+  ) {
+    const { current, previous } =
+      await this.saleService.totalSaleBy(totalSaleInput);
+
+    return { current: current, previous: previous };
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => TotalSaleInfo, { nullable: true })
+  async saleDetail(
+    @Args('totalSaleInput', { nullable: true })
+    totalSaleInput: FindDateInput,
+  ) {
+    const { current, previous } =
+      await this.saleService.totalSaleBy(totalSaleInput);
+    return { current: current.data[0], previous: previous.data[0] };
+  }
 
   @LogData({ description: '택배 비용수정', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ADMIN_DELIVERY])

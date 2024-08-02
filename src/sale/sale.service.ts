@@ -8,7 +8,7 @@ import { UtilService } from 'src/util/util.service';
 import { SaleRepository } from './sale.repository';
 import { Connection, FilterQuery, Model, PipelineStage } from 'mongoose';
 import { Sale } from './entities/sale.entity';
-import { SaleInfo, SaleInfoList } from 'src/product/dtos/product-sale.output';
+import { SaleInfo, SaleInfoList } from 'src/sale/dto/sale.output';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { SetDeliveryCostInput } from './dto/delivery-cost.Input';
@@ -17,8 +17,10 @@ import { DeliveryCost } from './entities/delivery.entity';
 import { SaleOutCheck } from './entities/sale.out.check.entity';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
+import { SaleOrdersInput } from './dto/orders.input';
+import { SaleOrdersOutput } from './dto/orders.output';
+import * as ExcelJS from 'exceljs';
 import * as dayjs from 'dayjs';
-// import * as ExcelJS from 'exceljs';
 // import { ColumnOption } from 'src/client/types';
 // import * as sola from 'solapi';
 
@@ -56,6 +58,116 @@ export class SaleService {
     //   })
     //   .then(console.log)
     //   .catch(console.error);
+  }
+
+  async orders(saleOrdersInput: SaleOrdersInput) {
+    const {
+      from = null,
+      to = null,
+      skip = 0,
+      limit = 10,
+      sort = 'saleAt',
+      order = -1,
+      orderNumber = '',
+      mallId = '',
+      productName = '',
+    } = saleOrdersInput;
+
+    const orderNumberKeyword = this.utilService.escapeRegex(orderNumber ?? '');
+    const mallIdKeyword = this.utilService.escapeRegex(mallId ?? '');
+    const productNameKeyword = this.utilService.escapeRegex(productName ?? '');
+
+    const result =
+      await this.saleRepository.saleModel.aggregate<SaleOrdersOutput>([
+        {
+          $match: {
+            mallId: {
+              $regex: mallIdKeyword,
+              $options: 'i',
+            },
+            orderNumber: {
+              $regex: orderNumberKeyword,
+              $options: 'i',
+            },
+            $or: [
+              {
+                productName: {
+                  $regex: productNameKeyword,
+                  $options: 'i',
+                },
+              },
+              {
+                productCode: {
+                  $regex: productNameKeyword,
+                  $options: 'i',
+                },
+              },
+            ],
+            saleAt: {
+              $gte: from ?? new Date(-8640000000000),
+              $lt: to ?? new Date(8640000000000),
+            },
+          },
+        },
+        {
+          $facet: {
+            total: [
+              {
+                $group: {
+                  _id: null,
+                  accCount: { $sum: '$count' },
+                  accTotalPayment: { $sum: '$totalPayment' },
+                  accWonCost: { $sum: '$wonCost' },
+                  accPayCost: { $sum: '$payCost' },
+                  accDeliveryCost: { $sum: '$deliveryCost' },
+                },
+              },
+            ],
+            data: [
+              {
+                $sort: {
+                  [sort]: order,
+                  _id: 1,
+                },
+              },
+              {
+                $skip: skip,
+              },
+              {
+                $limit: limit,
+              },
+            ],
+            totalCount: [
+              {
+                $count: 'count',
+              },
+            ],
+          },
+        },
+        {
+          $addFields: {
+            total: {
+              $arrayElemAt: ['$total', 0],
+            },
+            totalCount: {
+              $ifNull: [
+                {
+                  $arrayElemAt: ['$totalCount.count', 0],
+                },
+                0,
+              ],
+            },
+          },
+        },
+      ]);
+    return result[0];
+
+    // .find({
+    //   mallId: {},
+    // })
+    // .skip(skip)
+    // .limit(limit)
+    // .sort({ saleAt: -1, mallId: 1 });
   }
 
   async setCheckSaleOut(checked: boolean) {
@@ -121,25 +233,10 @@ export class SaleService {
     return result;
   }
 
-  async totalSale(
-    { from, to }: FindDateInput,
-    groupId?: string,
-    originName: string = 'productName',
-    productCodeList?: string[],
-    skip: number = 0,
-    limit: number = 10,
-  ) {
-    const _id = groupId ? `$${groupId}` : null;
-    const name = originName;
-
+  async totalSale({ from, to }: FindDateInput) {
     const pipeline = this.getTotalSalePipeline({
       from,
       to,
-      _id,
-      name,
-      productCodeList,
-      skip,
-      limit,
     });
 
     const result = await this.saleRepository.saleModel.aggregate<{
@@ -264,169 +361,47 @@ export class SaleService {
   private getTotalSalePipeline({
     from,
     to,
-    _id,
-    name,
-    productCodeList,
-    skip,
-    limit,
   }: {
     from: Date;
     to: Date;
-    _id: string;
-    name: string;
-    productCodeList?: string[];
-    skip: number;
-    limit: number;
   }): PipelineStage[] {
-    if (productCodeList) {
-      return [
-        {
-          $match: {
-            orderStatus: '출고완료',
-            productCode: { $exists: true, $in: productCodeList },
-            mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
-            count: { $exists: true },
-            payCost: { $exists: true },
-            wonCost: { $exists: true },
-            totalPayment: { $exists: true },
-            saleAt: {
-              $exists: true,
-              $gte: from,
-              $lt: to,
+    return [
+      {
+        $match: {
+          orderStatus: '출고완료',
+          productCode: { $exists: true },
+          mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
+          count: { $exists: true },
+          payCost: { $exists: true },
+          wonCost: { $exists: true },
+          totalPayment: { $exists: true },
+          saleAt: {
+            $exists: true,
+            $gte: from,
+            $lt: to,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          name: { $first: '$productName' },
+          accPayCost: { $sum: '$payCost' },
+          accCount: { $sum: '$count' },
+          accWonCost: { $sum: '$wonCost' },
+          wholeSaleId: { $first: '$wholeSaleId' },
+          accDeliveryCost: {
+            $sum: {
+              $multiply: [
+                { $ifNull: ['$deliveryCost', 0] },
+                '$deliveryBoxCount',
+              ],
             },
           },
+          accTotalPayment: { $sum: '$totalPayment' },
         },
-        {
-          $group: {
-            _id,
-            name: { $first: name },
-            accPayCost: { $sum: '$payCost' },
-            accCount: { $sum: '$count' },
-            accWonCost: { $sum: '$wonCost' },
-            wholeSaleId: { $first: '$wholeSaleId' },
-            accDeliveryCost: {
-              $sum: {
-                $multiply: [
-                  { $ifNull: ['$deliveryCost', 0] },
-                  '$deliveryBoxCount',
-                ],
-              },
-            },
-            accTotalPayment: { $sum: '$totalPayment' },
-          },
-        },
-        {
-          $facet: {
-            data: [
-              {
-                $sort: {
-                  accCount: -1,
-                  accPayCost: -1,
-                  _id: -1,
-                },
-              },
-              {
-                $skip: skip,
-              },
-              {
-                $limit: limit,
-              },
-              {
-                $project: {
-                  wonCost: 0,
-                },
-              },
-            ],
-            totalCount: [
-              {
-                $count: 'count',
-              },
-            ],
-          },
-        },
-        {
-          $addFields: {
-            totalCount: {
-              $arrayElemAt: ['$totalCount.count', 0],
-            },
-          },
-        },
-      ];
-    } else {
-      return [
-        {
-          $match: {
-            orderStatus: '출고완료',
-            productCode: { $exists: true },
-            mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
-            count: { $exists: true },
-            payCost: { $exists: true },
-            wonCost: { $exists: true },
-            totalPayment: { $exists: true },
-            saleAt: {
-              $exists: true,
-              $gte: from,
-              $lt: to,
-            },
-          },
-        },
-        {
-          $group: {
-            _id,
-            name: { $first: '$productName' },
-            accPayCost: { $sum: '$payCost' },
-            accCount: { $sum: '$count' },
-            accWonCost: { $sum: '$wonCost' },
-            wholeSaleId: { $first: '$wholeSaleId' },
-            accDeliveryCost: {
-              $sum: {
-                $multiply: [
-                  { $ifNull: ['$deliveryCost', 0] },
-                  '$deliveryBoxCount',
-                ],
-              },
-            },
-            accTotalPayment: { $sum: '$totalPayment' },
-          },
-        },
-        {
-          $facet: {
-            data: [
-              {
-                $project: {
-                  wonCost: 0,
-                },
-              },
-              {
-                $sort: {
-                  accCount: -1,
-                  accPayCost: -1,
-                  _id: -1,
-                },
-              },
-              {
-                $skip: skip,
-              },
-              {
-                $limit: limit,
-              },
-            ],
-            totalCount: [
-              {
-                $count: 'count',
-              },
-            ],
-          },
-        },
-        {
-          $addFields: {
-            totalCount: {
-              $arrayElemAt: ['$totalCount.count', 0],
-            },
-          },
-        },
-      ];
-    }
+      },
+    ];
   }
 
   async setDeliveryCost({
@@ -494,80 +469,55 @@ export class SaleService {
     return result;
   }
 
-  // async uploadArg(worksheet: ExcelJS.Worksheet) {
-  //   const colToField: Record<number, ColumnOption<Sale>> = {
-  //     4: {
-  //       fieldName: 'shoppingMall',
-  //     },
-  //     11: {
-  //       fieldName: 'deliveryBoxCount',
-  //     },
-  //   };
-
-  //   const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
-  //   const filteredArgList = objectList.filter(
-  //     (item) =>
-  //       Object.keys(item).length > 0 &&
-  //       item.shoppingMall !== '주문번호' &&
-  //       item.deliveryBoxCount !== 'SKU 개수',
-  //   );
-
-  //   const argListByShoppingMall = new Map<
-  //     string,
-  //     Pick<Sale, 'shoppingMall' | 'deliveryBoxCount'>
-  //   >(filteredArgList.map((f) => [f.shoppingMall, f]));
-
-  //   const matchSaleList = await this.saleRepository.saleModel
-  //     .find({
-  //       shoppingMall: {
-  //         $in: filteredArgList.map((i) => i.shoppingMall).filter((i) => !!i),
-  //       },
-  //     })
-  //     .select(['-_id', 'shoppingMall', 'deliveryBoxCount'])
-  //     .lean<Pick<Sale, 'shoppingMall' | 'deliveryBoxCount'>[]>();
-
-  //   const changeBoxCountDocs = matchSaleList
-  //     .slice(0, 5)
-  //     .map((m) => {
-  //       const targetItem = argListByShoppingMall.get(m.shoppingMall);
-  //       if (targetItem) {
-  //         if (m.deliveryBoxCount !== targetItem.deliveryBoxCount) {
-  //           m.deliveryBoxCount = targetItem.deliveryBoxCount;
-  //           return m;
-  //         }
-  //       }
-  //     })
-  //     .filter((i) => !!i);
-
-  //   const session = await this.connection.startSession();
-  //   session.startTransaction();
-  //   try {
-  //     await this.saleRepository.saleModel.bulkWrite(
-  //       changeBoxCountDocs.map((item) => ({
-  //         updateOne: {
-  //           filter: { shoppingMall: item.shoppingMall },
-  //           update: {
-  //             $set: {
-  //               deliveryBoxCount: item.deliveryBoxCount,
-  //             },
-  //           },
-  //           upsert: true,
-  //         },
-  //       })),
-  //       { session },
-  //     );
-  //     await session.commitTransaction();
-  //   } catch (error) {
-  //     await session.abortTransaction();
-  //     throw new InternalServerErrorException(
-  //       `서버에서 오류가 발생했습니다. ${error.message}`,
-  //     );
-  //   } finally {
-  //     await session.endSession();
-  //   }
-  // }
-
   async deliveryCost() {
     return this.deliveryCostModel.findOne().lean<DeliveryCost>();
+  }
+
+  async totalSaleBy({ from, to }: FindDateInput) {
+    const prevRange = this.utilService.getBeforeDate({
+      from,
+      to,
+    });
+
+    const current = await this.totalSale({ from, to });
+    const previous = await this.totalSale(prevRange);
+
+    return { current: current?.[0], previous: previous?.[0] };
+  }
+
+  async downloadExcel(saleOrdersInput: SaleOrdersInput) {
+    const findSaleOrders = await this.orders(saleOrdersInput);
+    const allData = findSaleOrders.data;
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Data');
+    worksheet.columns = [
+      { header: '거래처', key: 'mallId', width: 30 },
+      { header: '제품명', key: 'productName', width: 30 },
+      { header: '제품코드', key: 'productCode', width: 30 },
+      { header: '판매수', key: 'count', width: 10 },
+      { header: '바코드', key: 'barCode', width: 20 },
+      { header: '주소', key: 'address1', width: 100 },
+      { header: '연락처', key: 'telephoneNumber1', width: 30 },
+      { header: '메세지', key: 'message', width: 50 },
+      { header: '매출', key: 'totalPayment', width: 20 },
+      { header: '정산금액', key: 'payCost', width: 20 },
+      { header: '원가', key: 'wonCost', width: 20 },
+      { header: '택배비용', key: 'deliveryCost', width: 20 },
+      { header: '주문날짜', key: 'saleAt', width: 20 },
+      { header: '주문확인날짜', key: 'orderConfirmedAt', width: 20 },
+      { header: '주문번호', key: 'orderNumber', width: 20 },
+    ];
+
+    for (const doc of allData) {
+      const newDoc = {
+        ...doc,
+        saleAt: dayjs(doc.saleAt).format('YYYY-MM-DD HH:mm'),
+      };
+      worksheet.addRow(newDoc);
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer;
   }
 }

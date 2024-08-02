@@ -1,5 +1,4 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
-import { Product } from '../entities/product.entity';
 
 @ObjectType()
 export class ClientId {
@@ -82,15 +81,6 @@ export class SaleInfos {
 }
 
 @ObjectType()
-export class DashboardResult {
-  @Field(() => [SaleInfos], { nullable: true })
-  data?: SaleInfos[];
-
-  @Field(() => Int, { nullable: true })
-  totalCount: number;
-}
-
-@ObjectType()
 export class ClientInfo {
   @Field(() => Int, { nullable: true })
   accPayCost: number;
@@ -111,19 +101,4 @@ export class ClientInfo {
 export interface SaleInfoList {
   clients: ClientInfo[];
   sales: SaleInfo[];
-}
-
-@ObjectType()
-export class ProductSaleData extends Product {
-  @Field(() => SaleInfos, { nullable: true })
-  sales: SaleInfos;
-
-  @Field(() => [ClientInfo])
-  clients: ClientInfo[];
-
-  @Field(() => Int)
-  stock: number;
-
-  @Field(() => String, { nullable: true })
-  recentCreateDate: string;
 }

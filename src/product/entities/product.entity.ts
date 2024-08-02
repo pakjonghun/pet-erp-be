@@ -12,8 +12,8 @@ export interface ProductInterface {
   salePrice?: number;
   leadTime?: number;
   category?: ProductCategory;
-  storageId?: string;
   isFreeDeliveryFee?: boolean;
+  storageId?: string;
 }
 
 @Schema({ versionKey: false, timestamps: true })

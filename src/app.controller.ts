@@ -1,5 +1,6 @@
 import { FileService } from './common/services/file.service';
 import {
+  Body,
   Controller,
   Get,
   Param,
@@ -21,12 +22,15 @@ import {
 import { diskStorage } from 'multer';
 import { Roles } from './common/decorators/role.decorator';
 import { AuthRoleEnum } from './users/entities/user.entity';
+import { SaleOrdersInput } from './sale/dto/orders.input';
+import { SaleService } from './sale/sale.service';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
     private readonly fileService: FileService,
+    private readonly saleService: SaleService,
   ) {}
 
   @Get()
@@ -61,6 +65,17 @@ export class AppController {
     file: Express.Multer.File,
   ) {
     await this.fileService.upload(file, service);
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Post('/sale-orders/download')
+  async saleOrdersDownload(@Body() saleOrdersInput: SaleOrdersInput) {
+    const from = new Date(saleOrdersInput.from);
+    const to = new Date(saleOrdersInput.to);
+    saleOrdersInput.from = from;
+    saleOrdersInput.to = to;
+
+    return this.saleService.downloadExcel(saleOrdersInput);
   }
 
   @Roles([AuthRoleEnum.ANY])
