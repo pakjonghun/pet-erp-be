@@ -322,6 +322,11 @@ export class SabandService {
         payCost = Math.floor(realPayCost * (1 - feeRate));
       }
 
+      if (client.isSabangService && payCost == 0) {
+        const feeRate = client.feeRate;
+        payCost = Math.floor(realPayCost * (1 - feeRate));
+      }
+
       const wonCost = product.wonPrice * count;
       // console.log(
       //   '원가계산',

@@ -493,7 +493,6 @@ export class ProductRepository extends AbstractRepository<Product> {
 
     const result =
       await this.saleModel.aggregate<ProductSaleMenuOutput>(pipeline);
-    console.log('result?.[0] : ', result?.[0]);
 
     return result?.[0];
   }

@@ -18,9 +18,9 @@ import { SaleOutCheck } from './entities/sale.out.check.entity';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { SaleOrdersInput } from './dto/orders.input';
-import * as dayjs from 'dayjs';
 import { SaleOrdersOutput } from './dto/orders.output';
 import * as ExcelJS from 'exceljs';
+import * as dayjs from 'dayjs';
 // import { ColumnOption } from 'src/client/types';
 // import * as sola from 'solapi';
 
@@ -160,7 +160,6 @@ export class SaleService {
           },
         },
       ]);
-    console.log('result[0] : ', result[0]);
     return result[0];
 
     // .find({
