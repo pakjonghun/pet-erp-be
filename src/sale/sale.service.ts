@@ -498,7 +498,7 @@ export class SaleService {
       { header: '제품코드', key: 'productCode', width: 30 },
       { header: '판매수', key: 'count', width: 10 },
       { header: '바코드', key: 'barCode', width: 20 },
-      { header: '주소', key: 'address1', width: 50 },
+      { header: '주소', key: 'address1', width: 100 },
       { header: '연락처', key: 'telephoneNumber1', width: 30 },
       { header: '메세지', key: 'message', width: 50 },
       { header: '매출', key: 'totalPayment', width: 20 },
