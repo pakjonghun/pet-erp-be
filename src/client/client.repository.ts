@@ -28,6 +28,7 @@ export class ClientRepository extends AbstractRepository<Client> {
     clientNameList,
   }: FindDateScrollInput & { clientNameList: string[] }) {
     const prevRange = this.utilService.getBeforeDate({ from, to });
+    const [monthFrom, monthTo] = this.utilService.recentDayjsMonthRange();
 
     const pipeline: PipelineStage[] = [
       {
@@ -207,6 +208,71 @@ export class ClientRepository extends AbstractRepository<Client> {
                     },
                   },
                 ],
+              },
+            },
+
+            {
+              $lookup: {
+                let: {
+                  mallId: '$name',
+                },
+                from: 'sales',
+                as: 'monthSales',
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $eq: ['$mallId', '$$mallId'],
+                      },
+                      orderStatus: '출고완료',
+                      productCode: { $exists: true },
+                      count: { $exists: true },
+                      payCost: { $exists: true },
+                      wonCost: { $exists: true },
+                      saleAt: {
+                        $gte: monthFrom.toDate(),
+                        $lt: monthTo.toDate(),
+                      },
+                    },
+                  },
+                  {
+                    $group: {
+                      _id: null,
+                      accCount: {
+                        $sum: '$count',
+                      },
+                      accPayCost: {
+                        $sum: '$payCost',
+                      },
+                      accWonCost: {
+                        $sum: '$wonCost',
+                      },
+                      accDeliveryCost: {
+                        $sum: {
+                          $multiply: ['$deliveryCost', '$deliveryBoxCount'],
+                        },
+                      },
+                      accTotalPayment: {
+                        $sum: '$totalPayment',
+                      },
+                      name: {
+                        $first: '$mallId',
+                      },
+                    },
+                  },
+                  {
+                    $project: {
+                      _id: 0,
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              $addFields: {
+                monthSales: {
+                  $arrayElemAt: ['$monthSales', 0],
+                },
               },
             },
             {

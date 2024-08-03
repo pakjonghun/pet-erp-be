@@ -35,6 +35,9 @@ export class ClientSaleMenu extends PickType(Client, [
   'payDate',
   'isSabangService',
 ]) {
+  @Field(() => ProductSaleInfo, { nullable: true })
+  monthSales?: ProductSaleInfo;
+
   @Field(() => Int, { nullable: true })
   accPayCost: number;
 
