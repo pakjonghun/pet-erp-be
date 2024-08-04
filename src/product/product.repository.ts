@@ -9,6 +9,7 @@ import { ProductSaleInput } from './dtos/product-sale.input';
 import { FindManyDTO } from 'src/common/dtos/find-many.input';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { ProductSaleMenuOutput } from './dtos/product-sale-menu.output';
+import { profit, profitRate } from 'src/common/query/sale';
 
 @Injectable()
 export class ProductRepository extends AbstractRepository<Product> {
@@ -90,7 +91,6 @@ export class ProductRepository extends AbstractRepository<Product> {
     sort = 'accCount',
     order = -1,
   }: Omit<ProductSaleInput, 'keyword'> & { productCodeList: string[] }) {
-    const prevDate = this.utilService.getBeforeDate({ from, to });
     const pipeline: PipelineStage[] = [
       {
         $match: {
@@ -151,6 +151,8 @@ export class ProductRepository extends AbstractRepository<Product> {
           },
         },
       },
+      profit,
+      profitRate,
       {
         $lookup: {
           from: 'products',
@@ -382,88 +384,6 @@ export class ProductRepository extends AbstractRepository<Product> {
                   },
                 ],
               },
-            },
-            {
-              $lookup: {
-                let: {
-                  productCode: '$code',
-                },
-                from: 'sales',
-                as: 'prevSales',
-                pipeline: [
-                  {
-                    $match: {
-                      orderStatus: '출고완료',
-                      mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
-                      count: { $exists: true },
-                      payCost: { $exists: true },
-                      wonCost: { $exists: true },
-                      totalPayment: { $exists: true },
-                      saleAt: {
-                        $gte: prevDate.from,
-                        $lt: prevDate.to,
-                      },
-                      $expr: {
-                        $eq: ['$productCode', '$$productCode'],
-                      },
-                    },
-                  },
-                  {
-                    $group: {
-                      _id: null,
-                      accTotalPayment: {
-                        $sum: '$totalPayment',
-                      },
-                      accCount: {
-                        $sum: '$count',
-                      },
-                      accPayCost: {
-                        $sum: '$payCost',
-                      },
-                      accWonCost: {
-                        $sum: '$wonCost',
-                      },
-                      accDeliveryCost: {
-                        $sum: {
-                          $multiply: [
-                            { $ifNull: ['$deliveryCost', 0] },
-                            '$deliveryBoxCount',
-                          ],
-                        },
-                      },
-                    },
-                  },
-                  {
-                    $project: {
-                      _id: 0,
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $addFields: {
-                prevSale: {
-                  $arrayElemAt: ['$prevSales', 0],
-                },
-              },
-            },
-            {
-              $addFields: {
-                prevAccTotalPayment: '$prevSale.accTotalPayment',
-                prevAccCount: '$prevSale.accCount',
-                prevAccPayCost: '$prevSale.accPayCost',
-                prevAccWonCost: '$prevSale.accWonCost',
-                prevAccDeliveryCost: '$prevSale.accDeliveryCost',
-              },
-            },
-            {
-              $project: {
-                prevSales: 0,
-                prevSale: 0,
-              },
-            },
-            {
               $sort: {
                 [sort]: order,
                 code: 1,

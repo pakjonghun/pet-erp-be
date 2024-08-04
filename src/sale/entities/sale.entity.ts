@@ -1,4 +1,4 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
@@ -125,7 +125,7 @@ export class Sale extends AbstractEntity implements SaleInterface {
   totalPayment?: number;
 
   @Prop({ default: 0 })
-  @Field(() => Int, { nullable: true })
+  @Field(() => Float, { nullable: true })
   deliveryCost?: number;
 
   @Prop({ default: 1 })
