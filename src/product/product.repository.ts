@@ -87,6 +87,8 @@ export class ProductRepository extends AbstractRepository<Product> {
     skip,
     limit,
     productCodeList,
+    sort = 'accCount',
+    order = -1,
   }: Omit<ProductSaleInput, 'keyword'> & { productCodeList: string[] }) {
     const prevDate = this.utilService.getBeforeDate({ from, to });
     const pipeline: PipelineStage[] = [
@@ -463,7 +465,7 @@ export class ProductRepository extends AbstractRepository<Product> {
             },
             {
               $sort: {
-                accCount: -1,
+                [sort]: order,
                 code: 1,
               },
             },

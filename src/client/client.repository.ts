@@ -26,6 +26,8 @@ export class ClientRepository extends AbstractRepository<Client> {
     skip,
     limit,
     clientNameList,
+    sort = 'accCount',
+    order = -1,
   }: FindDateScrollInput & { clientNameList: string[] }) {
     const prevRange = this.utilService.getBeforeDate({ from, to });
     const [monthFrom, monthTo] = this.utilService.recentDayjsMonthRange();
@@ -353,7 +355,7 @@ export class ClientRepository extends AbstractRepository<Client> {
             },
             {
               $sort: {
-                accCount: -1,
+                [sort]: order,
                 _id: 1,
               },
             },
