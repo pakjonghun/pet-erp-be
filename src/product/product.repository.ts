@@ -88,8 +88,8 @@ export class ProductRepository extends AbstractRepository<Product> {
     skip,
     limit,
     productCodeList,
-    sort = 'accCount',
-    order = -1,
+    sort,
+    order,
   }: Omit<ProductSaleInput, 'keyword'> & { productCodeList: string[] }) {
     const pipeline: PipelineStage[] = [
       {
@@ -384,6 +384,15 @@ export class ProductRepository extends AbstractRepository<Product> {
                   },
                 ],
               },
+            },
+
+            {
+              $project: {
+                prevSales: 0,
+                prevSale: 0,
+              },
+            },
+            {
               $sort: {
                 [sort]: order,
                 code: 1,
