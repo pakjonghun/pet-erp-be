@@ -28,7 +28,7 @@ export class AdService {
     return this.adRepository.create(createFactoryInput);
   }
 
-  async findMany({ keyword, skip, limit }: AdsInput) {
+  async findMany({ keyword, skip, limit, from, to }: AdsInput) {
     const productList = await this.productModel
       .find({
         name: this.utilService.escapeRegex(keyword),
@@ -52,12 +52,6 @@ export class AdService {
     const filterQuery: FilterQuery<Ad> = {
       $or: [
         {
-          name: {
-            $regex: this.utilService.escapeRegex(keyword),
-            $options: 'i',
-          },
-        },
-        {
           productCodeList: {
             $exists: true,
             $elemMatch: {
@@ -70,6 +64,18 @@ export class AdService {
             $exists: true,
             $in: clientCodeList,
           },
+        },
+        { from: { $gte: from, $lte: to } },
+        { to: { $gte: from, $lte: to } },
+        {
+          $and: [
+            {
+              from: { $lte: from },
+            },
+            {
+              to: { $gte: to },
+            },
+          ],
         },
       ],
     };
