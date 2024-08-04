@@ -1,4 +1,4 @@
-import { ObjectType, Field, registerEnumType } from '@nestjs/graphql';
+import { ObjectType, Field, registerEnumType, Int } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { AbstractEntity } from 'src/common/database/abstract.entity';
 
@@ -15,6 +15,7 @@ export interface AdInterface {
   type: AdType;
   clientCode: string;
   productCodeList: string[];
+  price: number;
 }
 
 registerEnumType(AdType, {
@@ -35,6 +36,10 @@ export class Ad extends AbstractEntity implements AdInterface {
   @Field(() => AdType)
   @Prop({ type: String, enum: AdType })
   type: AdType;
+
+  @Field(() => Int)
+  @Prop({ type: Number })
+  price: number;
 
   @Prop({ type: Date })
   @Field(() => Date)

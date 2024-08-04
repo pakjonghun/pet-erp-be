@@ -1,23 +1,22 @@
 import { FindManyOutput } from 'src/common/dtos/find-many.output';
 import { Ad } from '../entities/ad.entity';
 import { Field, ObjectType, OmitType } from '@nestjs/graphql';
-import { Product } from 'src/product/entities/product.entity';
-import { Client } from 'src/client/entities/client.entity';
+import { ProductCodeName } from 'src/client/dtos/clients.output';
 
 @ObjectType()
 export class AdsOutPutItem extends OmitType(Ad, [
   'clientCode',
   'productCodeList',
 ]) {
-  @Field(() => [Product], { nullable: true })
-  productCodeList: Product[];
+  @Field(() => [ProductCodeName], { nullable: true })
+  productCodeList: ProductCodeName[];
 
-  @Field(() => Client, { nullable: true })
-  clientCode: Client;
+  @Field(() => ProductCodeName, { nullable: true })
+  clientCode: ProductCodeName;
 }
 
 @ObjectType()
 export class AdsOutput extends FindManyOutput {
-  @Field(() => [Ad])
-  data: Ad[];
+  @Field(() => [AdsOutPutItem])
+  data: AdsOutPutItem[];
 }

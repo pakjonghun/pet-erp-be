@@ -28,10 +28,13 @@ export class AdService {
     return this.adRepository.create(createFactoryInput);
   }
 
-  async findMany({ keyword, skip, limit, from, to }: AdsInput) {
+  async findMany({ keyword, skip, limit, from, to, type }: AdsInput) {
     const productList = await this.productModel
       .find({
-        name: this.utilService.escapeRegex(keyword),
+        name: {
+          $regex: this.utilService.escapeRegex(keyword),
+          $options: 'i',
+        },
       })
       .select(['code', '-_id'])
       .lean<{ code: string }[]>();
@@ -41,7 +44,10 @@ export class AdService {
 
     const clientList = await this.clientModel
       .find({
-        name: this.utilService.escapeRegex(keyword),
+        name: {
+          $regex: this.utilService.escapeRegex(keyword),
+          $options: 'i',
+        },
       })
       .select(['code', '-_id'])
       .lean<{ code: string }[]>();
@@ -78,6 +84,9 @@ export class AdService {
           ],
         },
       ],
+      type: {
+        $regex: this.utilService.escapeRegex(type ?? ''),
+      },
     };
     return this.adRepository.findMany({
       filterQuery,
