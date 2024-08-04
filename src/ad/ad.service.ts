@@ -1,0 +1,93 @@
+import { Injectable } from '@nestjs/common';
+import { CreateAdInput } from './dto/create-ad.input';
+import { UpdateAdInput } from './dto/update-ad.input';
+import { AdRepository } from './ad.repository';
+import { InjectModel } from '@nestjs/mongoose';
+import { FilterQuery, Model } from 'mongoose';
+import { UtilService } from 'src/util/util.service';
+import { AdsInput } from './dto/ads.input';
+import { OrderEnum } from 'src/common/dtos/find-many.input';
+import { Product } from 'src/product/entities/product.entity';
+import { Ad } from './entities/ad.entity';
+import { Client } from 'src/client/entities/client.entity';
+
+@Injectable()
+export class AdService {
+  constructor(
+    private readonly adRepository: AdRepository,
+    private readonly utilService: UtilService,
+
+    @InjectModel(Client.name)
+    private readonly clientModel: Model<Client>,
+
+    @InjectModel(Product.name)
+    private readonly productModel: Model<Product>,
+  ) {}
+
+  async create(createFactoryInput: CreateAdInput) {
+    return this.adRepository.create(createFactoryInput);
+  }
+
+  async findMany({ keyword, skip, limit }: AdsInput) {
+    const productList = await this.productModel
+      .find({
+        name: this.utilService.escapeRegex(keyword),
+      })
+      .select(['code', '-_id'])
+      .lean<{ code: string }[]>();
+    const productCodeList = productList.map((product) => {
+      return product.code;
+    });
+
+    const clientList = await this.clientModel
+      .find({
+        name: this.utilService.escapeRegex(keyword),
+      })
+      .select(['code', '-_id'])
+      .lean<{ code: string }[]>();
+    const clientCodeList = clientList.map((client) => {
+      return client.code;
+    });
+
+    const filterQuery: FilterQuery<Ad> = {
+      $or: [
+        {
+          name: {
+            $regex: this.utilService.escapeRegex(keyword),
+            $options: 'i',
+          },
+        },
+        {
+          productCodeList: {
+            $exists: true,
+            $elemMatch: {
+              $in: productCodeList,
+            },
+          },
+        },
+        {
+          clientCode: {
+            $exists: true,
+            $in: clientCodeList,
+          },
+        },
+      ],
+    };
+    return this.adRepository.findMany({
+      filterQuery,
+      skip,
+      limit,
+      order: OrderEnum.DESC,
+      sort: 'updatedAt',
+    });
+  }
+
+  async update({ _id, ...body }: UpdateAdInput) {
+    return this.adRepository.update({ _id }, body);
+  }
+
+  async remove(_id: string) {
+    const result = await this.adRepository.remove({ _id });
+    return result;
+  }
+}

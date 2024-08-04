@@ -33,6 +33,7 @@ import { AccessInterceptor } from './common/interceptors/access.interceptor';
 import { VoidScalar } from './common/scalars/void.scalar';
 import { OptionModule } from './option/option.module';
 import * as Joi from 'joi';
+import { AdModule } from './ad/ad.module';
 
 @Module({
   imports: [
@@ -106,6 +107,7 @@ import * as Joi from 'joi';
     ProductOrderModule,
     UtilModule,
     OptionModule,
+    AdModule,
   ],
   exports: [FileService],
   controllers: [AppController],
