@@ -1,6 +1,6 @@
-import { IsDate, IsOptional, IsString } from 'class-validator';
+import { IsDate, IsNumber, IsOptional, IsString } from 'class-validator';
 import { AdInterface, AdType } from '../entities/ad.entity';
-import { InputType, Field } from '@nestjs/graphql';
+import { InputType, Field, Int } from '@nestjs/graphql';
 import { IsOneOf } from 'src/common/validations/enum.validation';
 
 @InputType()
@@ -26,4 +26,8 @@ export class CreateAdInput implements AdInterface {
   @Field(() => Date)
   @IsDate()
   to: Date;
+
+  @Field(() => Int)
+  @IsNumber()
+  price: number;
 }

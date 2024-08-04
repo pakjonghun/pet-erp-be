@@ -28,13 +28,13 @@ export class FactoryResolver {
   @LogData({ description: '광고생성', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
   @Mutation(() => AdsOutPutItem)
-  createFactory(@Args('createAdInput') createAdInput: CreateAdInput) {
+  createAd(@Args('createAdInput') createAdInput: CreateAdInput) {
     return this.adService.create(createAdInput);
   }
 
   @Roles([AuthRoleEnum.ANY])
   @Query(() => AdsOutput, { name: 'ads' })
-  async factories(@Args('adsInput') adsInput: AdsInput) {
+  async ads(@Args('adsInput') adsInput: AdsInput) {
     const result = await this.adService.findMany(adsInput);
     return result;
   }
@@ -42,14 +42,14 @@ export class FactoryResolver {
   @LogData({ description: '광고 업데이트', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.BACK_EDIT])
   @Mutation(() => AdsOutPutItem)
-  updateFactory(@Args('updateAdInput') updateAdInput: UpdateAdInput) {
+  updateAd(@Args('updateAdInput') updateAdInput: UpdateAdInput) {
     return this.adService.update(updateAdInput);
   }
 
   @LogData({ description: '광고삭제', logType: LogTypeEnum.DELETE })
   @Roles([AuthRoleEnum.BACK_DELETE])
   @Mutation(() => AdsOutPutItem)
-  removeFactory(@Args('_id', { type: () => String }) _id: string) {
+  removeAd(@Args('_id', { type: () => String }) _id: string) {
     return this.adService.remove(_id);
   }
 
