@@ -28,7 +28,16 @@ export class AdService {
     return this.adRepository.create(createFactoryInput);
   }
 
-  async findMany({ keyword, skip, limit, from, to, type }: AdsInput) {
+  async findMany({
+    keyword,
+    skip,
+    limit,
+    from,
+    to,
+    type,
+    sort = 'updatedAt',
+    order = -1,
+  }: AdsInput) {
     const productList = await this.productModel
       .find({
         name: {
@@ -92,8 +101,8 @@ export class AdService {
       filterQuery,
       skip,
       limit,
-      order: OrderEnum.DESC,
-      sort: 'updatedAt',
+      order: order == -1 ? OrderEnum.DESC : OrderEnum.ASC,
+      sort,
     });
   }
 
