@@ -28,10 +28,14 @@ export class GqlConfigService implements GqlOptionsFactory {
         const storageLoader = this.storageLoader.createLoader();
         const clientLoader = this.clientLoader.createLoader();
         const optionLoader = this.optionLoader.createLoader();
+        const adClientLoader = this.optionLoader.createLoader();
+        const adProductLoader = this.optionLoader.createLoader();
         return {
           req,
           res,
           loaders: {
+            adProductLoader,
+            adClientLoader,
             factoryLoader,
             productLoader,
             storageLoader,
