@@ -185,23 +185,31 @@ export class ClientService {
     return this.clientRepository.findAll({});
   }
 
-  async findMany(query: ClientsInput) {
+  async findMany({
+    clientType,
+    sort = 'createdAt',
+    order = OrderEnum.DESC,
+    skip,
+    limit,
+    keyword,
+  }: ClientsInput) {
     const filterQuery: FilterQuery<Client> = {
       name: {
-        $regex: this.utilService.escapeRegex(query.keyword),
+        $regex: this.utilService.escapeRegex(keyword),
         $options: 'i',
       },
     };
 
-    if (query.clientType) {
-      filterQuery.clientType = { $in: query.clientType };
+    if (clientType) {
+      filterQuery.clientType = { $in: clientType };
     }
 
     const clients = await this.clientRepository.findMany({
       filterQuery,
-      skip: query.skip,
-      limit: query.limit,
-      order: OrderEnum.DESC,
+      skip: skip,
+      limit: limit,
+      order,
+      sort,
     });
 
     return clients;

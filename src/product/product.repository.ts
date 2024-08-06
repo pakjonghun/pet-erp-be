@@ -6,7 +6,7 @@ import { FilterQuery, Model, PipelineStage } from 'mongoose';
 import { ProductsInput } from './dtos/products-input';
 import { UtilService } from 'src/util/util.service';
 import { ProductSaleInput } from './dtos/product-sale.input';
-import { FindManyDTO } from 'src/common/dtos/find-many.input';
+import { FindManyDTO, OrderEnum } from 'src/common/dtos/find-many.input';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { ProductSaleMenuOutput } from './dtos/product-sale-menu.output';
 import { profit, profitRate } from 'src/common/query/sale';
@@ -34,7 +34,13 @@ export class ProductRepository extends AbstractRepository<Product> {
     return result;
   }
 
-  async findFullManyProducts({ keyword, limit, skip }: ProductsInput) {
+  async findFullManyProducts({
+    keyword,
+    limit,
+    skip,
+    order = OrderEnum.DESC,
+    sort = 'createdAt',
+  }: ProductsInput) {
     const escapedKeyword = this.utilService.escapeRegex(keyword);
     const filterQuery: FilterQuery<Product> = {
       $or: [
@@ -49,7 +55,7 @@ export class ProductRepository extends AbstractRepository<Product> {
         path: 'category',
         select: ['_id', 'name'],
       })
-      .sort({ createdAt: -1, _id: 1 })
+      .sort({ [sort]: OrderEnum.DESC == order ? -1 : 1, _id: 1 })
       .skip(skip)
       .limit(limit)
       .lean<Product[]>();

@@ -9,6 +9,8 @@ export class ClientsInput extends PickType(FindManyDTO, [
   'keyword',
   'limit',
   'skip',
+  'order',
+  'sort',
 ]) {
   @Field(() => [ClientType], { nullable: true })
   @IsOptional()

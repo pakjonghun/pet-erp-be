@@ -12,7 +12,6 @@ import { ColumnOption } from 'src/client/types';
 import { Subsidiary, SubsidiaryInterface } from './entities/subsidiary.entity';
 import { UtilService } from 'src/util/util.service';
 import { SubsidiariesInput } from './dto/subsidiaries.input';
-import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-category.service';
 import { FilterQuery, Model } from 'mongoose';
 import * as ExcelJS from 'exceljs';
@@ -45,10 +44,21 @@ export class SubsidiaryService {
   async findMany({ keyword, ...query }: SubsidiariesInput) {
     const result = await this.subsidiaryRepository.findFullManySubsidiary({
       ...query,
-      order: OrderEnum.DESC,
-      sort: 'createdAt',
       filterQuery: {
-        name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
+        $or: [
+          {
+            name: {
+              $regex: this.utilService.escapeRegex(keyword),
+              $options: 'i',
+            },
+          },
+          {
+            code: {
+              $regex: this.utilService.escapeRegex(keyword),
+              $options: 'i',
+            },
+          },
+        ],
       },
     });
 

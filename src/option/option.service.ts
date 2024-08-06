@@ -11,7 +11,6 @@ import { FilterQuery, Model } from 'mongoose';
 import { UtilService } from 'src/util/util.service';
 import { Option } from './entities/option.entity';
 import { OptionsInput } from './dto/options.input';
-import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { Product } from 'src/product/entities/product.entity';
 import { OutProduct } from './dto/options.output';
 
@@ -42,7 +41,7 @@ export class OptionService {
     return this.optionRepository.update({ id }, body);
   }
 
-  async findMany({ keyword, skip, limit }: OptionsInput) {
+  async findMany({ keyword, skip, limit, sort, order }: OptionsInput) {
     const filterQuery: FilterQuery<Option> = {
       $or: [
         {
@@ -64,8 +63,8 @@ export class OptionService {
       filterQuery,
       skip,
       limit,
-      order: OrderEnum.DESC,
-      sort: 'updatedAt',
+      order,
+      sort,
     });
   }
 

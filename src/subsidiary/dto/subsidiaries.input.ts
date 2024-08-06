@@ -6,4 +6,6 @@ export class SubsidiariesInput extends PickType(FindManyDTO, [
   'keyword',
   'limit',
   'skip',
+  'sort',
+  'order',
 ]) {}

@@ -6,4 +6,6 @@ export class ProductsInput extends PickType(FindManyDTO, [
   'keyword',
   'limit',
   'skip',
+  'order',
+  'sort',
 ]) {}

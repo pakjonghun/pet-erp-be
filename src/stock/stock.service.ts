@@ -935,7 +935,7 @@ export class StockService {
       .select(['_id', 'code', 'name', 'leadTime', 'wonPrice'])
       .limit(limit)
       .skip(skip)
-      .sort({ [sort]: order == OrderEnum.DESC ? -1 : 1 })
+      .sort({ [sort]: order == OrderEnum.DESC ? -1 : 1, _id: 1 })
       .lean<Product[]>();
 
     const productIdList = productList.map((item) => item._id);
