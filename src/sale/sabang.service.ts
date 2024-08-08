@@ -199,6 +199,7 @@ export class SabandService {
         const productName = item['GOODS_KEYWORD']?.[0];
         const productCode = item['PRODUCT_ID']?.[0] as string;
         const mallId = item['MALL_ID']?.[0] as string;
+
         if (!productCode || !mallId || !productName) return false;
 
         if (filterProductCode[productCode] || filterMallId[mallId]) {
@@ -337,6 +338,16 @@ export class SabandService {
       //   '계산금액',
       //   wonCost,
       // );
+
+      if (mallId == '페오펫') {
+        const initDateString = item['ORDER_DATE']?.[0];
+        if (initDateString[7] == '6') {
+          console.log(initDateString, item.IDX?.[0], count);
+        }
+        // const changeDate = new Date(initDateString);
+        // console.log(`${count}_${realPayCost}_${wonCost}_${item.IDX?.[0]}`);
+      }
+
       document['code'] = item.IDX.join('_');
       document['shoppingMall'] = item.ORDER_ID?.[0];
       document['consignee'] = item['RECEIVE_NAME'][0];
@@ -392,9 +403,9 @@ export class SabandService {
 
     // deliveryCost.
     //아직 출고안된 제품은 모두 false
-    //거래처에 해당 제품이 유료배송이면 택배비에 평균 택배비 넣기
-    //거래처에 해당 제품이 무료배송이면 택배비는 0원
-    //해당 제품이 유배 설정이고 거래처에 해당 제품이 무료배송으로 안들어가 있으면 배송비 넣기
+    //거래처에 해당 제품이 무료배송이면 택배비에 평균 택배비 넣기
+    //거래처에 해당 제품이 유료배송이면 택배비는 0원
+
     newList.forEach((sale) => {
       const isNotOutSale = !savedSaleByOrderNumber.has(sale.orderNumber);
       if (isNotOutSale) {
@@ -413,18 +424,17 @@ export class SabandService {
       const isNotFreeDelivery = notFreeDeliveryProductCodeList.some(
         (item) => item == sale.productCode,
       );
-      const isProductNotFree = !product?.isFreeDeliveryFee;
+      const isProductAllFree = !!product?.isFreeDeliveryFee;
 
-      if (isFreeDelivery) {
-        sale.deliveryCost = 0;
-      }
-
-      if (isNotFreeDelivery || (isProductNotFree && !isFreeDelivery)) {
+      if (isProductAllFree || isFreeDelivery) {
+        console.log('delivery cost', deliveryCost.deliveryCost);
         sale.deliveryCost = deliveryCost.deliveryCost ?? 0;
       }
-    });
 
-    /////////
+      if (isNotFreeDelivery) {
+        sale.deliveryCost = 0;
+      }
+    });
 
     return {
       saleData: newList as SaleDocument[],
