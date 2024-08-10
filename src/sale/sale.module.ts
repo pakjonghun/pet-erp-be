@@ -15,6 +15,7 @@ import {
   SaleOutCheck,
   SaleOutCheckSchema,
 } from './entities/sale.out.check.entity';
+import { Option, OptionSchema } from 'src/option/entities/option.entity';
 
 @Module({
   exports: [SaleService],
@@ -25,6 +26,7 @@ import {
       { name: Storage.name, schema: StorageSchema },
       { name: Client.name, schema: clientSchema },
       { name: Sale.name, schema: saleSchema },
+      { name: Option.name, schema: OptionSchema },
       { name: DeliveryCost.name, schema: DeliveryCostSchema },
     ]),
     StockModule,

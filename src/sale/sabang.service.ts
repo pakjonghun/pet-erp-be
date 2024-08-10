@@ -25,6 +25,10 @@ import * as https from 'https';
 import * as crypto from 'crypto';
 import * as dayjs from 'dayjs';
 import * as utc from 'dayjs/plugin/utc';
+// import {
+//   Option,
+//   OptionProductInterface,
+// } from 'src/option/entities/option.entity';
 
 dayjs.extend(utc);
 
@@ -35,6 +39,8 @@ export class SabandService {
     @InjectConnection() private readonly connection: Connection,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Client.name) private readonly clientModel: Model<Client>,
+    // @InjectModel(Option.name)
+    // private readonly optionModel: Model<Option>,
     @InjectModel(DeliveryCost.name)
     private readonly deliveryCostModel: Model<DeliveryCost>,
     private readonly stockService: StockService,
@@ -163,6 +169,18 @@ export class SabandService {
     const allProduct = await this.productModel.find({}).lean<Product[]>();
     const allClient = await this.clientModel.find({}).lean<Client[]>();
 
+    // const nBoxOption = await this.optionModel
+    //   .find({ id: 'nbox' })
+    //   .lean<Option[]>();
+    // const optionProducts = nBoxOption.flatMap((o) => o.productOptionList);
+    // const optionByProductCode = new Map<string, OptionProductInterface>(
+    //   optionProducts.map((p) => [p.productCode, p]),
+    // );
+
+    const productByName = new Map<string, Product>(
+      allProduct.map((p) => [p.name, p]),
+    );
+
     const productByCode = new Map<string, Product>(
       allProduct.map((p) => [p.code, p]),
     );
@@ -193,7 +211,7 @@ export class SabandService {
     };
 
     type RawSale = Pick<Sale, 'mallId' | 'productCode' | 'productName'>;
-
+    console.log('initList : ', initList.length);
     const list = initList
       .filter((item) => {
         const productName = item['GOODS_KEYWORD']?.[0];
@@ -214,6 +232,23 @@ export class SabandService {
         if (newMallId) {
           item['MALL_ID'][0] = newMallId;
         }
+        return item;
+      })
+      .map((item) => {
+        const productCode = item['PRODUCT_ID']?.[0] as string;
+        const productName = item['GOODS_KEYWORD']?.[0] as string;
+
+        if (!productByCode.get(productCode)) {
+          if (productCode && productName) {
+            const realProductName = productName.split(' ')[0];
+            console.log('realProductName : ', realProductName);
+            if (realProductName && productByName.has(realProductName.trim())) {
+              const realProduct = productByName.get(realProductName.trim());
+              item['PRODUCT_ID'][0] = realProduct.code;
+            }
+          }
+        }
+
         return item;
       });
 
@@ -339,15 +374,6 @@ export class SabandService {
       //   wonCost,
       // );
 
-      if (mallId == '페오펫') {
-        const initDateString = item['ORDER_DATE']?.[0];
-        if (initDateString[7] == '6') {
-          console.log(initDateString, item.IDX?.[0], count);
-        }
-        // const changeDate = new Date(initDateString);
-        // console.log(`${count}_${realPayCost}_${wonCost}_${item.IDX?.[0]}`);
-      }
-
       document['code'] = item.IDX.join('_');
       document['shoppingMall'] = item.ORDER_ID?.[0];
       document['consignee'] = item['RECEIVE_NAME'][0];
@@ -427,7 +453,6 @@ export class SabandService {
       const isProductAllFree = !!product?.isFreeDeliveryFee;
 
       if (isProductAllFree || isFreeDelivery) {
-        console.log('delivery cost', deliveryCost.deliveryCost);
         sale.deliveryCost = deliveryCost.deliveryCost ?? 0;
       }
 
