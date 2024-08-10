@@ -17,7 +17,7 @@ import {
   SubsidiaryCategoryInterface,
 } from './entities/subsidiary-category.entity';
 import { SubsidiaryCategoriesInput } from './dto/subsidiary-categories.input';
-import { FilterQuery } from 'mongoose';
+import { FilterQuery, HydratedDocument } from 'mongoose';
 import { SubsidiaryService } from 'src/subsidiary/subsidiary.service';
 
 @Injectable()
@@ -48,6 +48,10 @@ export class SubsidiaryCategoryService {
         name: { $regex: this.utilService.escapeRegex(keyword), $options: 'i' },
       },
     });
+  }
+
+  findAll(filerQuery: FilterQuery<SubsidiaryCategory>) {
+    return this.subsidiaryCategoryRepository.findAll(filerQuery);
   }
 
   async update(updateSubsidiaryInput: UpdateSubsidiaryCategoryInput) {
@@ -146,5 +150,9 @@ export class SubsidiaryCategoryService {
 
   async upsert(createSubsidiaryCategory: CreateSubsidiaryCategoryInput) {
     return this.subsidiaryCategoryRepository.upsert(createSubsidiaryCategory);
+  }
+
+  async bulkUpsert(body: HydratedDocument<SubsidiaryCategory>[]) {
+    return this.subsidiaryCategoryRepository.bulkUpsert(body);
   }
 }

@@ -14,8 +14,10 @@ import { UtilService } from 'src/util/util.service';
 import { SubsidiariesInput } from './dto/subsidiaries.input';
 import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-category.service';
 import { FilterQuery, Model } from 'mongoose';
-import * as ExcelJS from 'exceljs';
 import { InjectModel } from '@nestjs/mongoose';
+import { SubsidiaryCategory } from 'src/subsidiary-category/entities/subsidiary-category.entity';
+import { Product } from 'src/product/entities/product.entity';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class SubsidiaryService {
@@ -123,17 +125,58 @@ export class SubsidiaryService {
       },
     };
 
+    const allCategory = await this.subsidiaryCategoryService.findAll({});
+    const categoryByName = new Map<string, SubsidiaryCategory>(
+      allCategory.map((c) => [c.name, c]),
+    );
+
+    const allProduct = await this.productService.findAll({});
+    const productByName = new Map<string, Product>(
+      allProduct.map((c) => [c.name, c]),
+    );
+
     const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
     const newObjectList = [];
 
     for await (const object of objectList) {
-      const createBody = await this.beforeUpload(object);
-      newObjectList.push(createBody);
+      let hasNoProductName = '';
+      const categoryName = object.category;
+      const productList =
+        object.productList
+          ?.split(',')
+          .map((p) => {
+            const targetProduct = productByName.get(p.trim())._id;
+            if (!targetProduct) {
+              hasNoProductName = p;
+            }
+            return targetProduct;
+          })
+          .filter((item) => !!item) ?? [];
+
+      if (hasNoProductName) {
+        throw new BadRequestException(
+          `${hasNoProductName}제품은 존재하지 않습니다.`,
+        );
+      }
+
+      object.productList = productList;
+
+      let category = categoryByName.get(categoryName?.trim()) ?? null;
+
+      if (!category && typeof categoryName == 'string' && categoryName.trim()) {
+        category = await this.subsidiaryCategoryService.create({
+          name: categoryName,
+        });
+      }
+
+      object.category = category?._id ?? null;
+
+      newObjectList.push(object);
     }
     const documents =
       await this.subsidiaryRepository.objectToDocuments(newObjectList);
     this.utilService.checkDuplicatedField(documents, 'code');
-    await this.subsidiaryRepository.bulkWrite(documents);
+    await this.subsidiaryRepository.bulkUpsert(documents);
   }
 
   async downloadExcel() {
@@ -236,65 +279,6 @@ export class SubsidiaryService {
 
         throw new BadRequestException(
           `선택한 제품 중 존재하지 않는 제품이 ${notExistProductList.length}개 있습니다. 존재하지 않는 제품의 이름은 : (${notExistProductNameString}) 입니다.`,
-        );
-      }
-    }
-    return {
-      ...input,
-      category,
-      productList,
-    };
-  }
-
-  private async beforeUpload(
-    input: Omit<Subsidiary, 'category' | 'productList'> & {
-      category: string;
-      productList: string;
-    },
-  ) {
-    const code = input.code;
-    const name = input.name;
-    const categoryName = input.category;
-
-    if (typeof input.productList !== 'string') {
-      input.productList = '';
-    }
-
-    const productNameList = input.productList
-      .split(',')
-      .map((item) => item.trim())
-      .filter((item) => item);
-
-    const hasCommaName = productNameList.some((item) => item.includes(','));
-    if (hasCommaName) {
-      throw new BadRequestException("',' 는 부자재 이름에 포함될 수 없습니다.");
-    }
-
-    let category;
-    let productList = [];
-
-    await this.subsidiaryRepository.uniqueCheck({ code });
-    await this.subsidiaryRepository.uniqueCheck({ name });
-
-    if (categoryName) {
-      category = await this.subsidiaryCategoryService.upsert({
-        name: categoryName,
-      });
-    }
-
-    if (productNameList.length) {
-      productList = await this.productService.findAll({
-        name: { $in: productNameList },
-      });
-
-      if (productNameList.length !== productList.length) {
-        const notExistProductList = productNameList.filter(
-          (item) => !productList.find((product) => product.name !== item),
-        );
-        const notExistProductNameString = notExistProductList.join(',  ');
-
-        throw new BadRequestException(
-          `선택한 제품 중 존재하지 않는 제품이 ${notExistProductList.length}개 있습니다. 존재하지 않는 제품은 : (${notExistProductNameString}) 입니다.`,
         );
       }
     }
