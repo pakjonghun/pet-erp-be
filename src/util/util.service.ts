@@ -34,13 +34,19 @@ export class UtilService {
           `${rowIndex}번째 줄에 데이터가 모두 입력되어 있지 않습니다. 필수 데이터를 입력해주세요.`,
         );
       }
-      row.eachCell((cell, cellIndex) => {
+
+      row.eachCell({ includeEmpty: true }, (cell, cellIndex) => {
         const fieldName = colToField[cellIndex]?.fieldName as string;
+
         if (fieldName) {
           let value = cell.value;
+
           if (typeof value === 'string') {
             value = value.trim().replace(/[\b]/g, '').trim();
           }
+
+          value = value ?? null;
+          value = value == '' ? null : value;
 
           if (colToField[cellIndex]?.transform) {
             value = colToField[cellIndex]?.transform(
@@ -50,6 +56,7 @@ export class UtilService {
           object[fieldName] = value;
         }
       });
+
       result.push(object);
     });
 

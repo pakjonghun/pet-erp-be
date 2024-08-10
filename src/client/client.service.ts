@@ -276,9 +276,9 @@ export class ClientService {
         fieldName: 'inActive',
         transform: (value) => {
           const valueType = typeof value;
-          if (valueType === 'string') {
-            if (value === '거래중') return true;
-            if (value === '거래종료') return false;
+          if (typeof value == 'string') {
+            if (value.trim() === '거래중') return true;
+            if (value.trim() === '거래종료') return false;
 
             throw new BadRequestException(
               `${value} 는 올바른 거래여부가 아닙니다.`,
@@ -293,6 +293,7 @@ export class ClientService {
       },
       11: {
         fieldName: 'storageId',
+        transform: (v) => (v == null ? null : v),
       },
       12: {
         fieldName: 'deliveryFreeProductCodeList',
@@ -350,9 +351,11 @@ export class ClientService {
     );
 
     objectList.forEach((object) => {
-      const isSabangService =
-        (object.isSabangService as string).trim() === '지원';
-      object.isSabangService = isSabangService;
+      if (typeof object.isSabangService == 'string') {
+        const isSabangService =
+          (object.isSabangService as string)?.trim() === '지원';
+        object.isSabangService = isSabangService;
+      }
 
       if (object.storageId) {
         object.storageId =
@@ -397,12 +400,11 @@ export class ClientService {
     });
 
     const documents = await this.clientRepository.objectToDocuments(objectList);
-
     this.utilService.checkDuplicatedField(documents, 'code');
-    await this.clientRepository.docUniqueCheck(documents, 'code');
+    // await this.clientRepository.docUniqueCheck(documents, 'code');
     this.utilService.checkDuplicatedField(documents, 'name');
-    await this.clientRepository.docUniqueCheck(documents, 'name');
-    await this.clientRepository.bulkWrite(documents);
+    // await this.clientRepository.docUniqueCheck(documents, 'name');
+    await this.clientRepository.bulkUpsert(documents);
   }
 
   async downloadExcel() {

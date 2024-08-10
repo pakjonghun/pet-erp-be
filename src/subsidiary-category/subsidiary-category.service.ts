@@ -84,17 +84,16 @@ export class SubsidiaryCategoryService {
     const newObjectList = [];
 
     for await (const object of objectList) {
-      const createBody = await this.beforeCreateOrUpdate(object);
-      newObjectList.push(createBody);
+      newObjectList.push(object);
     }
 
     const documents =
       await this.subsidiaryCategoryRepository.objectToDocuments(newObjectList);
 
     this.utilService.checkDuplicatedField(documents, 'name');
-    await this.subsidiaryCategoryRepository.docUniqueCheck(documents, 'name');
+    // await this.subsidiaryCategoryRepository.docUniqueCheck(documents, 'name');
 
-    await this.subsidiaryCategoryRepository.bulkWrite(documents);
+    await this.subsidiaryCategoryRepository.bulkUpsert(documents);
   }
 
   async downloadExcel() {

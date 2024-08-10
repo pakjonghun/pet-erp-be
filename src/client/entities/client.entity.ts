@@ -78,8 +78,6 @@ export class Client extends AbstractEntity implements ClientInterface {
 
   @Prop({
     type: Number,
-    min: [0, '수수료 비율은 0 이상의 값을 입력하세요.'],
-    max: [100, '수수료 비율은 100이하의 값을 입력하세요.'],
   })
   @Field(() => Float, { nullable: true })
   feeRate?: number;
@@ -143,8 +141,8 @@ export class Client extends AbstractEntity implements ClientInterface {
   @Field(() => [String], { nullable: true })
   deliveryNotFreeProductCodeList?: string[];
 
-  @Prop({ type: Boolean })
-  @Field(() => Boolean, { nullable: true })
+  @Prop({ type: Boolean, required: [true, '사방넷 지원여부를 입력하세요.'] })
+  @Field(() => Boolean)
   isSabangService: boolean;
 }
 
