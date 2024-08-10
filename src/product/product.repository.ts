@@ -34,35 +34,6 @@ export class ProductRepository extends AbstractRepository<Product> {
     return result;
   }
 
-  async findFullManyProducts({
-    keyword,
-    limit,
-    skip,
-    order = OrderEnum.DESC,
-    sort = 'createdAt',
-  }: ProductsInput) {
-    const escapedKeyword = this.utilService.escapeRegex(keyword);
-    const filterQuery: FilterQuery<Product> = {
-      $or: [
-        { name: { $regex: escapedKeyword, $options: 'i' } },
-        { code: { $regex: escapedKeyword, $options: 'i' } },
-      ],
-    };
-    const totalCount = await this.model.countDocuments(filterQuery);
-    const data = await this.model
-      .find(filterQuery)
-      .populate({
-        path: 'category',
-        select: ['_id', 'name'],
-      })
-      .sort({ [sort]: OrderEnum.DESC == order ? -1 : 1, _id: 1 })
-      .skip(skip)
-      .limit(limit)
-      .lean<Product[]>();
-
-    return { totalCount, data };
-  }
-
   async getFullProductSort({
     keyword,
     limit,
