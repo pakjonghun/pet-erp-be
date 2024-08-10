@@ -8,6 +8,9 @@ import { Sale } from 'src/sale/entities/sale.entity';
 import { FindDateScrollInput } from 'src/common/dtos/find-date-scroll.input';
 import { ClientSaleMenu } from './dtos/client-sale-menu.output';
 import { profit, profitRate } from 'src/common/query/sale';
+import { OutClient } from './dtos/clients.output';
+import { ClientsInput } from './dtos/clients.input';
+import { OrderEnum } from 'src/common/dtos/find-many.input';
 
 @Injectable()
 export class ClientRepository extends AbstractRepository<Client> {
@@ -314,5 +317,94 @@ export class ClientRepository extends AbstractRepository<Client> {
 
     const result = await this.saleModel.aggregate<ClientSaleMenu>(pipeline);
     return result?.[0];
+  }
+
+  async findFullSortClient({
+    sort = 'createdAt',
+    order = OrderEnum.DESC,
+    skip,
+    limit,
+    keyword,
+  }: ClientsInput) {
+    const newSort = sort == 'storage' ? `${sort}.name` : sort;
+
+    const result = await this.model.aggregate<{
+      totalCount: number;
+      data: OutClient[];
+    }>([
+      {
+        $match: {
+          name: {
+            $regex: this.utilService.escapeRegex(keyword),
+            $options: 'i',
+          },
+        },
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $addFields: {
+                storageObjectId: {
+                  $toObjectId: '$storageId',
+                },
+              },
+            },
+            {
+              $lookup: {
+                as: 'storageInfo',
+                foreignField: '_id',
+                localField: 'storageObjectId',
+                from: 'storages',
+              },
+            },
+            {
+              $addFields: {
+                storage: {
+                  $arrayElemAt: ['$storageInfo', 0],
+                },
+              },
+            },
+            {
+              $project: {
+                storageObjectId: 0,
+                storageInfo: 0,
+              },
+            },
+            {
+              $sort: {
+                [newSort]: order == OrderEnum.DESC ? -1 : 1,
+                _id: 1,
+              },
+            },
+            {
+              $skip: skip,
+            },
+            {
+              $limit: limit,
+            },
+          ],
+          totalCount: [
+            {
+              $count: 'count',
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          totalCount: {
+            $ifNull: [
+              {
+                $arrayElemAt: ['$totalCount.count', 0],
+              },
+              0,
+            ],
+          },
+        },
+      },
+    ]);
+
+    return result[0];
   }
 }

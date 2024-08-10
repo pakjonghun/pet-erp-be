@@ -185,8 +185,11 @@ export class ClientService {
     return this.clientRepository.findAll({});
   }
 
+  async findSortMany(clientsInput: ClientsInput) {
+    return this.clientRepository.findFullSortClient(clientsInput);
+  }
+
   async findMany({
-    clientType,
     sort = 'createdAt',
     order = OrderEnum.DESC,
     skip,
@@ -199,10 +202,6 @@ export class ClientService {
         $options: 'i',
       },
     };
-
-    if (clientType) {
-      filterQuery.clientType = { $in: clientType };
-    }
 
     const clients = await this.clientRepository.findMany({
       filterQuery,
