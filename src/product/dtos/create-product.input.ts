@@ -19,6 +19,7 @@ export class CreateProductInput
   @Field(() => String)
   @IsString({ message: '상품이름은 문자열 타입을 입력해주세요.' })
   @NotContains(',', { message: `',' 는 제품 이름에 포함될 수 없습니다.` })
+  @NotContains(' ', { message: `공백은 제품 이름에 포함될 수 없습니다.` })
   name: string;
 
   @Field(() => Int, { nullable: true })

@@ -79,6 +79,7 @@ export class ProductCategoryService {
 
   async remove(_id: string) {
     const usingCategory = await this.productService.isExist({ category: _id });
+
     if (usingCategory) {
       throw new ConflictException('사용중인 제품분류는 삭제할 수 없습니다.');
     }
@@ -87,7 +88,16 @@ export class ProductCategoryService {
 
   async upload(worksheet: ExcelJS.Worksheet) {
     const colToField: Record<number, ColumnOption<ProductCategoryInterface>> = {
-      1: { fieldName: 'name' },
+      1: {
+        fieldName: 'name',
+        transform: (value) => {
+          let trimValue = value;
+          if (typeof value === 'string') {
+            trimValue = value.trim();
+            return trimValue;
+          }
+        },
+      },
     };
 
     const documents = await this.categoryRepository.excelToDocuments(
@@ -95,9 +105,11 @@ export class ProductCategoryService {
       colToField,
       1,
     );
+
+    console.log('documents : ', documents);
     this.utilService.checkDuplicatedField(documents, 'name');
-    await this.categoryRepository.docUniqueCheck(documents, 'name');
-    await this.categoryRepository.bulkWrite(documents);
+    // await this.categoryRepository.docUniqueCheck(documents, 'name');
+    await this.categoryRepository.bulkUpsert(documents);
   }
 
   async findOne(filterQuery: FilterQuery<ProductCategory>) {

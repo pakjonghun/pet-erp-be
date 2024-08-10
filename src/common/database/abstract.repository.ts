@@ -140,6 +140,33 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
     }
   }
 
+  async bulkUpsert(documents: HydratedDocument<T>[], session?: ClientSession) {
+    const bulkOperator = documents.map((doc) => {
+      const code = (doc as unknown as { code: string })?.code;
+      const name = (doc as unknown as { name: string })?.name;
+      let filter: FilterQuery<T> = {};
+      if (code) {
+        filter = { code };
+      } else {
+        filter = { name };
+      }
+
+      return {
+        updateOne: {
+          filter,
+          update: { $set: doc },
+          upsert: true,
+        },
+      };
+    });
+
+    if (session) {
+      await this.model.bulkWrite(bulkOperator, { session });
+    } else {
+      await this.model.bulkWrite(bulkOperator);
+    }
+  }
+
   async excelToDocuments(
     worksheet: ExcelJS.Worksheet,
     colToField: Record<number, ColumnOption<any>>,
@@ -155,6 +182,21 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
           `${rowIndex}번째 줄에 데이터가 모두 입력되어 있지 않습니다. 필수 데이터를 입력해주세요.`,
         );
       }
+
+      let isEmpty = false;
+      row.eachCell((cell) => {
+        if (typeof cell.value == 'string') {
+          if (cell.value.trim()) {
+            isEmpty = false;
+            return;
+          } else {
+            isEmpty = true;
+          }
+        }
+      });
+
+      if (isEmpty) return;
+
       row.eachCell((cell, index) => {
         const fieldName = colToField[index]?.fieldName as string;
         if (fieldName) {

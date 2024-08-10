@@ -1,4 +1,3 @@
-import * as ExcelJS from 'exceljs';
 import {
   BadRequestException,
   Inject,
@@ -23,13 +22,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ProductOrder } from 'src/product-order/entities/product-order.entity';
 import { Stock } from 'src/stock/entities/stock.entity';
 import { Storage } from 'src/storage/entities/storage.entity';
+import * as ExcelJS from 'exceljs';
+import { ProductCategory } from 'src/product-category/entities/product-category.entity';
 
 @Injectable()
 export class ProductService {
   constructor(
     @Inject(forwardRef(() => ProductCategoryService))
     private readonly categoryService: ProductCategoryService,
-
     private readonly saleService: SaleService,
     private readonly utilService: UtilService,
     private readonly productRepository: ProductRepository,
@@ -61,10 +61,6 @@ export class ProductService {
       storage = await this.checkStorage(storageName);
     }
 
-    if (createProductInput.name.includes(',')) {
-      throw new BadRequestException('제품이름에 , 는 포함될 수 없습니다.');
-    }
-
     await this.productRepository.uniqueCheck({
       code: createProductInput.code,
     });
@@ -76,7 +72,7 @@ export class ProductService {
     const result = await this.productRepository.create({
       ...createProductInput,
       category,
-      storageId: storage._id,
+      storageId: storage?._id,
     });
 
     return this.findOne({ _id: result._id });
@@ -217,12 +213,22 @@ export class ProductService {
     };
 
     const objectList = this.utilService.excelToObject(worksheet, colToField, 2);
+    const categoryList = await this.categoryService.findAll({});
+    const categoryByName = new Map<string, ProductCategory>(
+      categoryList.map((c) => [c.name, c]),
+    );
 
     for await (const object of objectList) {
       if (object.name && typeof object.name == 'string') {
         if (object.name.includes(',')) {
           throw new BadRequestException(
             '제품 이름에는 , 를 포함할 수 없습니다.',
+          );
+        }
+
+        if (object.name.includes(' ')) {
+          throw new BadRequestException(
+            '제품 이름에는 공백을 포함할 수 없습니다.',
           );
         }
       }
@@ -233,13 +239,17 @@ export class ProductService {
         object.storageId = storage._id.toHexString();
       }
 
-      const categoryName = object.category as string;
-      if (categoryName) {
+      const categoryName = (object.category as string)?.trim();
+
+      if (!categoryByName.has(categoryName) && !!categoryName) {
+        console.log('category make', categoryName);
         const categoryDoc = await this.categoryService.upsert({
           name: categoryName,
         });
 
-        object.category = categoryDoc;
+        object.category = categoryDoc._id;
+      } else {
+        object.category = categoryByName.get(object.category) ?? null;
       }
 
       if (typeof object.isFreeDeliveryFee == 'string') {
@@ -252,9 +262,9 @@ export class ProductService {
 
     this.utilService.checkDuplicatedField(documents, 'code');
     this.utilService.checkDuplicatedField(documents, 'name');
-    await this.productRepository.docUniqueCheck(documents, 'code');
-    await this.productRepository.docUniqueCheck(documents, 'name');
-    await this.productRepository.bulkWrite(documents);
+    // await this.productRepository.docUniqueCheck(documents, 'code');
+    // await this.productRepository.docUniqueCheck(documents, 'name');
+    await this.productRepository.bulkUpsert(documents);
   }
 
   async salesByProduct({ keyword, ...rest }: ProductSaleInput) {
