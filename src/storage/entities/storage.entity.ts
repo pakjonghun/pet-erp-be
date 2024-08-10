@@ -12,7 +12,11 @@ export interface StorageInterface {
 @ObjectType()
 @Schema({ timestamps: { createdAt: false }, versionKey: false })
 export class Storage extends AbstractEntity implements StorageInterface {
-  @Prop({ type: String, unique: true })
+  @Prop({
+    type: String,
+    unique: true,
+    required: [true, '창고 이름을 입력하세요.'],
+  })
   @Field(() => String)
   name: string;
 

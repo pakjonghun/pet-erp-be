@@ -101,8 +101,8 @@ export class StorageService {
     const documents =
       await this.storageRepository.objectToDocuments(objectList);
     this.utilService.checkDuplicatedField(documents, 'name');
-    await this.storageRepository.docUniqueCheck(documents, 'name');
-    await this.storageRepository.bulkWrite(documents);
+    // await this.storageRepository.docUniqueCheck(documents, 'name');
+    await this.storageRepository.bulkUpsert(documents);
   }
 
   async downloadExcel() {
