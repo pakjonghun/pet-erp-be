@@ -63,6 +63,123 @@ export class ProductRepository extends AbstractRepository<Product> {
     return { totalCount, data };
   }
 
+  async getFullProductSort({
+    keyword,
+    limit,
+    skip,
+    order = OrderEnum.DESC,
+    sort = 'createdAt',
+  }: ProductsInput) {
+    let newSort = sort;
+
+    if (sort == 'storage' || sort == 'category') {
+      newSort = sort + '.' + 'name';
+    }
+
+    console.log(newSort, order);
+
+    const result = await this.model.aggregate<{
+      totalPage: number;
+      data: Product;
+    }>([
+      {
+        $match: {
+          $or: [
+            {
+              name: {
+                $regex: this.utilService.escapeRegex(keyword),
+                $options: 'i',
+              },
+            },
+            {
+              code: {
+                $regex: this.utilService.escapeRegex(keyword),
+                $options: 'i',
+              },
+            },
+          ],
+        },
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $lookup: {
+                from: 'productcategories',
+                localField: 'category',
+                foreignField: '_id',
+                as: 'categoryInfo',
+              },
+            },
+            {
+              $addFields: {
+                category: {
+                  $arrayElemAt: ['$categoryInfo', 0],
+                },
+                storageObjectId: {
+                  $toObjectId: '$storageId',
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: 'storages',
+                localField: 'storageObjectId',
+                foreignField: '_id',
+                as: 'storageInfo',
+              },
+            },
+            {
+              $addFields: {
+                storage: {
+                  $arrayElemAt: ['$storageInfo', 0],
+                },
+              },
+            },
+            {
+              $project: {
+                storageObjectId: 0,
+                storageInfo: 0,
+                categoryInfo: 0,
+              },
+            },
+            {
+              $sort: {
+                [newSort]: order == OrderEnum.DESC ? -1 : 1,
+                _id: 1,
+              },
+            },
+            {
+              $skip: skip,
+            },
+            {
+              $limit: limit,
+            },
+          ],
+          totalCount: [
+            {
+              $count: 'count',
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          totalCount: {
+            $ifNull: [
+              {
+                $arrayElemAt: ['$totalCount.count', 0],
+              },
+              0,
+            ],
+          },
+        },
+      },
+    ]);
+
+    return result[0];
+  }
+
   async productCodeList(keyword: Pick<FindManyDTO, 'keyword'>['keyword']) {
     const productFilterQuery: FilterQuery<Product> = {
       $or: [

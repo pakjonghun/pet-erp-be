@@ -83,7 +83,8 @@ export class ProductService {
   }
 
   async findMany(query: ProductsInput) {
-    return this.productRepository.findFullManyProducts(query);
+    // return this.productRepository.findFullManyProducts(query);
+    return this.productRepository.getFullProductSort(query);
   }
 
   async findOne(query: FilterQuery<Product>) {
