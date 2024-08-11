@@ -149,13 +149,15 @@ export class AdService {
       filterQuery.push({ from: { $lte: to } });
     }
 
-    return this.adRepository.findMany({
+    const result = await this.adRepository.findMany({
       filterQuery,
       skip,
       limit,
       order: order == -1 ? OrderEnum.DESC : OrderEnum.ASC,
       sort,
     });
+
+    return result;
   }
 
   async update({ _id, ...body }: UpdateAdInput) {
