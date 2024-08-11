@@ -7,6 +7,8 @@ import { ProductLoader } from 'src/product/product.loader';
 import { StorageLoader } from 'src/storage/storage.loader';
 import { ClientLoader } from 'src/client/client.loader';
 import { OptionLoader } from 'src/option/option.loader';
+import { AdClientLoader } from 'src/ad/ad-client.loader';
+import { AdProductLoader } from 'src/ad/ad-product.loader';
 @Injectable()
 export class GqlConfigService implements GqlOptionsFactory {
   constructor(
@@ -15,6 +17,8 @@ export class GqlConfigService implements GqlOptionsFactory {
     private readonly storageLoader: StorageLoader,
     private readonly clientLoader: ClientLoader,
     private readonly optionLoader: OptionLoader,
+    private readonly adClientLoader: AdClientLoader,
+    private readonly adProductLoader: AdProductLoader,
   ) {}
   createGqlOptions(): ApolloDriverConfig {
     return {
@@ -28,8 +32,8 @@ export class GqlConfigService implements GqlOptionsFactory {
         const storageLoader = this.storageLoader.createLoader();
         const clientLoader = this.clientLoader.createLoader();
         const optionLoader = this.optionLoader.createLoader();
-        const adClientLoader = this.optionLoader.createLoader();
-        const adProductLoader = this.optionLoader.createLoader();
+        const adClientLoader = this.adClientLoader.createLoader();
+        const adProductLoader = this.adProductLoader.createLoader();
         return {
           req,
           res,

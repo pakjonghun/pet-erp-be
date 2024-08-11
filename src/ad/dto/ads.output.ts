@@ -17,6 +17,6 @@ export class AdsOutPutItem extends OmitType(Ad, [
 
 @ObjectType()
 export class AdsOutput extends FindManyOutput {
-  @Field(() => [AdsOutPutItem])
+  @Field(() => [AdsOutPutItem], { nullable: true })
   data: AdsOutPutItem[];
 }

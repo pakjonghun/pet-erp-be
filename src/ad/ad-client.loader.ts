@@ -12,10 +12,11 @@ export class AdClientLoader {
   ) {}
 
   createLoader(): DataLoader<string, ProductCodeName> {
-    return new DataLoader(async (clientId) => {
+    return new DataLoader(async (clientCode) => {
+      console.log('clientId', clientCode);
       const clients = await this.clientModel
         .find({
-          _id: clientId,
+          code: clientCode,
         })
         .select(['-_id', 'code', 'name'])
         .lean<ProductCodeName[]>();

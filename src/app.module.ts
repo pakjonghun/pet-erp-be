@@ -32,8 +32,8 @@ import { UtilModule } from './util/util.module';
 import { AccessInterceptor } from './common/interceptors/access.interceptor';
 import { VoidScalar } from './common/scalars/void.scalar';
 import { OptionModule } from './option/option.module';
-import * as Joi from 'joi';
 import { AdModule } from './ad/ad.module';
+import * as Joi from 'joi';
 
 @Module({
   imports: [
@@ -87,6 +87,7 @@ import { AdModule } from './ad/ad.module';
         StorageModule,
         ClientModule,
         OptionModule,
+        AdModule,
       ],
     }),
     ScheduleModule.forRoot(),

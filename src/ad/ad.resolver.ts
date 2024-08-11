@@ -74,6 +74,8 @@ export class FactoryResolver {
       );
     }
 
+    console.log('products', products);
+
     return products;
   }
 
@@ -87,6 +89,8 @@ export class FactoryResolver {
     if (!clientCode) return null;
 
     const client = (await adClientLoader.load(clientCode)) as ProductCodeName;
+
+    console.log('client', client);
 
     return client;
   }

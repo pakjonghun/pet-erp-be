@@ -7,7 +7,7 @@ import { IsOneOf } from 'src/common/validations/enum.validation';
 export class CreateAdInput implements AdInterface {
   @Field(() => [String], { nullable: true })
   @IsOptional()
-  @IsString()
+  @IsString({ each: true })
   productCodeList: string[];
 
   @Field(() => String, { nullable: true })
