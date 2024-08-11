@@ -88,8 +88,6 @@ export class FactoryResolver {
 
     const client = (await adClientLoader.load(clientCode)) as ProductCodeName;
 
-    console.log('client', client);
-
     return client;
   }
 }
