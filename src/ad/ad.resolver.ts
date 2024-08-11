@@ -27,7 +27,7 @@ export class FactoryResolver {
 
   @LogData({ description: '광고생성', logType: LogTypeEnum.CREATE })
   @Roles([AuthRoleEnum.ANY])
-  @Mutation(() => AdsOutPutItem)
+  @Mutation(() => AdsOutPutItem, { nullable: true })
   createAd(@Args('createAdInput') createAdInput: CreateAdInput) {
     return this.adService.create(createAdInput);
   }

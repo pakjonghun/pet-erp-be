@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateAdInput } from './dto/create-ad.input';
 import { UpdateAdInput } from './dto/update-ad.input';
 import { AdRepository } from './ad.repository';
-import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, FilterQuery, Model } from 'mongoose';
 import { UtilService } from 'src/util/util.service';
 import { AdsInput } from './dto/ads.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
@@ -22,10 +22,28 @@ export class AdService {
 
     @InjectModel(Product.name)
     private readonly productModel: Model<Product>,
+
+    @InjectConnection() private readonly connection: Connection,
   ) {}
 
-  async create(createFactoryInput: CreateAdInput) {
-    return this.adRepository.create(createFactoryInput);
+  async create(inputs: CreateAdInput) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+    try {
+      const docs = await this.adRepository.objectToDocuments(
+        inputs.createAdsInput,
+      );
+      const result = await this.adRepository.bulkWrite(docs);
+      await session.commitTransaction();
+      return result;
+    } catch (error) {
+      await session.abortTransaction();
+      throw new InternalServerErrorException(
+        `서버에서 오류가 발생했습니다. ${error.message}`,
+      );
+    } finally {
+      await session.endSession();
+    }
   }
 
   async findMany({
