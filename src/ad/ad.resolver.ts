@@ -74,8 +74,6 @@ export class FactoryResolver {
       );
     }
 
-    console.log('products', products);
-
     return products;
   }
 

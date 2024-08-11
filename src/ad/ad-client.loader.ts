@@ -13,7 +13,6 @@ export class AdClientLoader {
 
   createLoader(): DataLoader<string, ProductCodeName> {
     return new DataLoader(async (clientCode) => {
-      console.log('clientId', clientCode);
       const clients = await this.clientModel
         .find({
           code: clientCode,
