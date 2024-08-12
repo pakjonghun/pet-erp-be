@@ -57,6 +57,10 @@ export class FileService {
         await this.factoryService.upload(fistSheet);
         break;
 
+      case 'ad':
+        await this.adService.upload(fistSheet);
+        break;
+
       // case 'argo':
       //   await this.saleService.uploadArg(fistSheet);
       //   break;

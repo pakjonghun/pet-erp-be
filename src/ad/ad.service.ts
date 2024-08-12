@@ -13,6 +13,7 @@ import { Client } from 'src/client/entities/client.entity';
 import { ColumnOption } from 'src/client/types';
 import * as ExcelJS from 'exceljs';
 import * as dayjs from 'dayjs';
+import { AdTypeToEng, AdTypeToHangle } from './constants';
 
 @Injectable()
 export class AdService {
@@ -170,167 +171,75 @@ export class AdService {
     return result;
   }
 
-  // async upload(worksheet: ExcelJS.Worksheet) {
-  //   const colToField: Record<number, ColumnOption<AdInterface>> = {
-  //     1: { fieldName: 'from' },
-  //     2: { fieldName: 'to' },
-  //     3: { fieldName: 'price' },
-  //     4: { fieldName: 'type' },
-  //     5: { fieldName: 'clientCode' },
-  //     6: {
-  //       fieldName: 'productCodeList',
-  //       transform: (value) => {
-  //         if (typeof value === 'string') {
-  //           const lowerKey =
-  //             value.toLowerCase() as keyof typeof HangleToClientType;
-  //           const clientType = HangleToClientType[lowerKey];
-  //           if (!clientType) {
-  //             throw new BadRequestException(
-  //               `${value}는 올바른 거래처 타입이 아닙니다.`,
-  //             );
-  //           }
+  async upload(worksheet: ExcelJS.Worksheet) {
+    const colToField: Record<number, ColumnOption<AdInterface>> = {
+      1: {
+        fieldName: 'from',
+        transform: (value: string) => {
+          return dayjs(value).toDate();
+        },
+      },
+      2: {
+        fieldName: 'to',
+        transform: (value: string) => {
+          return dayjs(value).toDate();
+        },
+      },
+      3: { fieldName: 'price', transform: (value) => value || 0 },
+      4: {
+        fieldName: 'type',
+        transform: (value: string) => {
+          return AdTypeToEng[value] ?? '';
+        },
+      },
+      5: { fieldName: 'clientCode' },
+      6: {
+        fieldName: 'productCodeList',
+        transform: (value: string) => {
+          return value.split(',').map((item) => item.trim());
+        },
+      },
+    };
 
-  //           return clientType;
-  //         }
-  //       },
-  //     },
-  //     7: { fieldName: 'payDate' },
-  //     8: { fieldName: 'manager' },
-  //     9: { fieldName: 'managerTel' },
-  //     10: {
-  //       fieldName: 'inActive',
-  //       transform: (value) => {
-  //         const valueType = typeof value;
-  //         if (typeof value == 'string') {
-  //           if (value.trim() === '거래중') return true;
-  //           if (value.trim() === '거래종료') return false;
+    const allData = this.utilService.excelToObject(worksheet, colToField, 4);
 
-  //           throw new BadRequestException(
-  //             `${value} 는 올바른 거래여부가 아닙니다.`,
-  //           );
-  //         }
+    const clientNameList = allData
+      .map((item) => item.clientCode?.trim())
+      .filter((item) => !!item);
+    const clientCodesSetted = Array.from(new Set(clientNameList));
+    const clientList = await this.clientModel
+      .find({ name: { $in: clientCodesSetted } })
+      .lean<Client[]>();
+    const clientByName = new Map<string, Client>(
+      clientList.map((c) => [c.name, c]),
+    );
 
-  //         if (valueType == 'boolean') {
-  //           return value;
-  //         }
-  //         return true;
-  //       },
-  //     },
-  //     11: {
-  //       fieldName: 'storageId',
-  //       transform: (v) => (v == null ? null : v),
-  //     },
-  //     12: {
-  //       fieldName: 'deliveryFreeProductCodeList',
-  //     },
-  //     13: {
-  //       fieldName: 'deliveryNotFreeProductCodeList',
-  //     },
-  //     14: {
-  //       fieldName: 'isSabangService',
-  //     },
-  //   };
-
-  //   const objectList = this.utilService.excelToObject(worksheet, colToField, 3);
-  //   const freeDeliveryProductNameList = objectList.flatMap((item) =>
-  //     item.deliveryFreeProductCodeList
-  //       ? item.deliveryFreeProductCodeList
-  //           .split(',')
-  //           .filter((item) => !!item)
-  //           .map((item) => item.trim())
-  //       : [],
-  //   );
-  //   const notFreeDeliveryProductNameList = objectList.flatMap((item) =>
-  //     item.notFreeDeliveryProductNameList
-  //       ? item.notFreeDeliveryProductNameList
-  //           .split(',')
-  //           .filter((item) => !!item)
-  //           .map((item) => item.trim())
-  //       : [],
-  //   );
-
-  //   const concatNameList = freeDeliveryProductNameList.concat(
-  //     notFreeDeliveryProductNameList,
-  //   );
-
-  //   const productByName = new Map<string, Product>();
-
-  //   if (concatNameList.length) {
-  //     const productList = await this.productModel
-  //       .find({
-  //         name: { $in: concatNameList },
-  //       })
-  //       .lean<Product[]>();
-
-  //     productList.forEach((doc) => {
-  //       productByName.set(doc.name, doc);
-  //     });
-  //   }
-
-  //   const storageNameList = objectList.map((item) => item.storageId);
-  //   const storageList = await this.storageModel.find({
-  //     name: { $in: storageNameList },
-  //   });
-  //   const storageByName = new Map<string, Storage>(
-  //     storageList.map((item) => [item.name, item]),
-  //   );
-
-  //   objectList.forEach((object) => {
-  //     if (typeof object.isSabangService == 'string') {
-  //       const isSabangService =
-  //         (object.isSabangService as string)?.trim() === '지원';
-  //       object.isSabangService = isSabangService;
-  //     }
-
-  //     if (object.storageId) {
-  //       object.storageId =
-  //         storageByName.get(object.storageId)?._id.toHexString() ?? '';
-  //     }
-
-  //     if (object.deliveryFreeProductCodeList) {
-  //       const productNameList = object.deliveryFreeProductCodeList
-  //         ? (object.deliveryFreeProductCodeList as unknown as string)
-  //             .split(',')
-  //             .filter((item) => item)
-  //             .map((item) => item.trim())
-  //         : [];
-
-  //       object.deliveryFreeProductCodeList = productNameList
-  //         .map((item) => {
-  //           const product = productByName.get(item);
-  //           return product?.code ?? '';
-  //         })
-  //         .filter((item) => !!item);
-  //     } else {
-  //       object.deliveryFreeProductCodeList = undefined;
-  //     }
-
-  //     if (object.deliveryNotFreeProductCodeList) {
-  //       const productNameList = object.deliveryNotFreeProductCodeList
-  //         ? (object.deliveryNotFreeProductCodeList as unknown as string)
-  //             .split(',')
-  //             .filter((item) => item)
-  //             .map((item) => item.trim())
-  //         : [];
-
-  //       object.deliveryNotFreeProductCodeList = productNameList
-  //         .map((item) => {
-  //           const product = productByName.get(item);
-  //           return product?.code ?? '';
-  //         })
-  //         .filter((item) => !!item);
-  //     } else {
-  //       object.deliveryNotFreeProductCodeList = undefined;
-  //     }
-  //   });
-
-  //   const documents = await this.clientRepository.objectToDocuments(objectList);
-  //   this.utilService.checkDuplicatedField(documents, 'code');
-  //   // await this.clientRepository.docUniqueCheck(documents, 'code');
-  //   this.utilService.checkDuplicatedField(documents, 'name');
-  //   // await this.clientRepository.docUniqueCheck(documents, 'name');
-  //   await this.clientRepository.bulkUpsert(documents);
-  // }
+    const productNameList = allData.flatMap((d) => d.productCodeList);
+    const productNamesSetted = Array.from(new Set(productNameList));
+    const productList = await this.productModel
+      .find({
+        name: { $in: productNamesSetted },
+      })
+      .lean<Product[]>();
+    const productByName = new Map<string, Product>(
+      productList.map((p) => [p.name, p]),
+    );
+    const parsedData = allData.map((a) => {
+      return {
+        ...a,
+        clientCode: a.clientCode ? clientByName.get(a.clientCode)?.code : '',
+        productCodeList: a?.productCodeList
+          ? a?.productCodeList
+              .map((p) => {
+                return productByName.get(p)?.code;
+              })
+              .filter((i) => !!i)
+          : [],
+      };
+    });
+    const documents = await this.adRepository.objectToDocuments(parsedData);
+    await this.adRepository.bulkWrite(documents);
+  }
 
   async downloadExcel() {
     const allData = await this.adRepository.model
@@ -378,6 +287,7 @@ export class AdService {
 
     allData.forEach((a) => {
       const newObject = {
+        type: AdTypeToHangle[a.type],
         from: dayjs(a.from).format('YYYY-MM-DD'),
         to: dayjs(a.to).format('YYYY-MM-DD'),
         price: a.price,
