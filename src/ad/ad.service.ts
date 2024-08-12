@@ -10,8 +10,9 @@ import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { Product } from 'src/product/entities/product.entity';
 import { Ad, AdInterface } from './entities/ad.entity';
 import { Client } from 'src/client/entities/client.entity';
-import * as ExcelJS from 'exceljs';
 import { ColumnOption } from 'src/client/types';
+import * as ExcelJS from 'exceljs';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class AdService {
@@ -330,4 +331,72 @@ export class AdService {
   //   // await this.clientRepository.docUniqueCheck(documents, 'name');
   //   await this.clientRepository.bulkUpsert(documents);
   // }
+
+  async downloadExcel() {
+    const allData = await this.adRepository.model
+      .find()
+      .select('-_id -createdAt -updatedAt')
+      .lean<Ad[]>();
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Data');
+
+    worksheet.columns = [
+      { header: '시작날짜', key: 'from', width: 40 },
+      { header: '종료날짜', key: 'to', width: 40 },
+      { header: '광고비용', key: 'price', width: 70 },
+      { header: '광고타입', key: 'type', width: 50 },
+      { header: '광고채널', key: 'clientCode', width: 40 },
+      {
+        header: '광고제품 리스트',
+        key: 'productCodeList',
+        width: 70,
+      },
+    ];
+
+    const clientCodeList = allData
+      .map((item) => item.clientCode)
+      .filter((item) => !!item);
+    const clientCodesSetted = Array.from(new Set(clientCodeList));
+    const clientList = await this.clientModel
+      .find({ code: { $in: clientCodesSetted } })
+      .lean<Client[]>();
+    const clientByCode = new Map<string, Client>(
+      clientList.map((c) => [c.code, c]),
+    );
+
+    const productCodeList = allData.flatMap((d) => d.productCodeList);
+    const productCodesSetted = Array.from(new Set(productCodeList));
+    const productList = await this.productModel
+      .find({
+        code: { $in: productCodesSetted },
+      })
+      .lean<Product[]>();
+    const productByCode = new Map<string, Product>(
+      productList.map((p) => [p.code, p]),
+    );
+
+    allData.forEach((a) => {
+      const newObject = {
+        from: dayjs(a.from).format('YYYY-MM-DD'),
+        to: dayjs(a.to).format('YYYY-MM-DD'),
+        price: a.price,
+        clientCode: a.clientCode
+          ? clientByCode.get(a.clientCode).name ?? ''
+          : '',
+        productCodeList: a.productCodeList
+          ? a.productCodeList
+              .map((p) => {
+                const t = productByCode.get(p);
+                return t?.name ?? '';
+              })
+              .join(', ')
+          : '',
+      };
+      worksheet.addRow(newObject);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer;
+  }
 }

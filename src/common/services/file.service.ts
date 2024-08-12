@@ -1,3 +1,4 @@
+import { AdService } from './../../ad/ad.service';
 import { SubsidiaryService } from '../../subsidiary/subsidiary.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { promisify } from 'util';
@@ -7,7 +8,6 @@ import { ProductCategoryService } from 'src/product-category/product-category.se
 import { SubsidiaryCategoryService } from 'src/subsidiary-category/subsidiary-category.service';
 import { FactoryService } from 'src/factory/factory.service';
 import { StorageService } from 'src/storage/storage.service';
-import { SaleService } from 'src/sale/sale.service';
 import * as fs from 'fs';
 import * as ExcelJS from 'exceljs';
 
@@ -21,7 +21,7 @@ export class FileService {
     private readonly clientService: ClientService,
     private readonly factoryService: FactoryService,
     private readonly storageService: StorageService,
-    private readonly saleService: SaleService,
+    private readonly adService: AdService,
   ) {}
 
   async upload(file: Express.Multer.File, service: string) {
@@ -92,6 +92,9 @@ export class FileService {
 
       case 'factory':
         return this.factoryService.downloadExcel();
+
+      case 'ad':
+        return this.adService.downloadExcel();
 
       default:
         throw new BadRequestException(
