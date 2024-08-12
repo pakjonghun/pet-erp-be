@@ -142,11 +142,11 @@ export class AdService {
     }
 
     if (from) {
-      filterQuery.push({ to: { $gte: from } });
+      filterQuery.to = { $gte: from };
     }
 
     if (to) {
-      filterQuery.push({ from: { $lte: to } });
+      filterQuery.from = { $lte: to };
     }
 
     const result = await this.adRepository.findMany({
