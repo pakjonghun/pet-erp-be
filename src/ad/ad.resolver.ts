@@ -43,6 +43,7 @@ export class FactoryResolver {
   @Roles([AuthRoleEnum.BACK_EDIT])
   @Mutation(() => AdsOutPutItem)
   updateAd(@Args('updateAdInput') updateAdInput: UpdateAdInput) {
+    console.log('updateAdInput : ', updateAdInput);
     return this.adService.update(updateAdInput);
   }
 
