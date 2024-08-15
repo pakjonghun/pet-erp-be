@@ -42,9 +42,9 @@ export class FactoryResolver {
   }
 
   @Roles([AuthRoleEnum.ANY])
-  @Query(() => AdTotalOutput, { name: 'adTotalOutput' })
-  async adsTotal(@Args('adTotalInput') adTotalInput: AdsTotalInput) {
-    const result = await this.adService.getAdTotal(adTotalInput);
+  @Query(() => AdTotalOutput, { name: 'adsTotal' })
+  async adsTotal(@Args('adsTotalInput') adsTotalInput: AdsTotalInput) {
+    const result = await this.adService.getAdTotal(adsTotalInput);
     return result;
   }
 
