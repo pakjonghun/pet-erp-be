@@ -35,7 +35,7 @@ export class FactoryResolver {
   }
 
   @Roles([AuthRoleEnum.ANY])
-  @Query(() => AdsOutput, { name: 'ads' })
+  @Query(() => AdsOutput, { name: 'ads', nullable: true })
   async ads(@Args('adsInput') adsInput: AdsInput) {
     const result = await this.adService.findMany(adsInput);
     return result;
