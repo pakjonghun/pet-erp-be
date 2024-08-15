@@ -122,25 +122,21 @@ export class AdService {
 
       const or = [];
 
-      if (productCodeList.length) {
-        or.push({
-          productCodeList: {
-            // $exists: true,
-            $elemMatch: {
-              $in: productCodeList,
-            },
+      or.push({
+        productCodeList: {
+          // $exists: true,
+          $elemMatch: {
+            $in: productCodeList,
           },
-        });
-      }
+        },
+      });
 
-      if (clientCodeList.length) {
-        or.push({
-          clientCode: {
-            // $exists: true,
-            $in: clientCodeList,
-          },
-        });
-      }
+      or.push({
+        clientCode: {
+          // $exists: true,
+          $in: clientCodeList,
+        },
+      });
 
       if (or.length) {
         filterQuery['$or'] = or;
