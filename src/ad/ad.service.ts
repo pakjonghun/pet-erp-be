@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { CreateAdInput } from './dto/create-ad.input';
 import { UpdateAdInput } from './dto/update-ad.input';
 import { AdRepository } from './ad.repository';
@@ -176,12 +180,30 @@ export class AdService {
       1: {
         fieldName: 'from',
         transform: (value: string) => {
+          if (!value) {
+            throw new BadRequestException(`시작날짜가 입력되지 않았습니다.`);
+          }
+          const isDate = dayjs(value, 'YYYY-MM-DD').isValid();
+          if (!isDate) {
+            throw new BadRequestException(
+              `${value}는 올바른 시작날짜 형식이 아닙니다. 올바른 예)2024-10-10`,
+            );
+          }
           return dayjs(value).toDate();
         },
       },
       2: {
         fieldName: 'to',
         transform: (value: string) => {
+          if (!value) {
+            throw new BadRequestException(`종료날짜가 입력되지 않았습니다.`);
+          }
+          const isDate = dayjs(value, 'YYYY-MM-DD').isValid();
+          if (!isDate) {
+            throw new BadRequestException(
+              `${value}는 올바른 종료날짜 형식이 아닙니다. 올바른 예)2024-10-10 `,
+            );
+          }
           return dayjs(value).toDate();
         },
       },
@@ -189,10 +211,26 @@ export class AdService {
       4: {
         fieldName: 'type',
         transform: (value: string) => {
+          const rawText = value?.trim();
+          if (!rawText) {
+            throw new BadRequestException('광고 타입이 입력되지 않았습니다.');
+          }
+
+          const hasValue = AdTypeToEng[rawText];
+          if (!hasValue) {
+            throw new BadRequestException(
+              `${rawText} 올바른 광고타입이 아닙니다.`,
+            );
+          }
           return AdTypeToEng[value] ?? '';
         },
       },
-      5: { fieldName: 'clientCode' },
+      5: {
+        fieldName: 'clientCode',
+        transform: (value: string) => {
+          return value?.trim() ?? '';
+        },
+      },
       6: {
         fieldName: 'productCodeList',
         transform: (value: string) => {
@@ -224,19 +262,44 @@ export class AdService {
     const productByName = new Map<string, Product>(
       productList.map((p) => [p.name, p]),
     );
+
+    const noClientNames = [];
+    const noProductNames = [];
     const parsedData = allData.map((a) => {
+      const client = clientByName.get(a.clientCode);
+      if (a.clientCode && !client) {
+        noClientNames.push(a.clientCode);
+      }
       return {
         ...a,
-        clientCode: a.clientCode ? clientByName.get(a.clientCode)?.code : '',
+        clientCode: a.clientCode ? client?.code : '',
         productCodeList: a?.productCodeList
           ? a?.productCodeList
               .map((p) => {
-                return productByName.get(p)?.code;
+                const product = productByName.get(p);
+                if (!product && p) {
+                  noProductNames.push(p);
+                }
+                return product?.code;
               })
               .filter((i) => !!i)
           : [],
       };
     });
+    if (noClientNames.length) {
+      const clientNameString = Array.from(new Set(noClientNames)).join(', ');
+      throw new BadRequestException(
+        `${clientNameString} 는 존재하지 않는 거래처 입니다.`,
+      );
+    }
+
+    if (noProductNames.length) {
+      const productNameString = Array.from(new Set(noProductNames)).join(', ');
+      throw new BadRequestException(
+        `${productNameString}는 존재하지 않는 제품입니다.`,
+      );
+    }
+
     const documents = await this.adRepository.objectToDocuments(parsedData);
     await this.adRepository.bulkWrite(documents);
   }

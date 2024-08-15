@@ -37,7 +37,6 @@ export class UtilService {
 
       row.eachCell({ includeEmpty: true }, (cell, cellIndex) => {
         const fieldName = colToField[cellIndex]?.fieldName as string;
-
         if (fieldName) {
           let value = cell.value;
 
@@ -50,7 +49,7 @@ export class UtilService {
 
           if (colToField[cellIndex]?.transform) {
             value = colToField[cellIndex]?.transform(
-              cell.value,
+              cell.text,
             ) as ExcelJS.CellValue;
           }
           object[fieldName] = value;
