@@ -20,6 +20,8 @@ import { LogData } from 'src/common/decorators/log.decorator';
 import DataLoader from 'dataloader';
 import { InternalServerErrorException } from '@nestjs/common';
 import { ProductCodeName } from 'src/client/dtos/clients.output';
+import { AdsTotalInput } from './dto/adsTotal.input';
+import { AdTotalOutput } from './dto/adTotal.output';
 
 @Resolver(() => AdsOutPutItem)
 export class FactoryResolver {
@@ -36,6 +38,13 @@ export class FactoryResolver {
   @Query(() => AdsOutput, { name: 'ads' })
   async ads(@Args('adsInput') adsInput: AdsInput) {
     const result = await this.adService.findMany(adsInput);
+    return result;
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => AdTotalOutput, { name: 'adTotalOutput' })
+  async adsTotal(@Args('adTotalInput') adTotalInput: AdsTotalInput) {
+    const result = await this.adService.getAdTotal(adTotalInput);
     return result;
   }
 

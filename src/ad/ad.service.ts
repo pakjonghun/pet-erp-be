@@ -18,6 +18,7 @@ import { ColumnOption } from 'src/client/types';
 import * as ExcelJS from 'exceljs';
 import * as dayjs from 'dayjs';
 import { AdTypeToEng, AdTypeToHangle } from './constants';
+import { AdsTotalInput } from './dto/adsTotal.input';
 
 @Injectable()
 export class AdService {
@@ -33,6 +34,100 @@ export class AdService {
 
     @InjectConnection() private readonly connection: Connection,
   ) {}
+
+  async getAdTotal({ from, to }: AdsTotalInput) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    console.log(from, to);
+    const result = await this.adRepository.model.aggregate<{
+      accPrice: number;
+    }>([
+      {
+        $match: {
+          from: {
+            $lte: toDate,
+          },
+          to: {
+            $gte: fromDate,
+          },
+        },
+      },
+      {
+        $addFields: {
+          fullContained: {
+            $and: [{ $gte: ['$from', fromDate] }, { $lte: ['$to', toDate] }],
+          },
+        },
+      },
+      {
+        $addFields: {
+          totalPrice: {
+            $cond: {
+              if: '$fullContained',
+              then: '$price',
+              else: {
+                $multiply: [
+                  {
+                    $divide: [
+                      '$price',
+                      {
+                        $add: [
+                          {
+                            $dateDiff: {
+                              startDate: '$from',
+                              endDate: '$to',
+                              unit: 'day',
+                            },
+                          },
+                          1,
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    $add: [
+                      {
+                        $dateDiff: {
+                          startDate: {
+                            $cond: {
+                              if: {
+                                $gte: ['$from', fromDate],
+                              },
+                              then: '$from',
+                              else: fromDate,
+                            },
+                          },
+                          endDate: {
+                            $cond: {
+                              if: {
+                                $lte: ['$to', toDate],
+                              },
+                              then: '$to',
+                              else: toDate,
+                            },
+                          },
+                          unit: 'day',
+                        },
+                      },
+                      1,
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          accPrice: { $sum: '$totalPrice' },
+        },
+      },
+    ]);
+
+    return result[0];
+  }
 
   async create(inputs: CreateAdInput) {
     const session = await this.connection.startSession();
