@@ -34,6 +34,7 @@ import { VoidScalar } from './common/scalars/void.scalar';
 import { OptionModule } from './option/option.module';
 import { AdModule } from './ad/ad.module';
 import * as Joi from 'joi';
+import { ClientDashboardView } from './common/virtualView/ClientDashboardView';
 
 @Module({
   imports: [
@@ -129,12 +130,12 @@ import * as Joi from 'joi';
       provide: APP_INTERCEPTOR,
       useClass: AccessInterceptor,
     },
-
     GqlConfigService,
     DateScalar,
     VoidScalar,
     AppService,
     FileService,
+    ClientDashboardView,
   ],
 })
 export class AppModule {}
