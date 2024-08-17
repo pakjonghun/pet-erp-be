@@ -333,16 +333,18 @@ export class ClientRepository extends AbstractRepository<Client> {
   }: FindDateScrollInput & {
     clientCodeAndNameList: { code: string; name: string }[];
   }) {
+    //거래처 제품 둘다 있음 : 광고비를 제품 숫자만큼 나눈 값 나누기 광고기간 으로 해서 일일광고비계산 : 그 거래처에서 판매된 그 제품에만 적용
+    //거래처만 있는경우 : 광고비 나누기 광고기간이 일일 광고비로 계산되어 적용 : 그 거래처에만 적용
+    //회사 공통인경우 : 광고비 나누기 광고기간 으로 일일광고비 계산
+
     const clientCodeList = clientCodeAndNameList.map((c) => c.code);
     await this.adModel.aggregate([
       {
-        $match: clientCodeAndNameList.length
-          ? {
-              clientCode: {
-                $in: clientCodeList,
-              },
-            }
-          : {},
+        $match: {
+          clientCode: {
+            $in: clientCodeList,
+          },
+        },
       },
     ]);
   }

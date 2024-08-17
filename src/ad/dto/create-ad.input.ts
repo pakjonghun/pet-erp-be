@@ -2,23 +2,23 @@ import {
   ArrayNotEmpty,
   IsDate,
   IsNumber,
-  IsOptional,
-  IsString,
+  Validate,
+  ValidateNested,
 } from 'class-validator';
 import { AdInterface, AdType } from '../entities/ad.entity';
 import { InputType, Field, Int } from '@nestjs/graphql';
 import { IsOneOf } from 'src/common/validations/enum.validation';
+import { ChannelOrProductValidator } from '../validation/adTypeValidator';
+import { Type } from 'class-transformer';
 
 @InputType()
 export class CreateAdInputItem implements AdInterface {
   @Field(() => [String], { nullable: true })
-  @IsOptional()
-  @IsString({ each: true })
+  @Validate(ChannelOrProductValidator, ['productCodeList'])
   productCodeList: string[];
 
   @Field(() => String, { nullable: true })
-  @IsOptional()
-  @IsString()
+  @Validate(ChannelOrProductValidator, ['clientCode'])
   clientCode: string;
 
   @Field(() => AdType)
@@ -42,5 +42,7 @@ export class CreateAdInputItem implements AdInterface {
 export class CreateAdInput {
   @Field(() => [CreateAdInputItem])
   @ArrayNotEmpty({ message: '1개 이상의 광고를 입력해주세요.' })
+  @ValidateNested({ each: true })
+  @Type(() => CreateAdInputItem)
   createAdsInput: CreateAdInputItem[];
 }
