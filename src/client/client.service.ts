@@ -531,7 +531,7 @@ export class ClientService {
   }
 
   async clientSaleMenu(clientSaleMenuInput: FindDateScrollInput) {
-    const clientList = await this.clientRepository.model
+    const clientCodeAndNameList = await this.clientRepository.model
       .find({
         $or: [
           {
@@ -546,13 +546,12 @@ export class ClientService {
           },
         ],
       })
-      .select(['-_id', 'name'])
-      .lean<Pick<Product, 'name'>[]>();
+      .select(['-_id', 'name', 'code'])
+      .lean<Pick<Product, 'name' | 'code'>[]>();
 
-    const clientNameList = clientList.map((item) => item.name);
     return this.clientRepository.clientSaleMenu({
       ...clientSaleMenuInput,
-      clientNameList,
+      clientCodeAndNameList,
     });
   }
 }

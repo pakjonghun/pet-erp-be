@@ -10,6 +10,7 @@ import { Storage, StorageSchema } from 'src/storage/entities/storage.entity';
 import { ClientLoader } from './client.loader';
 import { Product, productSchema } from 'src/product/entities/product.entity';
 import { ClientOutResolver } from './client.out.resolver';
+import { Ad, adSchema } from 'src/ad/entities/ad.entity';
 
 @Module({
   exports: [ClientService, ClientLoader],
@@ -20,6 +21,7 @@ import { ClientOutResolver } from './client.out.resolver';
       { name: Sale.name, schema: saleSchema },
       { name: Storage.name, schema: StorageSchema },
       { name: Product.name, schema: productSchema },
+      { name: Ad.name, schema: adSchema },
     ]),
   ],
   providers: [

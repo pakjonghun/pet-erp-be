@@ -264,15 +264,10 @@ export class ProductRepository extends AbstractRepository<Product> {
       {
         $match: {
           orderStatus: '출고완료',
-          productCode:
-            productCodeList.length > 0
-              ? {
-                  $exists: true,
-                  $in: productCodeList,
-                }
-              : {
-                  $exists: true,
-                },
+          productCode: {
+            $exists: true,
+            $in: productCodeList,
+          },
           count: { $exists: true },
           payCost: { $exists: true },
           wonCost: { $exists: true },

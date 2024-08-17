@@ -24,6 +24,7 @@ export class ClientRepository extends AbstractRepository<Client> {
     @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Sale.name) private readonly saleModel: Model<Sale>,
+    @InjectModel(Ad.name) private readonly adModel: Model<Ad>,
   ) {
     super(clientModel);
   }
@@ -33,10 +34,14 @@ export class ClientRepository extends AbstractRepository<Client> {
     to,
     skip,
     limit,
-    clientNameList,
+    clientCodeAndNameList,
     sort = 'accCount',
     order = -1,
-  }: FindDateScrollInput & { clientNameList: string[] }) {
+  }: FindDateScrollInput & {
+    clientCodeAndNameList: { code: string; name: string }[];
+  }) {
+    const clientNameList = clientCodeAndNameList.map((c) => c.name);
+    console.log('clientNameList : ', clientNameList.length);
     const [monthFrom, monthTo] = this.utilService.recentDayjsMonthRange();
 
     const pipeline: PipelineStage[] = [
@@ -44,17 +49,11 @@ export class ClientRepository extends AbstractRepository<Client> {
         $match: {
           orderStatus: '출고완료',
           productCode: { $exists: true },
-          mallId:
-            clientNameList.length > 0
-              ? {
-                  $exists: true,
-                  $nin: ['로켓그로스', '정글북'],
-                  $in: clientNameList,
-                }
-              : {
-                  $exists: true,
-                  $nin: ['로켓그로스', '정글북'],
-                },
+          mallId: {
+            $exists: true,
+            $nin: ['로켓그로스', '정글북'],
+            $in: clientNameList,
+          },
           count: { $exists: true },
           payCost: { $exists: true },
           wonCost: { $exists: true },
@@ -321,6 +320,31 @@ export class ClientRepository extends AbstractRepository<Client> {
 
     const result = await this.saleModel.aggregate<ClientSaleMenu>(pipeline);
     return result?.[0];
+  }
+
+  async clientSaleMenuAd({
+    from,
+    to,
+    skip,
+    limit,
+    clientCodeAndNameList,
+    sort = 'accCount',
+    order = -1,
+  }: FindDateScrollInput & {
+    clientCodeAndNameList: { code: string; name: string }[];
+  }) {
+    const clientCodeList = clientCodeAndNameList.map((c) => c.code);
+    await this.adModel.aggregate([
+      {
+        $match: clientCodeAndNameList.length
+          ? {
+              clientCode: {
+                $in: clientCodeList,
+              },
+            }
+          : {},
+      },
+    ]);
   }
 
   async findFullSortClient({
