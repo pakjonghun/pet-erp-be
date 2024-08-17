@@ -1,4 +1,3 @@
-import { saleCommonMatch } from './../common/query/sale';
 import { ClientDashboardView } from './../common/virtualView/ClientDashboardView/ClientDashboardView';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -184,6 +183,11 @@ export class ClientRepository extends AbstractRepository<Client> {
               0,
             ],
           },
+        },
+      },
+      {
+        $addFields: {
+          clientProductRate: {},
         },
       },
       // {

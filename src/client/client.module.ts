@@ -13,12 +13,22 @@ import { ClientOutResolver } from './client.out.resolver';
 import { Ad, adSchema } from 'src/ad/entities/ad.entity';
 import { ClientDashboardView } from 'src/common/virtualView/ClientDashboardView/ClientDashboardView';
 import { clientDashboardSchema } from 'src/common/virtualView/ClientDashboardView/ClientDashboardViewSchema';
+import {
+  ProductRate,
+  productRateSchema,
+} from 'src/common/entities/product-rate.entity';
+import {
+  ClientProductRate,
+  clientProductRateSchema,
+} from 'src/common/entities/client-product-rate.entity';
 
 @Module({
   exports: [ClientService, ClientLoader],
   imports: [
     SaleModule,
     DatabaseModule.forFeature([
+      { name: ClientProductRate.name, schema: clientProductRateSchema },
+      { name: ProductRate.name, schema: productRateSchema },
       { name: ClientDashboardView.name, schema: clientDashboardSchema },
       { name: Client.name, schema: clientSchema },
       { name: Sale.name, schema: saleSchema },

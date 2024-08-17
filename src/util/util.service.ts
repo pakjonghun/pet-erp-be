@@ -70,6 +70,12 @@ export class UtilService {
     return [dayjs().startOf('isoWeek'), dayjs().endOf('isoWeek')];
   }
 
+  forTeenDayAgoRange() {
+    const to = dayjs();
+    const from = to.subtract(14, 'day');
+    return { from: from.toDate(), to: to.toDate() };
+  }
+
   lastWeekDayjsRange() {
     const lastWeek = dayjs().subtract(1, 'week');
     return [lastWeek.startOf('isoWeek'), lastWeek.endOf('isoWeek')];

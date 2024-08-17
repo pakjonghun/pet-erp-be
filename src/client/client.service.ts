@@ -25,6 +25,9 @@ import { FindDateScrollInput } from 'src/common/dtos/find-date-scroll.input';
 import { Storage } from 'src/storage/entities/storage.entity';
 import { Product } from 'src/product/entities/product.entity';
 import * as ExcelJS from 'exceljs';
+import { ProductRate } from 'src/common/entities/product-rate.entity';
+import { ClientDashboardView } from 'src/common/virtualView/ClientDashboardView/ClientDashboardView';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class ClientService {
@@ -32,10 +35,177 @@ export class ClientService {
     @InjectModel(Sale.name) private readonly saleModel: Model<Sale>,
     @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
+    @InjectModel(ProductRate.name)
+    private readonly productRateModel: Model<ProductRate>,
     private readonly clientRepository: ClientRepository,
     private readonly utilService: UtilService,
     private readonly saleService: SaleService,
-  ) {}
+    @InjectModel(ClientDashboardView.name)
+    private readonly clientDashboardView: Model<ClientDashboardView>,
+  ) {
+    setTimeout(() => {
+      this.saveClientProductRate();
+    }, 1000);
+  }
+
+  @Cron('0 0 7 * * *')
+  async saveProductRate() {
+    const { from, to } = this.utilService.forTeenDayAgoRange();
+    await this.clientDashboardView.aggregate([
+      {
+        $match: {
+          saleAt: {
+            $gte: from,
+            $lte: to,
+          },
+        },
+      },
+      {
+        $facet: {
+          accTotalPayment: [
+            {
+              $group: {
+                _id: null,
+                totalPayment: {
+                  $sum: '$totalPayment',
+                },
+              },
+            },
+          ],
+          products: [
+            {
+              $group: {
+                _id: '$productCode',
+                totalPayment: {
+                  $sum: '$totalPayment',
+                },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: '$accTotalPayment',
+      },
+      {
+        $project: {
+          products: {
+            $map: {
+              input: '$products',
+              as: 'product',
+              in: {
+                productCode: '$$product._id',
+                rate: {
+                  $ifNull: [
+                    {
+                      $divide: [
+                        '$$product.totalPayment',
+                        '$accTotalPayment.totalPayment',
+                      ],
+                    },
+                    0,
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        $unwind: '$products',
+      },
+      {
+        $project: {
+          productCode: '$products.productCode',
+          rate: '$products.rate',
+        },
+      },
+      {
+        $out: 'productRate',
+      },
+    ]);
+  }
+
+  @Cron('0 0 7 * * *')
+  async saveClientProductRate() {
+    const { from, to } = this.utilService.forTeenDayAgoRange();
+    await this.clientDashboardView.aggregate([
+      {
+        $match: {
+          saleAt: {
+            $gte: from,
+            $lte: to,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            mallId: '$mallId',
+            productCode: '$productCode',
+          },
+          totalPayment: {
+            $sum: '$totalPayment',
+          },
+        },
+      },
+      {
+        $group: {
+          _id: '$_id.mallId',
+
+          accTotalPayment: { $sum: '$totalPayment' },
+          products: {
+            $push: {
+              productCode: '$_id.productCode',
+              totalPayment: '$totalPayment',
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          clientCode: '$_id',
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          clientCode: 1,
+          products: {
+            $map: {
+              input: '$products',
+              as: 'product',
+              in: {
+                productCode: '$$product.productCode',
+                rate: {
+                  $cond: {
+                    if: { $eq: ['$accTotalPayment', 0] },
+                    then: 0,
+                    else: {
+                      $divide: ['$$product.totalPayment', '$accTotalPayment'],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        $unwind: '$products',
+      },
+      {
+        $project: {
+          clientCode: '$clientCode',
+          productCode: '$products.productCode',
+          rate: '$products.rate',
+        },
+      },
+      {
+        $out: 'clientProductRate',
+      },
+    ]);
+  }
 
   private async beforeCreate(input: CreateClientInput | UpdateClientInput) {
     const newInput = {
