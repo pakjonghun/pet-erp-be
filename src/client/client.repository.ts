@@ -1,3 +1,5 @@
+import { saleCommonMatch } from './../common/query/sale';
+import { ClientDashboardView } from './../common/virtualView/ClientDashboardView/ClientDashboardView';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { AbstractRepository } from 'src/common/database/abstract.repository';
@@ -26,6 +28,8 @@ export class ClientRepository extends AbstractRepository<Client> {
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Sale.name) private readonly saleModel: Model<Sale>,
     @InjectModel(Ad.name) private readonly adModel: Model<Ad>,
+    @InjectModel(ClientDashboardView.name)
+    private readonly clientDashboardView: Model<ClientDashboardView>,
   ) {
     super(clientModel);
   }
@@ -44,16 +48,244 @@ export class ClientRepository extends AbstractRepository<Client> {
     const clientNameList = clientCodeAndNameList.map((c) => c.name);
     const [monthFrom, monthTo] = this.utilService.recentDayjsMonthRange();
 
-    const {
-      totalPrice,
-      adByChannel,
-      totalRateByProductCode,
-      totalProductRateByMall,
-    } = await this.clientSaleMenuAd({
-      from,
-      to,
-    });
+    const r = await this.clientDashboardView.aggregate([
+      {
+        $match: {
+          saleAt: {
+            $gte: from,
+            $lt: to,
+          },
+        },
+      },
+      //제품 자체의 비중을 구한다.
+      {
+        $lookup: {
+          from: CLIENT_DASHBOARD_VIEW,
+          as: 'saleInfo',
+          let: {
+            productCode: '$productCode',
+          },
+          pipeline: [
+            {
+              $match: {
+                saleAt: {
+                  $gte: monthFrom.toDate(),
+                  $lte: monthTo.toDate(),
+                },
+              },
+            },
+            {
+              $facet: {
+                productTotalPayment: [
+                  {
+                    $group: {
+                      _id: null,
+                      accTotalPayment: {
+                        $sum: { $ifNull: ['$totalPayment', 0] },
+                      },
+                      targetAccTotalPayment: {
+                        $sum: {
+                          $cond: {
+                            if: {
+                              $eq: ['$productCode', '$$productCode'],
+                            },
+                            then: {
+                              $ifNull: ['$totalPayment', 0], // totalPayment가 null이면 0을 반환
+                            },
+                            else: 0, // 조건이 맞지 않으면 0을 반환
+                          },
+                        },
+                      },
+                    },
+                  },
+                  {
+                    $addFields: {
+                      rate: {
+                        $cond: {
+                          if: { $eq: ['$accTotalPayment', 0] },
+                          then: 0,
+                          else: {
+                            $divide: [
+                              '$targetAccTotalPayment',
+                              '$accTotalPayment',
+                            ],
+                          },
+                        },
+                      },
+                    },
+                  },
+                ],
 
+                clientProductTotalPayment: [
+                  {
+                    $group: {
+                      _id: {
+                        mallId: '$mallId',
+                        productCode: '$productCode',
+                      },
+                      totalPayment: {
+                        $sum: { $ifNull: ['$totalPayment', 0] },
+                      },
+                    },
+                  },
+                  {
+                    $group: {
+                      _id: '$_id.mallId',
+                      products: {
+                        $push: {
+                          productCode: '$_id.productCode',
+                          totalPayment: '$totalPayment',
+                        },
+                      },
+                      mallTotalPayment: {
+                        $sum: '$totalPayment',
+                      },
+                    },
+                  },
+                  {
+                    $project: {
+                      _id: 1,
+                      products: {
+                        $map: {
+                          input: '$products',
+                          as: 'product',
+                          in: {
+                            productCode: '$$product.productCode',
+                            clientProductRate: {
+                              $cond: {
+                                if: { $eq: ['$$product.totalPayment', 0] },
+                                then: 0,
+                                else: {
+                                  $divide: [
+                                    '$$product.totalPayment',
+                                    '$mallTotalPayment',
+                                  ],
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          totalProductRate: {
+            $arrayElemAt: [
+              {
+                $arrayElemAt: ['$saleInfo.productTotalPayment.rate', 0],
+              },
+              0,
+            ],
+          },
+        },
+      },
+      // {
+      //   $project: {
+      //     saleInfo: 0,
+      //   },
+      // },
+      // {
+      //   $lookup: {
+      //     from: CLIENT_DASHBOARD_VIEW,
+      //     as: 'saleInfo',
+      //     let: {
+      //       mallId: '$mallId',
+      //       productCode: '$productCode',
+      //     },
+      //     pipeline: [
+      //       {
+      //         $match: {
+      //           saleAt: {
+      //             $gte: monthFrom.toDate(),
+      //             $lte: monthTo.toDate(),
+      //           },
+      //           $expr: {
+      //             $and: [
+      //               { $eq: ['$mallId', '$$mallId'] },
+      //               { $eq: ['$productCode', '$$productCode'] },
+      //             ],
+      //           },
+      //         },
+      //       },
+      //       {
+      //         $facet: {
+      //           clientTotalPayment: [
+      //             {
+      //               $match: {
+      //                 $expr: {
+      //                   $eq: ['$mallId', '$$mallId'],
+      //                 },
+      //               },
+      //             },
+      //             {
+      //               $group: {
+      //                 _id: null,
+      //                 clientTotalPayment: {
+      //                   $sum: '$totalPayment',
+      //                 },
+      //               },
+      //             },
+      //           ],
+      //         },
+      //       },
+      //     ],
+      //   },
+      // },
+      // {
+      //   $group: {
+      //     _id: '$mallId',
+      //     accPayCost: {
+      //       $sum: '$payCost',
+      //     },
+      //     accWonCost: {
+      //       $sum: '$wonCost',
+      //     },
+      //     accCount: {
+      //       $sum: '$count',
+      //     },
+      //     accDeliveryCost: {
+      //       $sum: {
+      //         $multiply: ['$deliveryCost', '$deliveryBoxCount'],
+      //       },
+      //     },
+      //     accTotalPayment: {
+      //       $sum: '$totalPayment',
+      //     },
+      //   },
+      // },
+      // {
+      //   $addFields: {
+      //     accProfit: {
+      //       $subtract: [
+      //         { $subtract: ['$accPayCost', '$accWonCost'] },
+      //         '$accDeliveryCost',
+      //       ],
+      //     },
+      //   },
+      // },
+      {
+        $limit: 1,
+      },
+    ]);
+    console.dir(r, { depth: 10 });
+    // const {
+    //   totalPrice,
+    //   adByChannel,
+    //   totalRateByProductCode,
+    //   totalProductRateByMall,
+    // } = await this.clientSaleMenuAd({
+    //   from,
+    //   to,
+    // });
+
+    //
     const pipeline: PipelineStage[] = [
       {
         $match: {

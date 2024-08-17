@@ -11,12 +11,15 @@ import { ClientLoader } from './client.loader';
 import { Product, productSchema } from 'src/product/entities/product.entity';
 import { ClientOutResolver } from './client.out.resolver';
 import { Ad, adSchema } from 'src/ad/entities/ad.entity';
+import { ClientDashboardView } from 'src/common/virtualView/ClientDashboardView/ClientDashboardView';
+import { clientDashboardSchema } from 'src/common/virtualView/ClientDashboardView/ClientDashboardViewSchema';
 
 @Module({
   exports: [ClientService, ClientLoader],
   imports: [
     SaleModule,
     DatabaseModule.forFeature([
+      { name: ClientDashboardView.name, schema: clientDashboardSchema },
       { name: Client.name, schema: clientSchema },
       { name: Sale.name, schema: saleSchema },
       { name: Storage.name, schema: StorageSchema },

@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { AdType } from 'src/ad/entities/ad.entity';
+import { CLIENT_DASHBOARD_VIEW } from './constants';
 
 @Injectable()
 export class ClientDashboardView implements OnModuleInit {
@@ -13,11 +14,11 @@ export class ClientDashboardView implements OnModuleInit {
 
   async createClientDashboardView() {
     const db = this.connection.db;
-    const viewName = 'clientDashboardView';
-    console.log(`${viewName}을 생성합니다.`);
-    await db.collection(viewName).drop();
+    //
+    await db.collection(CLIENT_DASHBOARD_VIEW).drop();
 
-    await db.createCollection(viewName, {
+    console.log(`${CLIENT_DASHBOARD_VIEW}기존 뷰가 삭제되고 새로 생성됩니다.`);
+    await db.createCollection(CLIENT_DASHBOARD_VIEW, {
       viewOn: 'sales',
       pipeline: [
         {
@@ -44,6 +45,7 @@ export class ClientDashboardView implements OnModuleInit {
             deliveryCost: 1,
             totalPayment: 1,
             deliveryBoxCount: 1,
+            saleAt: 1,
           },
         },
         {
@@ -131,6 +133,7 @@ export class ClientDashboardView implements OnModuleInit {
               },
               {
                 $project: {
+                  _id: 0,
                   price: 1,
                   type: 1,
                 },
@@ -144,7 +147,9 @@ export class ClientDashboardView implements OnModuleInit {
     try {
     } catch (err) {
       if (err.codeName == 'NamespaceExists') {
-        console.log(`${viewName} 가상 테이블 뷰는 이미 존재합니다.`);
+        console.log(
+          `${CLIENT_DASHBOARD_VIEW} 가상 테이블 뷰는 이미 존재합니다.`,
+        );
       } else {
         throw err;
       }

@@ -57,19 +57,3 @@ export const saleCommonMatch = {
   wonCost: { $exists: true },
   totalPayment: { $exists: true },
 };
-
-export const saleCommonMatchWithMallId = (mallId: string) => ({
-  orderStatus: '출고완료',
-  productCode: { $exists: true },
-  $expr: {
-    $and: [
-      { $ne: [{ $type: '$type' }, 'missing'] }, // 필드 존재 여부 확인
-      { $not: { $in: ['$mallId', ['로켓그로스', '정글북']] } }, // 특정 값 제외
-      { $in: ['$mallId', [mallId]] }, // 특정 mallId 포함 여부 확인
-    ],
-  },
-  count: { $exists: true },
-  payCost: { $exists: true },
-  wonCost: { $exists: true },
-  totalPayment: { $exists: true },
-});

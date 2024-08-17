@@ -33,8 +33,8 @@ import { AccessInterceptor } from './common/interceptors/access.interceptor';
 import { VoidScalar } from './common/scalars/void.scalar';
 import { OptionModule } from './option/option.module';
 import { AdModule } from './ad/ad.module';
+import { ClientDashboardView } from './common/virtualView/ClientDashboardView/ClientDashboardView';
 import * as Joi from 'joi';
-import { ClientDashboardView } from './common/virtualView/ClientDashboardView';
 
 @Module({
   imports: [
