@@ -20,6 +20,7 @@ export class ClientRepository extends AbstractRepository<Client> {
 
   constructor(
     private readonly utilService: UtilService,
+    private readonly saleService: SaleService,
     @InjectModel(Client.name) clientModel: Model<Client>,
     @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
@@ -41,8 +42,17 @@ export class ClientRepository extends AbstractRepository<Client> {
     clientCodeAndNameList: { code: string; name: string }[];
   }) {
     const clientNameList = clientCodeAndNameList.map((c) => c.name);
-    console.log('clientNameList : ', clientNameList.length);
     const [monthFrom, monthTo] = this.utilService.recentDayjsMonthRange();
+
+    const {
+      totalPrice,
+      adByChannel,
+      totalRateByProductCode,
+      totalProductRateByMall,
+    } = await this.clientSaleMenuAd({
+      from,
+      to,
+    });
 
     const pipeline: PipelineStage[] = [
       {
@@ -319,34 +329,130 @@ export class ClientRepository extends AbstractRepository<Client> {
     ];
 
     const result = await this.saleModel.aggregate<ClientSaleMenu>(pipeline);
-    return result?.[0];
+    const initResult = result[0];
+
+    // return appendAd;
+    return initResult;
   }
 
-  async clientSaleMenuAd({
-    from,
-    to,
-    skip,
-    limit,
-    clientCodeAndNameList,
-    sort = 'accCount',
-    order = -1,
-  }: FindDateScrollInput & {
-    clientCodeAndNameList: { code: string; name: string }[];
-  }) {
-    //거래처 제품 둘다 있음 : 광고비를 제품 숫자만큼 나눈 값 나누기 광고기간 으로 해서 일일광고비계산 : 그 거래처에서 판매된 그 제품에만 적용
-    //거래처만 있는경우 : 광고비 나누기 광고기간이 일일 광고비로 계산되어 적용 : 그 거래처에만 적용
-    //회사 공통인경우 : 광고비 나누기 광고기간 으로 일일광고비 계산
+  async clientSaleMenuAd({ from, to }: FindDateInput) {
+    const { productRateByMall, productRate } =
+      await this.saleService.getMonthAgoProductSaleRate({ from, to });
+    //모든 제품 판매 비중
+    const totalRateByProductCode = new Map<string, number>(
+      productRate.map((s) => [s.code, s.rate]),
+    );
 
-    const clientCodeList = clientCodeAndNameList.map((c) => c.code);
-    await this.adModel.aggregate([
+    //거래처별 제품 판매비중
+    const totalProductRateByMall = new Map<string, Map<string, number>>();
+    productRateByMall.forEach((c) => {
+      const mallId = c.mallId;
+      const products = c.products;
+      const rateByCode = new Map<string, number>(
+        products.map((p) => [p.code, p.rate]),
+      );
+      totalProductRateByMall.set(mallId, rateByCode);
+    });
+
+    const result = await this.adModel.aggregate<{
+      addPriceTotal: { _id: string; accPrice: number }[];
+      clientProduct: { _id: string; products: string[] }[];
+    }>([
       {
         $match: {
-          clientCode: {
-            $in: clientCodeList,
+          from: {
+            $lte: to,
+          },
+          to: {
+            $gte: from,
           },
         },
       },
+      {
+        $addFields: {
+          fullContained: {
+            $and: [{ $gte: ['$from', from] }, { $lte: ['$to', to] }],
+          },
+        },
+      },
+      {
+        $facet: {
+          addPriceTotal: [
+            {
+              $group: {
+                _id: '$type',
+                accPrice: {
+                  $sum: { $ifNull: [adDivideDateQuery(from, to), 0] },
+                },
+              },
+            },
+          ],
+          clientProduct: [
+            {
+              $group: {
+                _id: '$clientCode',
+                products: {
+                  $push: '$productCodeList',
+                },
+              },
+            },
+            {
+              $project: {
+                products: {
+                  $reduce: {
+                    input: { $concatArrays: ['$products'] },
+                    initialValue: [],
+                    in: { $concatArrays: ['$$value', '$$this'] },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
     ]);
+    const adResult = result[0];
+    const totalPriceByType = adResult.addPriceTotal;
+    //광고비 확인
+    const totalPrice = new Map<string, number>(
+      totalPriceByType.map((p) => [p._id, p.accPrice]),
+    );
+    const adCheckByChannel = adResult.clientProduct;
+    //제품 광고여부 확인
+    const adByChannel = new Map<string, Map<string, number>>();
+    adCheckByChannel.forEach((p) => {
+      const product = new Map<string, number>(p.products.map((s) => [s, 1]));
+      adByChannel.set(p._id, product);
+    });
+
+    return {
+      totalPrice,
+      adByChannel,
+      totalRateByProductCode,
+      totalProductRateByMall,
+    };
+
+    //각 광고 타입별로 해당 기간의 광고비 합계를 구한다.
+    // AdType.COMPANY_RATE 회사공통 : 00,
+    // AdType.CHANNEL_SPECIAL_PRODUCT 채널특별 : 00,
+    // AdType.CHANNEL_APP_PRODUCT 채널제품 : 00,
+    // AdType.CHANNEL_PRODUCT_RATE 채널공통 : 00,
+
+    //구한 합계를 제품별로 비중치를 곱해서 검색한 제품에 광고비를 다 더해서 넣어준다.
+    //1제품만 예시 :
+    //아래 회사공통 + 채널특별 + 채널제품 + 채널공통 광고비를 모두 더함
+
+    //회사공통
+    //광고비가 0이 아니면 모든 제품에 적용.
+    //회사공통광고비합계 * 1제품비중
+
+    //채널특별, 채널제품 :
+    //해당 채널에 해당 제품의 광고비가 0 이 아니면 적용
+    //채널특별광고비합계 * 해당채널.제품비중
+
+    //채널공통 :
+    //광고비가 0이 아니면 해당 채널의 판매된 제품에 적용.
+    //채널특별광고비합계 * 해당채널.제품비중
   }
 
   async findFullSortClient({

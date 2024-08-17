@@ -6,9 +6,8 @@ import {
 } from '@nestjs/common';
 import { UtilService } from 'src/util/util.service';
 import { SaleRepository } from './sale.repository';
-import { Connection, FilterQuery, Model, PipelineStage } from 'mongoose';
-import { Sale } from './entities/sale.entity';
-import { SaleInfo, SaleInfoList } from 'src/sale/dto/sale.output';
+import { Connection, Model, PipelineStage } from 'mongoose';
+import { SaleInfo } from 'src/sale/dto/sale.output';
 import { ProductSaleChartOutput } from 'src/product/dtos/product-sale-chart.output';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { SetDeliveryCostInput } from './dto/delivery-cost.Input';
@@ -247,117 +246,6 @@ export class SaleService {
     return result;
   }
 
-  async saleBy(filterQuery: FilterQuery<Sale>) {
-    const pipeLine: PipelineStage[] = [
-      {
-        $match: {
-          orderStatus: '출고완료',
-          productCode: { $exists: true },
-          mallId: { $exists: true },
-          count: { $exists: true },
-          payCost: { $exists: true },
-          wonCost: { $exists: true },
-          ...filterQuery,
-        },
-      },
-      {
-        $facet: {
-          sales: this.saleInfoStage(),
-          clients: this.clientInfoStage(),
-        },
-      },
-    ];
-    const result =
-      await this.saleRepository.saleModel.aggregate<SaleInfoList>(pipeLine);
-    return result;
-  }
-
-  private saleInfoStage(groupId = 'productCode') {
-    return [
-      {
-        $group: {
-          _id: `$${groupId}`,
-          accPayCost: { $sum: '$payCost' },
-          accCount: { $sum: '$count' },
-          accWonCost: { $sum: '$wonCost' },
-        },
-      },
-      {
-        $addFields: {
-          name: '$_id',
-          accProfit: {
-            $subtract: ['$accPayCost', '$accWonCost'],
-          },
-          averagePayCost: {
-            $round: [
-              {
-                $cond: {
-                  if: { $ne: ['$accCount', 0] },
-                  then: { $divide: ['$accPayCost', '$accCount'] },
-                  else: 0,
-                },
-              },
-              2,
-            ],
-          },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          wonCost: 0,
-        },
-      },
-    ];
-  }
-
-  private clientInfoStage() {
-    const pipeLine: PipelineStage.FacetPipelineStage[] = [
-      {
-        $group: {
-          _id: {
-            mallId: '$mallId',
-            productCode: '$productCode',
-          },
-          accPayCost: { $sum: '$payCost' },
-          accCount: { $sum: '$count' },
-          accWonCost: { $sum: '$wonCost' },
-        },
-      },
-      {
-        $sort: {
-          accPayCost: -1,
-        },
-      },
-      {
-        $addFields: {
-          accProfit: {
-            $subtract: ['$accPayCost', '$accWonCost'],
-          },
-          averagePayCost: {
-            $round: [
-              {
-                $cond: {
-                  if: { $ne: ['$accCount', 0] },
-                  then: { $divide: ['$accPayCost', '$accCount'] },
-                  else: 0,
-                },
-              },
-              2,
-            ],
-          },
-        },
-      },
-      {
-        $project: {
-          wonCost: 0,
-        },
-      },
-    ];
-
-    return pipeLine;
-  }
-
   private getTotalSalePipeline({
     from,
     to,
@@ -402,6 +290,130 @@ export class SaleService {
         },
       },
     ];
+  }
+
+  async getMonthAgoProductSaleRate(range: { from: Date; to: Date }) {
+    const { from, to } = this.utilService.getBeforeMonthDate(range.from);
+    const result = await this.saleRepository.saleModel.aggregate<{
+      accTotalPayment: number;
+      productTotalPayment: {
+        _id: string;
+        accTotalPayment: number;
+      }[];
+      clientProduct: {
+        _id: string;
+        products: { code: string; totalPayment: number }[];
+        accTotalPayment: number;
+      }[];
+    }>([
+      {
+        $match: {
+          orderStatus: '출고완료',
+          productCode: { $exists: true },
+          mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
+          count: { $exists: true },
+          payCost: { $exists: true },
+          wonCost: { $exists: true },
+          totalPayment: { $exists: true },
+          saleAt: {
+            $exists: true,
+            $gte: from,
+            $lt: to,
+          },
+        },
+      },
+      {
+        $facet: {
+          accTotalPayment: [
+            {
+              $group: {
+                _id: null,
+                accTotalPayment: {
+                  $sum: '$totalPayment',
+                },
+              },
+            },
+          ],
+          productTotalPayment: [
+            {
+              $group: {
+                _id: '$productCode',
+                accTotalPayment: { $sum: '$totalPayment' },
+              },
+            },
+          ],
+          clientProduct: [
+            {
+              $group: {
+                _id: {
+                  mallId: '$mallId',
+                  productCode: '$productCode',
+                  totalPayment: '$totalPayment',
+                },
+              },
+            },
+            {
+              $group: {
+                _id: '$_id.mallId',
+                products: {
+                  $push: {
+                    code: '$_id.productCode',
+                    totalPayment: '$_id.totalPayment',
+                  },
+                },
+                accTotalPayment: {
+                  $sum: {
+                    $ifNull: ['$_id.totalPayment', 0],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          accTotalPayment: {
+            $ifNull: [
+              { $arrayElemAt: ['$accTotalPayment.accTotalPayment', 0] },
+              0,
+            ],
+          },
+        },
+      },
+    ]);
+
+    const accTotalPayment = result[0].accTotalPayment ?? 0;
+    const productTotalPayment = result[0].productTotalPayment;
+    const productTotalPaymentByMall = result[0].clientProduct;
+
+    let productRateByMall: {
+      mallId: string;
+      products: { code: string; rate: number }[];
+    }[] = [];
+    let productRate: { code: string; rate: number }[] = [];
+
+    productRate = productTotalPayment.map((p) => ({
+      code: p._id,
+      rate: accTotalPayment ? p.accTotalPayment / accTotalPayment : 0,
+    }));
+
+    productRateByMall = productTotalPaymentByMall.map((p) => {
+      const acc = p.accTotalPayment;
+      const products = p.products.map((s) => ({
+        code: s.code,
+        rate: acc ? s.totalPayment / acc : 0,
+      }));
+      return {
+        mallId: p._id,
+        products,
+      };
+    });
+
+    return {
+      productRateByMall,
+      productRate,
+    };
   }
 
   async setDeliveryCost({

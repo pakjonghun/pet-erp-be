@@ -10,9 +10,6 @@ export class ChannelOrProductValidator implements ValidatorConstraintInterface {
   validate(value: any, args: ValidationArguments) {
     const object = args.object as any;
     const adType = object.type;
-    console.log('type : ', adType);
-    console.log('value', value);
-    console.log('args.property : ', args.property);
 
     if (!adType) {
       return true; // type이 없으면 다른 유효성 검사에서 걸릴 것임

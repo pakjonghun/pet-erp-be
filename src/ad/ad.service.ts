@@ -38,7 +38,6 @@ export class AdService {
   async getAdTotal({ from, to }: AdsTotalInput) {
     const fromDate = new Date(from);
     const toDate = new Date(to);
-    console.log(from, to);
     const result = await this.adRepository.model.aggregate<{
       accPrice: number;
     }>([

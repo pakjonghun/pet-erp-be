@@ -110,6 +110,12 @@ export class UtilService {
     return { from: prevFrom, to: prevTo };
   }
 
+  getBeforeMonthDate(date: Date) {
+    const to = dayjs(date);
+    const from = to.subtract(1, 'month');
+    return { from: from.toDate(), to: to.toDate() };
+  }
+
   getNumberWithComma = (number: number) => {
     return Intl.NumberFormat('ko-KR').format(number);
   };
