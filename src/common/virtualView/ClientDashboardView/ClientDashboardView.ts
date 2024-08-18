@@ -3,7 +3,6 @@ import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { AdType } from 'src/ad/entities/ad.entity';
 import { CLIENT_DASHBOARD_VIEW } from './constants';
-import { pipeline } from 'stream';
 
 @Injectable()
 export class ClientDashboardView implements OnModuleInit {
@@ -15,8 +14,18 @@ export class ClientDashboardView implements OnModuleInit {
 
   async createClientDashboardView() {
     const db = this.connection.db;
-    //
-    await db.collection(CLIENT_DASHBOARD_VIEW).drop();
+
+    // 뷰가 이미 존재하는지 확인
+    const viewExists = await db
+      .listCollections({ name: CLIENT_DASHBOARD_VIEW })
+      .hasNext();
+
+    if (viewExists) {
+      console.log(`${CLIENT_DASHBOARD_VIEW} 가 이미 존재합니다.`);
+      return;
+    }
+
+    // await db.collection(CLIENT_DASHBOARD_VIEW).drop();
 
     console.log(`${CLIENT_DASHBOARD_VIEW}기존 뷰가 삭제되고 새로 생성됩니다.`);
     await db.createCollection(CLIENT_DASHBOARD_VIEW, {
