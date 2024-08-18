@@ -3,6 +3,7 @@ import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { AdType } from 'src/ad/entities/ad.entity';
 import { CLIENT_DASHBOARD_VIEW } from './constants';
+import { pipeline } from 'stream';
 
 @Injectable()
 export class ClientDashboardView implements OnModuleInit {
@@ -78,6 +79,46 @@ export class ClientDashboardView implements OnModuleInit {
         {
           $project: {
             clientInfo: 0,
+          },
+        },
+        {
+          $lookup: {
+            from: 'productRate',
+            localField: 'productCode',
+            foreignField: 'productCode',
+            as: 'productRate',
+            pipeline: [
+              {
+                $project: {
+                  _id: 0,
+                  productCode: 0,
+                },
+              },
+            ],
+          },
+        },
+        {
+          $unwind: '$productRate',
+        },
+        {
+          $addFields: {
+            productRate: '$productRate.rate',
+          },
+        },
+        {
+          $lookup: {
+            from: 'clientProductRate',
+            foreignField: 'clientCode',
+            localField: 'name',
+            as: 'clientProductRate',
+            pipeline: [
+              {
+                $project: {
+                  _id: 0,
+                  clientCode: 0,
+                },
+              },
+            ],
           },
         },
         {
