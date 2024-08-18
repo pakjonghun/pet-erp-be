@@ -21,10 +21,12 @@ import {
   ClientProductRate,
   clientProductRateSchema,
 } from 'src/common/entities/client-product-rate.entity';
+import { AdModule } from 'src/ad/ad.module';
 
 @Module({
   exports: [ClientService, ClientLoader],
   imports: [
+    AdModule,
     SaleModule,
     DatabaseModule.forFeature([
       { name: ClientProductRate.name, schema: clientProductRateSchema },

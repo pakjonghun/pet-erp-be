@@ -15,10 +15,10 @@ import { Product } from 'src/product/entities/product.entity';
 import { Ad, AdInterface, AdType } from './entities/ad.entity';
 import { Client } from 'src/client/entities/client.entity';
 import { ColumnOption } from 'src/client/types';
-import * as ExcelJS from 'exceljs';
-import * as dayjs from 'dayjs';
 import { AdTypeToEng, AdTypeToHangle } from './constants';
 import { AdsTotalInput } from './dto/adsTotal.input';
+import * as ExcelJS from 'exceljs';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class AdService {
@@ -40,7 +40,7 @@ export class AdService {
     const toDate = new Date(to);
     const result = await this.adRepository.model.aggregate<{
       accPrice: number;
-      typePrice: { type: AdType; price: number }[];
+      typePrice: { _id: AdType; typePrice: number }[];
     }>([
       {
         $match: {

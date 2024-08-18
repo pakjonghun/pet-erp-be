@@ -28,6 +28,7 @@ import * as ExcelJS from 'exceljs';
 import { ProductRate } from 'src/common/entities/product-rate.entity';
 import { ClientDashboardView } from 'src/common/virtualView/ClientDashboardView/ClientDashboardView';
 import { Cron } from '@nestjs/schedule';
+import { AdService } from 'src/ad/ad.service';
 
 @Injectable()
 export class ClientService {

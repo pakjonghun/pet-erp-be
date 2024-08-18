@@ -20,6 +20,7 @@ export class ClientRepository extends AbstractRepository<Client> {
   logger = new Logger(ClientRepository.name);
 
   constructor(
+    private readonly adService: AdService,
     private readonly utilService: UtilService,
     private readonly saleService: SaleService,
     @InjectModel(Client.name) clientModel: Model<Client>,
@@ -46,6 +47,19 @@ export class ClientRepository extends AbstractRepository<Client> {
   }) {
     const clientNameList = clientCodeAndNameList.map((c) => c.name);
     const [monthFrom, monthTo] = this.utilService.recentDayjsMonthRange();
+
+    const adPrices = await this.adService.getAdTotal({ from, to });
+    const typePrice = adPrices.typePrice;
+    const adPriceByType = new Map<AdType, number>();
+    typePrice.forEach((t) => {
+      adPriceByType.set(t._id, t.typePrice);
+    });
+    const channelProductPrice =
+      adPriceByType.get(AdType.CHANNEL_APP_PRODUCT) ?? 0;
+    const channelPrice = adPriceByType.get(AdType.CHANNEL_PRODUCT_RATE) ?? 0;
+    const channelSpecialPrice =
+      adPriceByType.get(AdType.CHANNEL_SPECIAL_PRODUCT) ?? 0;
+    const companyPrice = adPriceByType.get(AdType.COMPANY_RATE) ?? 0;
 
     //  await this.clientDashboardView.aggregate([
     //   {
