@@ -12,7 +12,7 @@ import { UtilService } from 'src/util/util.service';
 import { AdsInput } from './dto/ads.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { Product } from 'src/product/entities/product.entity';
-import { Ad, AdInterface } from './entities/ad.entity';
+import { Ad, AdInterface, AdType } from './entities/ad.entity';
 import { Client } from 'src/client/entities/client.entity';
 import { ColumnOption } from 'src/client/types';
 import * as ExcelJS from 'exceljs';
@@ -40,6 +40,7 @@ export class AdService {
     const toDate = new Date(to);
     const result = await this.adRepository.model.aggregate<{
       accPrice: number;
+      typePrice: { type: AdType; price: number }[];
     }>([
       {
         $match: {
@@ -60,17 +61,15 @@ export class AdService {
       },
       {
         $addFields: {
-          totalPrice: {
-            $cond: {
-              if: '$fullContained',
-              then: '$price',
-              else: {
-                $multiply: [
-                  {
-                    $divide: [
-                      '$price',
+          dayPrice: {
+            $divide: [
+              '$price',
+              {
+                $cond: {
+                  if: {
+                    $or: [
                       {
-                        $add: [
+                        $eq: [
                           {
                             $dateDiff: {
                               startDate: '$from',
@@ -78,11 +77,46 @@ export class AdService {
                               unit: 'day',
                             },
                           },
-                          1,
+                          0,
+                        ],
+                      },
+                      {
+                        $eq: [
+                          {
+                            $dateDiff: {
+                              startDate: '$from',
+                              endDate: '$to',
+                              unit: 'day',
+                            },
+                          },
+                          null,
                         ],
                       },
                     ],
                   },
+                  then: 1,
+                  else: {
+                    $dateDiff: {
+                      startDate: '$from',
+                      endDate: '$to',
+                      unit: 'day',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          totalPrice: {
+            $cond: {
+              if: '$fullContained',
+              then: '$price',
+              else: {
+                $multiply: [
+                  '$dayPrice',
                   {
                     $add: [
                       {
@@ -118,13 +152,37 @@ export class AdService {
         },
       },
       {
-        $group: {
-          _id: null,
-          accPrice: { $sum: '$totalPrice' },
+        $facet: {
+          accPrice: [
+            {
+              $group: {
+                _id: null,
+                accPrice: {
+                  $sum: '$totalPrice',
+                },
+              },
+            },
+          ],
+          typePrice: [
+            {
+              $group: {
+                _id: '$type',
+                typePrice: {
+                  $sum: '$totalPrice',
+                },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          accPrice: {
+            $ifNull: [{ $arrayElemAt: ['$accPrice.accPrice', 0] }, 0],
+          },
         },
       },
     ]);
-
     return result[0];
   }
 
