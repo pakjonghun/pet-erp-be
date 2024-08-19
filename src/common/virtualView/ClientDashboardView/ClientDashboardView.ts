@@ -1,7 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
-import { AdType } from 'src/ad/entities/ad.entity';
 import { CLIENT_DASHBOARD_VIEW } from './constants';
 
 @Injectable()
@@ -24,7 +23,6 @@ export class ClientDashboardView implements OnModuleInit {
       console.log(`${CLIENT_DASHBOARD_VIEW} 가 이미 존재합니다.`);
       return;
     }
-
     // await db.collection(CLIENT_DASHBOARD_VIEW).drop();
 
     console.log(`${CLIENT_DASHBOARD_VIEW}기존 뷰가 삭제되고 새로 생성됩니다.`);
@@ -56,6 +54,7 @@ export class ClientDashboardView implements OnModuleInit {
             totalPayment: 1,
             deliveryBoxCount: 1,
             saleAt: 1,
+            productName: 1,
           },
         },
         {
@@ -116,11 +115,21 @@ export class ClientDashboardView implements OnModuleInit {
         },
         {
           $lookup: {
+            let: {
+              productCode: '$productCode',
+            },
             from: 'clientProductRate',
             foreignField: 'clientCode',
             localField: 'name',
             as: 'clientProductRate',
             pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: ['$productCode', '$$productCode'],
+                  },
+                },
+              },
               {
                 $project: {
                   _id: 0,
@@ -131,64 +140,10 @@ export class ClientDashboardView implements OnModuleInit {
           },
         },
         {
-          $lookup: {
-            let: {
-              productCode: '$productCode',
-              clientCode: '$code',
+          $addFields: {
+            clientProductRate: {
+              $ifNull: [{ $arrayElemAt: ['$clientProductRate.rate', 0] }, 0],
             },
-            from: 'ads',
-            as: 'adInfo',
-            pipeline: [
-              {
-                $match: {
-                  $or: [
-                    {
-                      type: AdType.COMPANY_RATE,
-                    },
-                    {
-                      $and: [
-                        {
-                          type: AdType.CHANNEL_PRODUCT_RATE,
-                        },
-                        {
-                          $expr: {
-                            $eq: ['$clientCode', '$$clientCode'],
-                          },
-                        },
-                      ],
-                    },
-                    {
-                      $expr: {
-                        $and: [
-                          {
-                            $in: [
-                              '$type',
-                              [
-                                AdType.CHANNEL_APP_PRODUCT,
-                                AdType.CHANNEL_SPECIAL_PRODUCT,
-                              ],
-                            ],
-                          },
-                          {
-                            $eq: ['$clientCode', '$$clientCode'],
-                          },
-                          {
-                            $in: ['$$productCode', '$productCodeList'],
-                          },
-                        ],
-                      },
-                    },
-                  ],
-                },
-              },
-              {
-                $project: {
-                  _id: 0,
-                  price: 1,
-                  type: 1,
-                },
-              },
-            ],
           },
         },
       ],

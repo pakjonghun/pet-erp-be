@@ -1,7 +1,5 @@
-import { ObjectType } from '@nestjs/graphql';
 import { Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, HydratedDocument } from 'mongoose';
-import { Ad } from 'src/ad/entities/ad.entity';
 import { Client } from 'src/client/entities/client.entity';
 import { CLIENT_DASHBOARD_VIEW } from './constants';
 import { Sale } from 'src/sale/entities/sale.entity';
@@ -16,6 +14,7 @@ type SaleDashboard = Pick<
   | 'totalPayment'
   | 'deliveryBoxCount'
   | 'saleAt'
+  | 'productName'
 >;
 
 type SaleClientDashboard = Pick<
@@ -32,12 +31,7 @@ type SaleClientDashboard = Pick<
   | 'isSabangService'
 >;
 
-type SaleAdDashboard = Pick<Ad, 'type' | 'price'>;
-
-type ClientDashboardViewClass = SaleDashboard &
-  SaleClientDashboard & {
-    adInfo: SaleAdDashboard[];
-  };
+type ClientDashboardViewClass = SaleDashboard & SaleClientDashboard;
 
 @Schema({
   collection: CLIENT_DASHBOARD_VIEW,
@@ -47,6 +41,7 @@ export class ClientDashboardView
   implements ClientDashboardViewClass
 {
   // SaleDashboard 필드
+  productName: Sale['productName'];
   count: Sale['count'];
   payCost: Sale['payCost'];
   wonCost: Sale['wonCost'];
@@ -67,9 +62,6 @@ export class ClientDashboardView
   inActive: Client['inActive'];
   payDate: Client['payDate'];
   isSabangService: Client['isSabangService'];
-
-  // SaleAdDashboard 필드
-  adInfo: SaleAdDashboard[];
 }
 
 export const clientDashboardSchema =
