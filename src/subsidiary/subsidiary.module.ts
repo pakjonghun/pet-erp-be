@@ -11,11 +11,13 @@ import {
   SubsidiaryCategory,
   SubsidiaryCategorySchema,
 } from 'src/subsidiary-category/entities/subsidiary-category.entity';
+import { Product, productSchema } from 'src/product/entities/product.entity';
 
 @Module({
   exports: [SubsidiaryService],
   imports: [
     DatabaseModule.forFeature([
+      { name: Product.name, schema: productSchema },
       { name: Subsidiary.name, schema: SubsidiarySchema },
       { name: Stock.name, schema: StockSchema },
       { name: SubsidiaryCategory.name, schema: SubsidiaryCategorySchema },

@@ -71,6 +71,13 @@ export class SubsidiaryService {
       return item;
     });
 
+    const r = await this.subsidiaryRepository.findFullManySubsidiaryWithSort({
+      keyword,
+      ...query,
+    });
+
+    return r;
+
     return {
       totalCount: result.totalCount,
       data: newData,
