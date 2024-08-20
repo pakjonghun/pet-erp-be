@@ -32,4 +32,13 @@ export class FindDateScrollInput extends OmitType(FindManyDTO, [
   @Field(() => String, { nullable: true })
   @IsOptional()
   sort?: string;
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsOneOf(order, { message: 'order는 1 이나 -1 중에 입력하세요.' })
+  detailOrder?: 1 | -1;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  detailSort?: string;
 }
