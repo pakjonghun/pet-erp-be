@@ -255,8 +255,10 @@ export class ProductRepository extends AbstractRepository<Product> {
     from,
     to,
     productCodeList,
-    sort,
-    order,
+    sort = 'accCount',
+    order = -1,
+    detailOrder = -1,
+    detailSort = 'accCount',
   }: Omit<ProductSaleInput, 'keyword'> & { productCodeList: string[] }) {
     const pipeline: PipelineStage[] = [
       {
