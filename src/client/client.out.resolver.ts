@@ -43,7 +43,7 @@ export class ClientOutResolver {
     return this.clientService.findAll();
   }
 
-  @Roles([AuthRoleEnum.ANY])
+  // @Roles([AuthRoleEnum.ANY])
   @Query(() => ClientsOutput)
   async clients(@Args('clientsInput') clientsInput: ClientsInput) {
     const clients = await this.clientService.findSortMany(clientsInput);

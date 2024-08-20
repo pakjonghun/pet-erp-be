@@ -218,7 +218,6 @@ export class ProductRepository extends AbstractRepository<Product> {
       }
     }
 
-    console.dir(pipelineStage, { depth: 100 });
     const result = await this.model.aggregate<{
       totalPage: number;
       data: Product;

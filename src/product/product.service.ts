@@ -262,8 +262,6 @@ export class ProductService {
 
     this.utilService.checkDuplicatedField(documents, 'code');
     this.utilService.checkDuplicatedField(documents, 'name');
-    // await this.productRepository.docUniqueCheck(documents, 'code');
-    // await this.productRepository.docUniqueCheck(documents, 'name');
     await this.productRepository.bulkUpsert(documents);
   }
 

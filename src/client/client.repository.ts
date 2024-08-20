@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { AbstractRepository } from 'src/common/database/abstract.repository';
-import { Client } from './entities/client.entity';
-import { Model, PipelineStage } from 'mongoose';
+import { Client, HangleToClientType } from './entities/client.entity';
+import { Model, PipelineStage, Types } from 'mongoose';
 import { UtilService } from 'src/util/util.service';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { FindDateScrollInput } from 'src/common/dtos/find-date-scroll.input';
@@ -11,6 +11,8 @@ import { profit, profitRate } from 'src/common/query/sale';
 import { OutClient } from './dtos/clients.output';
 import { ClientsInput } from './dtos/clients.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
+import { Product } from 'src/product/entities/product.entity';
+import { Storage } from 'src/storage/entities/storage.entity';
 
 @Injectable()
 export class ClientRepository extends AbstractRepository<Client> {
@@ -19,6 +21,8 @@ export class ClientRepository extends AbstractRepository<Client> {
   constructor(
     private readonly utilService: UtilService,
     @InjectModel(Client.name) clientModel: Model<Client>,
+    @InjectModel(Storage.name) private readonly storageModel: Model<Storage>,
+    @InjectModel(Product.name) private readonly productModel: Model<Product>,
     @InjectModel(Sale.name) private readonly saleModel: Model<Sale>,
   ) {
     super(clientModel);
@@ -325,21 +329,11 @@ export class ClientRepository extends AbstractRepository<Client> {
     skip,
     limit,
     keyword,
+    keywordTarget,
   }: ClientsInput) {
     const newSort = sort == 'storage' ? `${sort}.name` : sort;
 
-    const result = await this.model.aggregate<{
-      totalCount: number;
-      data: OutClient[];
-    }>([
-      {
-        $match: {
-          name: {
-            $regex: this.utilService.escapeRegex(keyword),
-            $options: 'i',
-          },
-        },
-      },
+    const pipelineStage: PipelineStage[] = [
       {
         $facet: {
           data: [
@@ -403,7 +397,102 @@ export class ClientRepository extends AbstractRepository<Client> {
           },
         },
       },
-    ]);
+    ];
+
+    if (keyword) {
+      const refTargetKeyword = [
+        'storage',
+        'storageId',
+        'freeDelivery',
+        'notFreeDelivery',
+      ];
+      if (refTargetKeyword.includes(keywordTarget)) {
+        if (keywordTarget == 'storage' || keywordTarget == 'storageId') {
+          const storageList = await this.storageModel
+            .find({
+              name: {
+                $regex: this.utilService.escapeRegex(keyword),
+                $options: 'i',
+              },
+            })
+            .select('_id')
+            .lean<{ _id: Types.ObjectId }[]>();
+
+          const storageIdList = storageList.map((s) => s._id.toHexString());
+
+          const matchStage = {
+            $match: {
+              storageId: {
+                $in: storageIdList,
+              },
+            },
+          };
+          pipelineStage.unshift(matchStage);
+        }
+
+        if (
+          keywordTarget == 'freeDelivery' ||
+          keywordTarget == 'notFreeDelivery'
+        ) {
+          const productList = await this.productModel
+            .find({
+              name: {
+                $regex: this.utilService.escapeRegex(keyword),
+                $options: 'i',
+              },
+            })
+            .select(['-_id', 'code'])
+            .lean<{ code: string }[]>();
+
+          const productCodeList = productList.map((p) => p.code);
+
+          const fieldName =
+            keywordTarget == 'freeDelivery'
+              ? 'deliveryFreeProductCodeList'
+              : 'deliveryNotFreeProductCodeList';
+          const matchStage = {
+            $match: {
+              [fieldName]: {
+                $in: productCodeList,
+              },
+            },
+          };
+
+          pipelineStage.unshift(matchStage);
+        }
+      } else {
+        if (keywordTarget == 'feeRate') {
+          const matchStage = {
+            $match: {
+              feeRate: (keyword as unknown as number) / 100,
+            },
+          };
+          pipelineStage.unshift(matchStage);
+        } else {
+          let newKeyword = keyword;
+          if (keywordTarget == 'clientType') {
+            newKeyword = HangleToClientType[keyword] ?? '';
+          }
+
+          const matchStage = {
+            $match: {
+              $expr: {
+                $regexMatch: {
+                  input: { $toString: `$${keywordTarget}` },
+                  regex: this.utilService.escapeRegex(newKeyword),
+                  options: 'i',
+                },
+              },
+            },
+          };
+          pipelineStage.unshift(matchStage);
+        }
+      }
+    }
+    const result = await this.model.aggregate<{
+      totalCount: number;
+      data: OutClient[];
+    }>(pipelineStage);
 
     return result[0];
   }

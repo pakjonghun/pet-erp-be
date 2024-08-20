@@ -2,7 +2,7 @@ import { Field, InputType, PickType } from '@nestjs/graphql';
 import { FindManyDTO } from 'src/common/dtos/find-many.input';
 import { ClientType } from '../entities/client.entity';
 import { IsOneOf } from 'src/common/validations/enum.validation';
-import { IsOptional } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 @InputType()
 export class ClientsInput extends PickType(FindManyDTO, [
@@ -19,4 +19,9 @@ export class ClientsInput extends PickType(FindManyDTO, [
     each: true,
   })
   clientType?: ClientType[];
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  keywordTarget?: string;
 }
