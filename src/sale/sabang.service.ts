@@ -211,7 +211,6 @@ export class SabandService {
     };
 
     type RawSale = Pick<Sale, 'mallId' | 'productCode' | 'productName'>;
-    console.log('initList : ', initList.length);
     const list = initList
       .filter((item) => {
         const productName = item['GOODS_KEYWORD']?.[0];
@@ -241,7 +240,6 @@ export class SabandService {
         if (!productByCode.get(productCode)) {
           if (productCode && productName) {
             const realProductName = productName.split(' ')[0];
-            console.log('realProductName : ', realProductName);
             if (realProductName && productByName.has(realProductName.trim())) {
               const realProduct = productByName.get(realProductName.trim());
               item['PRODUCT_ID'][0] = realProduct.code;

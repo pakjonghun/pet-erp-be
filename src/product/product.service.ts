@@ -243,7 +243,6 @@ export class ProductService {
       const categoryName = (object.category as string)?.trim();
 
       if (!categoryByName.has(categoryName) && !!categoryName) {
-        console.log('category make', categoryName);
         const categoryDoc = await this.categoryService.upsert({
           name: categoryName,
         });

@@ -19,11 +19,16 @@ import { ProductLoader } from './product.loader';
 import { Stock, StockSchema } from 'src/stock/entities/stock.entity';
 import { Sale, saleSchema } from 'src/sale/entities/sale.entity';
 import { Storage, StorageSchema } from 'src/storage/entities/storage.entity';
+import {
+  ProductCategory,
+  productCategorySchema,
+} from 'src/product-category/entities/product-category.entity';
 
 @Module({
   exports: [ProductService, ProductLoader],
   imports: [
     DatabaseModule.forFeature([
+      { name: ProductCategory.name, schema: productCategorySchema },
       { name: Storage.name, schema: StorageSchema },
       { name: Product.name, schema: productSchema },
       { name: Subsidiary.name, schema: SubsidiarySchema },

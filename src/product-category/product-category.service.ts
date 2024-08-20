@@ -106,7 +106,6 @@ export class ProductCategoryService {
       1,
     );
 
-    console.log('documents : ', documents);
     this.utilService.checkDuplicatedField(documents, 'name');
     // await this.categoryRepository.docUniqueCheck(documents, 'name');
     await this.categoryRepository.bulkUpsert(documents);
