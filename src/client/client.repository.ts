@@ -14,6 +14,9 @@ import { ClientsInput } from './dtos/clients.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
 import { Product } from 'src/product/entities/product.entity';
 import { Storage } from 'src/storage/entities/storage.entity';
+import { Ad, AdType } from 'src/ad/entities/ad.entity';
+import { SaleService } from 'src/sale/sale.service';
+import { AdService } from 'src/ad/ad.service';
 
 @Injectable()
 export class ClientRepository extends AbstractRepository<Client> {
@@ -388,7 +391,6 @@ export class ClientRepository extends AbstractRepository<Client> {
     //
     const pipe = appendAdPipeline.concat(salePipeLine);
     const r = await this.clientDashboardView.aggregate(pipe);
-    console.dir(r, { depth: 10 });
     const [monthFrom, monthTo] = this.utilService.recentDayjsMonthRange();
 
     const clientNameList = clientCodeAndNameList.map((i) => i.name);

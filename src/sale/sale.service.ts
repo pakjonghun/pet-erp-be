@@ -20,6 +20,7 @@ import { SaleOrdersInput } from './dto/orders.input';
 import { SaleOrdersOutput } from './dto/orders.output';
 import * as ExcelJS from 'exceljs';
 import * as dayjs from 'dayjs';
+import { saleCommonMatch } from 'src/common/query/sale';
 // import { ColumnOption } from 'src/client/types';
 // import * as sola from 'solapi';
 
@@ -242,7 +243,6 @@ export class SaleService {
       data: SaleInfo[];
       totalCount: number;
     }>(pipeline);
-
     return result;
   }
 
@@ -256,13 +256,7 @@ export class SaleService {
     return [
       {
         $match: {
-          orderStatus: '출고완료',
-          productCode: { $exists: true },
-          mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
-          count: { $exists: true },
-          payCost: { $exists: true },
-          wonCost: { $exists: true },
-          totalPayment: { $exists: true },
+          ...saleCommonMatch,
           saleAt: {
             $exists: true,
             $gte: from,
@@ -287,6 +281,110 @@ export class SaleService {
             },
           },
           accTotalPayment: { $sum: '$totalPayment' },
+        },
+      },
+      {
+        $lookup: {
+          from: 'ads',
+          as: 'ads',
+          pipeline: [
+            {
+              $match: {
+                from: {
+                  $lte: to,
+                },
+                to: {
+                  $gte: from,
+                },
+              },
+            },
+            {
+              $addFields: {
+                fromRange: {
+                  $cond: {
+                    if: { $gte: ['$from', from] },
+                    then: '$from',
+                    else: from,
+                  },
+                },
+                toRange: {
+                  $cond: {
+                    if: { $lte: ['$to', to] },
+                    then: '$to',
+                    else: to,
+                  },
+                },
+                totalDateRange: {
+                  $add: [
+                    {
+                      $dateDiff: {
+                        startDate: '$from',
+                        endDate: '$to',
+                        unit: 'day',
+                      },
+                    },
+                    1,
+                  ],
+                },
+              },
+            },
+            {
+              $addFields: {
+                dayAdPrice: {
+                  $divide: ['$price', '$totalDateRange'],
+                },
+                range: {
+                  $add: [
+                    {
+                      $dateDiff: {
+                        startDate: '$fromRange',
+                        endDate: '$toRange',
+                        unit: 'day',
+                      },
+                    },
+                    1,
+                  ],
+                },
+              },
+            },
+            {
+              $addFields: {
+                accAdPrice: {
+                  $multiply: ['$dayAdPrice', '$range'],
+                },
+              },
+            },
+            {
+              $project: {
+                accAdPrice: 1,
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                accAdPrice: {
+                  $sum: '$accAdPrice',
+                },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          accAdPrice: {
+            $ifNull: [
+              {
+                $arrayElemAt: ['$ads.accAdPrice', 0],
+              },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $project: {
+          ads: 0,
         },
       },
     ];
@@ -362,15 +460,8 @@ export class SaleService {
   }
 
   async totalSaleBy({ from, to }: FindDateInput) {
-    const prevRange = this.utilService.getBeforeDate({
-      from,
-      to,
-    });
-
-    const current = await this.totalSale({ from, to });
-    const previous = await this.totalSale(prevRange);
-
-    return { current: current?.[0], previous: previous?.[0] };
+    const data = await this.totalSale({ from, to });
+    return data[0];
   }
 
   async downloadExcel(saleOrdersInput: SaleOrdersInput) {

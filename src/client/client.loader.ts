@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import * as DataLoader from 'dataloader';
 import { Product } from 'src/product/entities/product.entity';
+import * as DataLoader from 'dataloader';
 
 type ProductCodeName = Pick<Product, 'code' | 'name'>;
 

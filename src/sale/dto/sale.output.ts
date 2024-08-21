@@ -12,6 +12,9 @@ export class ClientId {
 @ObjectType()
 export class SaleInfo {
   @Field(() => Int, { nullable: true })
+  accAdPrice: number;
+
+  @Field(() => Int, { nullable: true })
   accWonCost: number;
 
   @Field(() => Int, { nullable: true })
@@ -30,15 +33,6 @@ export class SaleInfo {
   accDeliveryCost: number;
 
   _id: string;
-}
-
-@ObjectType()
-export class TotalSaleInfo {
-  @Field(() => SaleInfo, { nullable: true })
-  current: SaleInfo;
-
-  @Field(() => SaleInfo, { nullable: true })
-  previous: SaleInfo;
 }
 
 @ObjectType()
