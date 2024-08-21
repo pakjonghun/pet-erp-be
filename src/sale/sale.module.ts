@@ -16,6 +16,7 @@ import {
   SaleOutCheckSchema,
 } from './entities/sale.out.check.entity';
 import { Option, OptionSchema } from 'src/option/entities/option.entity';
+import { Ad, adSchema } from 'src/ad/entities/ad.entity';
 
 @Module({
   exports: [SaleService],
@@ -28,6 +29,7 @@ import { Option, OptionSchema } from 'src/option/entities/option.entity';
       { name: Sale.name, schema: saleSchema },
       { name: Option.name, schema: OptionSchema },
       { name: DeliveryCost.name, schema: DeliveryCostSchema },
+      { name: Ad.name, schema: adSchema },
     ]),
     StockModule,
   ],

@@ -21,6 +21,7 @@ import { SaleOrdersOutput } from './dto/orders.output';
 import * as ExcelJS from 'exceljs';
 import * as dayjs from 'dayjs';
 import { saleCommonMatch } from 'src/common/query/sale';
+import { Ad } from 'src/ad/entities/ad.entity';
 // import { ColumnOption } from 'src/client/types';
 // import * as sola from 'solapi';
 
@@ -32,6 +33,8 @@ export class SaleService {
     private readonly saleOutCheckModel: Model<SaleOutCheck>,
     @InjectModel(DeliveryCost.name)
     private readonly deliveryCostModel: Model<DeliveryCost>,
+    @InjectModel(Ad.name)
+    private readonly adModel: Model<Ad>,
     private readonly utilService: UtilService,
     private readonly saleRepository: SaleRepository,
     private readonly configService: ConfigService,
@@ -239,11 +242,96 @@ export class SaleService {
       to,
     });
 
-    const result = await this.saleRepository.saleModel.aggregate<{
-      data: SaleInfo[];
-      totalCount: number;
-    }>(pipeline);
-    return result;
+    const result =
+      await this.saleRepository.saleModel.aggregate<SaleInfo>(pipeline);
+
+    const adResult = await this.adModel.aggregate<{ accAdPrice: number }>([
+      {
+        $match: {
+          from: {
+            $lte: to,
+          },
+          to: {
+            $gte: from,
+          },
+        },
+      },
+      {
+        $addFields: {
+          fromRange: {
+            $cond: {
+              if: { $gte: ['$from', from] },
+              then: '$from',
+              else: from,
+            },
+          },
+          toRange: {
+            $cond: {
+              if: { $lte: ['$to', to] },
+              then: '$to',
+              else: to,
+            },
+          },
+          totalDateRange: {
+            $add: [
+              {
+                $dateDiff: {
+                  startDate: '$from',
+                  endDate: '$to',
+                  unit: 'day',
+                },
+              },
+              1,
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          dayAdPrice: {
+            $divide: ['$price', '$totalDateRange'],
+          },
+          range: {
+            $add: [
+              {
+                $dateDiff: {
+                  startDate: '$fromRange',
+                  endDate: '$toRange',
+                  unit: 'day',
+                },
+              },
+              1,
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          accAdPrice: {
+            $multiply: ['$dayAdPrice', '$range'],
+          },
+        },
+      },
+      {
+        $project: {
+          accAdPrice: 1,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          accAdPrice: {
+            $sum: '$accAdPrice',
+          },
+        },
+      },
+    ]);
+
+    const accAdPrice = adResult[0]?.accAdPrice ?? 0;
+    const saleResult = result[0] ?? { accAdPrice };
+    saleResult.accAdPrice = accAdPrice;
+
+    return saleResult;
   }
 
   private getTotalSalePipeline({
@@ -281,110 +369,6 @@ export class SaleService {
             },
           },
           accTotalPayment: { $sum: '$totalPayment' },
-        },
-      },
-      {
-        $lookup: {
-          from: 'ads',
-          as: 'ads',
-          pipeline: [
-            {
-              $match: {
-                from: {
-                  $lte: to,
-                },
-                to: {
-                  $gte: from,
-                },
-              },
-            },
-            {
-              $addFields: {
-                fromRange: {
-                  $cond: {
-                    if: { $gte: ['$from', from] },
-                    then: '$from',
-                    else: from,
-                  },
-                },
-                toRange: {
-                  $cond: {
-                    if: { $lte: ['$to', to] },
-                    then: '$to',
-                    else: to,
-                  },
-                },
-                totalDateRange: {
-                  $add: [
-                    {
-                      $dateDiff: {
-                        startDate: '$from',
-                        endDate: '$to',
-                        unit: 'day',
-                      },
-                    },
-                    1,
-                  ],
-                },
-              },
-            },
-            {
-              $addFields: {
-                dayAdPrice: {
-                  $divide: ['$price', '$totalDateRange'],
-                },
-                range: {
-                  $add: [
-                    {
-                      $dateDiff: {
-                        startDate: '$fromRange',
-                        endDate: '$toRange',
-                        unit: 'day',
-                      },
-                    },
-                    1,
-                  ],
-                },
-              },
-            },
-            {
-              $addFields: {
-                accAdPrice: {
-                  $multiply: ['$dayAdPrice', '$range'],
-                },
-              },
-            },
-            {
-              $project: {
-                accAdPrice: 1,
-              },
-            },
-            {
-              $group: {
-                _id: null,
-                accAdPrice: {
-                  $sum: '$accAdPrice',
-                },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: {
-          accAdPrice: {
-            $ifNull: [
-              {
-                $arrayElemAt: ['$ads.accAdPrice', 0],
-              },
-              0,
-            ],
-          },
-        },
-      },
-      {
-        $project: {
-          ads: 0,
         },
       },
     ];
@@ -461,7 +445,7 @@ export class SaleService {
 
   async totalSaleBy({ from, to }: FindDateInput) {
     const data = await this.totalSale({ from, to });
-    return data[0];
+    return data;
   }
 
   async downloadExcel(saleOrdersInput: SaleOrdersInput) {

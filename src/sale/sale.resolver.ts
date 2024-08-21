@@ -39,6 +39,7 @@ export class SaleResolver {
     totalSaleInput: FindDateInput,
   ) {
     const result = await this.saleService.totalSaleBy(totalSaleInput);
+
     return result;
   }
 
