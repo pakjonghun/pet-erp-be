@@ -18,13 +18,14 @@ import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { SaleOrdersInput } from './dto/orders.input';
 import { SaleOrdersOutput } from './dto/orders.output';
-import { saleCommonMatch } from 'src/common/query/sale';
+import { profit, profitRate, saleCommonMatch } from 'src/common/query/sale';
 import { Ad, AdType } from 'src/ad/entities/ad.entity';
 import { CommonSaleByMallInput } from './dto/common-sale.input';
 import { Client } from 'src/client/entities/client.entity';
 import * as ExcelJS from 'exceljs';
 import * as dayjs from 'dayjs';
 import { ClientDashboardView } from 'src/common/virtualView/ClientDashboardView/ClientDashboardView';
+import { CommonSaleMonthAgoInput } from './dto/common-sale-month-ago.input';
 // import { ColumnOption } from 'src/client/types';
 // import * as sola from 'solapi';
 
@@ -227,6 +228,49 @@ export class SaleService {
     //   })
     //   .then(console.log)
     //   .catch(console.error);
+  }
+
+  async commonMonthSaleByMall({ from, mallId }: CommonSaleMonthAgoInput) {
+    const { from: monthFrom, to: monthTo } =
+      this.utilService.getBeforeMonthDate(from);
+
+    const pipeLine: PipelineStage[] = [
+      {
+        $match: {
+          ...saleCommonMatch,
+          saleAt: {
+            $gte: monthFrom,
+            $lte: monthTo,
+          },
+          mallId,
+        },
+      },
+      {
+        $group: {
+          _id: '$mallId',
+          accPayCost: {
+            $sum: '$payCost',
+          },
+          accWonCost: {
+            $sum: '$wonCost',
+          },
+          accCount: {
+            $sum: '$count',
+          },
+          accDeliveryCost: {
+            $sum: {
+              $multiply: ['$deliveryCost', '$deliveryBoxCount'],
+            },
+          },
+          accTotalPayment: {
+            $sum: '$totalPayment',
+          },
+        },
+      },
+    ];
+
+    const result = await this.saleRepository.saleModel.aggregate(pipeLine);
+    return result[0];
   }
 
   async commonSaleByMall(commonSaleInput: CommonSaleByMallInput) {

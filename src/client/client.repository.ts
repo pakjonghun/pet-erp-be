@@ -8,7 +8,7 @@ import { UtilService } from 'src/util/util.service';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { FindDateScrollInput } from 'src/common/dtos/find-date-scroll.input';
 import { ClientSaleMenu } from './dtos/client-sale-menu.output';
-import { profit, profitRate } from 'src/common/query/sale';
+import { profit, profitRate, saleCommonMatch } from 'src/common/query/sale';
 import { OutClient } from './dtos/clients.output';
 import { ClientsInput } from './dtos/clients.input';
 import { OrderEnum } from 'src/common/dtos/find-many.input';
@@ -59,245 +59,6 @@ export class ClientRepository extends AbstractRepository<Client> {
     };
   }
 
-  async appendAdPrice({
-    from,
-    to,
-    clientCodeAndNameList,
-  }: {
-    from: Date;
-    to: Date;
-    clientCodeAndNameList: { code: string; name: string }[];
-  }) {
-    const {
-      channelProductPrice,
-      channelPrice,
-      channelSpecialPrice,
-      companyPrice,
-    } = await this.getAdPriceTotal({ from, to });
-
-    //광고가 있는지 확인해서
-    // hasChannelAd : boolean
-    // hasChannelProductAd : boolean
-    // hasChannelSpecialAd : boolean
-    // 그리고 위 광고가 없으면 광고비 0 있으면 계산해서 넣어줌
-
-    const clientNameList = clientCodeAndNameList.map((c) => c.name);
-    const pipeLine: PipelineStage[] = [
-      {
-        $match: {
-          saleAt: {
-            $gte: from,
-            $lt: to,
-          },
-          mallId: { $in: clientNameList },
-        },
-      },
-      {
-        $facet: {
-          rootData: [
-            {
-              $lookup: {
-                let: {
-                  productCode: '$productCode',
-                  clientCode: '$code',
-                },
-                from: 'ads',
-                as: 'asInfo',
-                pipeline: [
-                  {
-                    $match: {
-                      from: {
-                        $lte: from,
-                      },
-                      to: {
-                        $gte: to,
-                      },
-                      $expr: {
-                        $or: [
-                          {
-                            $and: [
-                              { $eq: ['$clientCode', '$$clientCode'] },
-                              { $eq: ['$type', AdType.CHANNEL_PRODUCT_RATE] },
-                            ],
-                          },
-                          {
-                            $and: [
-                              { $eq: ['$clientCode', '$$clientCode'] },
-                              { $in: ['$$clientCode', '$productCodeList'] },
-                              {
-                                $in: [
-                                  '$type',
-                                  [
-                                    AdType.CHANNEL_SPECIAL_PRODUCT,
-                                    AdType.CHANNEL_APP_PRODUCT,
-                                  ],
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-          productCount: [
-            {
-              $group: {
-                _id: '$productCode',
-                count: { $sum: 1 },
-              },
-            },
-            {
-              $project: {
-                _id: 0,
-                productCode: '$_id',
-                count: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $project: {
-          rootData: {
-            $map: {
-              input: '$rootData',
-              as: 'rd',
-              in: {
-                $mergeObjects: [
-                  '$$rd',
-                  {
-                    productCount: {
-                      $let: {
-                        vars: {
-                          targetProduct: {
-                            $arrayElemAt: [
-                              {
-                                $filter: {
-                                  input: '$productCount',
-                                  as: 'pc',
-                                  cond: {
-                                    $eq: [
-                                      '$$pc.productCode',
-                                      '$$rd.productCode',
-                                    ],
-                                  },
-                                },
-                              },
-                              0,
-                            ],
-                          },
-                        },
-                        in: { $ifNull: ['$$targetProduct.count', 0] },
-                      },
-                    },
-                  },
-                  {
-                    companyAd: {
-                      $multiply: [companyPrice, '$$rd.productRate'],
-                    },
-                  },
-                  {
-                    channelAd: {
-                      $multiply: [channelPrice, '$$rd.clientProductRate'],
-                    },
-                  },
-                  {
-                    channelProductAd: {
-                      $multiply: [
-                        channelProductPrice,
-                        '$$rd.clientProductRate',
-                      ],
-                    },
-                  },
-                  {
-                    channelSpecialAd: {
-                      $multiply: [
-                        channelSpecialPrice,
-                        '$$rd.clientProductRate',
-                      ],
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-      },
-      {
-        $project: {
-          rootData: {
-            $map: {
-              input: '$rootData',
-              as: 'rd',
-              in: {
-                $mergeObjects: [
-                  '$$rd',
-                  {
-                    companyAd: {
-                      $divide: ['$$rd.companyAd', '$$rd.productCount'],
-                    },
-                  },
-                  {
-                    channelAd: {
-                      $divide: ['$$rd.channelAd', '$$rd.productCount'],
-                    },
-                  },
-                  {
-                    channelProductAd: {
-                      $divide: ['$$rd.channelProductAd', '$$rd.productCount'],
-                    },
-                  },
-                  {
-                    channelSpecialAd: {
-                      $divide: ['$$rd.channelSpecialAd', '$$rd.productCount'],
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-      },
-      {
-        $project: {
-          rootData: {
-            $map: {
-              input: '$rootData',
-              as: 'rd',
-              in: {
-                $mergeObjects: [
-                  '$$rd',
-                  {
-                    accAdPrice: {
-                      $add: [
-                        '$$rd.companyAd',
-                        '$$rd.channelAd',
-                        '$$rd.channelProductAd',
-                        '$$rd.channelSpecialAd',
-                      ],
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-      },
-      {
-        $unwind: '$rootData',
-      },
-      {
-        $replaceRoot: { newRoot: '$rootData' },
-      },
-    ];
-
-    return pipeLine;
-  }
-
   async clientSaleMenu({
     from,
     to,
@@ -309,121 +70,18 @@ export class ClientRepository extends AbstractRepository<Client> {
   }: FindDateScrollInput & {
     clientCodeAndNameList: { code: string; name: string }[];
   }) {
-    const [finalFrom, finalMonthTo] = this.utilService.recentDayjsMonthRange();
-
-    const appendAdPipeline = await this.appendAdPrice({
-      from,
-      to,
-      clientCodeAndNameList,
-    });
-
-    //이제 순익을 구하고 그거대로 소팅 해서 딱 필요한 것만 limit skip 된것 만 가지고
-    //그 데이터에 products 을 넣고
-    //필요한거 projection 해서 마무리
-    const salePipeLine: PipelineStage[] = [
-      {
-        $facet: {
-          data: [
-            // {
-            //   $sort: {
-            //     [sort]: order,
-            //     _id: 1,
-            //   },
-            // },
-            // {
-            //   $skip: skip,
-            // },
-            // {
-            //   $limit: limit,
-            // },
-          ],
-          products: [
-            // {
-            //   $group: {
-            //     _id: {
-            //       mallId: '$mallId',
-            //       productCode: '$productCode',
-            //     },
-            //     name: { $first: '$productName' },
-            //     accAdPrice: {
-            //       $sum: '$accAdPrice',
-            //     },
-            //     accPayCost: {
-            //       $sum: '$payCost',
-            //     },
-            //     accWonCost: {
-            //       $sum: '$wonCost',
-            //     },
-            //     accCount: {
-            //       $sum: '$count',
-            //     },
-            //     accDeliveryCost: {
-            //       $sum: {
-            //         $multiply: ['$deliveryCost', '$deliveryBoxCount'],
-            //       },
-            //     },
-            //     accTotalPayment: {
-            //       $sum: '$totalPayment',
-            //     },
-            //   },
-            // },
-            // {
-            //   $group: {
-            //     _id: '$_id.mallId',
-            //     products: {
-            //       $push: {
-            //         name: '$name',
-            //         accAdPrice: '$accAdPrice',
-            //         accPayCost: '$accPayCost',
-            //         accWonCost: '$accWonCost',
-            //         accCount: '$accCount',
-            //         accDeliveryCost: '$accDeliveryCost',
-            //         accTotalPayment: '$accTotalPayment',
-            //       },
-            //     },
-            //   },
-            // },
-          ],
-        },
-      },
-    ];
-
-    //
-    const pipe = appendAdPipeline.concat(salePipeLine);
-    const r = await this.clientDashboardView.aggregate(pipe);
-    const [monthFrom, monthTo] = this.utilService.recentDayjsMonthRange();
-
     const clientNameList = clientCodeAndNameList.map((i) => i.name);
-    const pipeline: PipelineStage[] = [
+    const newPipeLine: PipelineStage[] = [
       {
         $match: {
-          orderStatus: '출고완료',
-          productCode: { $exists: true },
-          mallId: {
-            $exists: true,
-            $nin: ['로켓그로스', '정글북'],
-            $in: clientNameList,
+          ...saleCommonMatch,
+          $expr: {
+            $in: ['$mallId', clientNameList],
           },
-          count: { $exists: true },
-          payCost: { $exists: true },
-          wonCost: { $exists: true },
-          totalPayment: { $exists: true },
           saleAt: {
             $gte: from,
-            $lt: to,
+            $lte: to,
           },
-        },
-      },
-      {
-        $project: {
-          count: 1,
-          mallId: 1,
-          payCost: 1,
-          wonCost: 1,
-          productCode: 1,
-          deliveryCost: 1,
-          totalPayment: 1,
-          deliveryBoxCount: 1,
         },
       },
       {
@@ -453,191 +111,39 @@ export class ClientRepository extends AbstractRepository<Client> {
       {
         $lookup: {
           from: 'clients',
-          as: 'client_info',
-          foreignField: 'name',
+          as: 'client',
           localField: '_id',
+          foreignField: 'name',
         },
       },
       {
-        $unwind: {
-          path: '$client_info',
-        },
+        $unwind: '$client',
       },
       {
         $addFields: {
-          _id: '$client_info._id',
-          code: '$client_info.code',
-          feeRate: '$client_info.feeRate',
-          name: '$client_info.name',
-          clientType: '$client_info.clientType',
-          businessName: '$client_info.businessName',
-          businessNumber: '$client_info.businessNumber',
-          inActive: '$client_info.inActive',
-          payDate: '$client_info.payDate',
-          isSabangService: '$client_info.isSabangService',
+          _id: '$client._id',
+          code: '$client.code',
+          feeRate: '$client.feeRate',
+          name: '$client.name',
+          clientType: '$client.clientType',
+          businessName: '$client.businessName',
+          businessNumber: '$client.businessNumber',
+          inActive: '$client.inActive',
+          payDate: '$client.payDate',
+          isSabangService: '$client.isSabangService',
         },
       },
       {
         $project: {
-          client_info: 0,
+          client: 0,
         },
       },
       {
         $facet: {
           data: [
             {
-              $lookup: {
-                let: {
-                  mallId: '$name',
-                },
-                from: 'sales',
-                as: 'products',
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: {
-                        $eq: ['$mallId', '$$mallId'],
-                      },
-                      orderStatus: '출고완료',
-                      productCode: { $exists: true },
-                      count: { $exists: true },
-                      payCost: { $exists: true },
-                      wonCost: { $exists: true },
-                      saleAt: {
-                        $gte: from,
-                        $lt: to,
-                      },
-                    },
-                  },
-                  {
-                    $group: {
-                      _id: '$productCode',
-                      accCount: {
-                        $sum: '$count',
-                      },
-                      accPayCost: {
-                        $sum: '$payCost',
-                      },
-                      accWonCost: {
-                        $sum: '$wonCost',
-                      },
-                      accDeliveryCost: {
-                        $sum: {
-                          $multiply: ['$deliveryCost', '$deliveryBoxCount'],
-                        },
-                      },
-                      accTotalPayment: {
-                        $sum: '$totalPayment',
-                      },
-                    },
-                  },
-                  {
-                    $sort: {
-                      accCount: -1,
-                      _id: 1,
-                    },
-                  },
-                  {
-                    $lookup: {
-                      from: 'products',
-                      as: 'product_info',
-                      foreignField: 'code',
-                      localField: '_id',
-                      pipeline: [
-                        {
-                          $project: {
-                            name: 1,
-                            _id: 0,
-                          },
-                        },
-                      ],
-                    },
-                  },
-                  {
-                    $unwind: '$product_info',
-                  },
-                  {
-                    $addFields: {
-                      name: '$product_info.name',
-                    },
-                  },
-                  {
-                    $project: {
-                      product_info: 0,
-                      _id: 0,
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $lookup: {
-                let: {
-                  mallId: '$name',
-                },
-                from: 'sales',
-                as: 'monthSales',
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: {
-                        $eq: ['$mallId', '$$mallId'],
-                      },
-                      orderStatus: '출고완료',
-                      productCode: { $exists: true },
-                      count: { $exists: true },
-                      payCost: { $exists: true },
-                      wonCost: { $exists: true },
-                      saleAt: {
-                        $gte: monthFrom.toDate(),
-                        $lt: monthTo.toDate(),
-                      },
-                    },
-                  },
-                  {
-                    $group: {
-                      _id: null,
-                      accCount: {
-                        $sum: '$count',
-                      },
-                      accPayCost: {
-                        $sum: '$payCost',
-                      },
-                      accWonCost: {
-                        $sum: '$wonCost',
-                      },
-                      accDeliveryCost: {
-                        $sum: {
-                          $multiply: ['$deliveryCost', '$deliveryBoxCount'],
-                        },
-                      },
-                      accTotalPayment: {
-                        $sum: '$totalPayment',
-                      },
-                      name: {
-                        $first: '$mallId',
-                      },
-                    },
-                  },
-                  {
-                    $project: {
-                      _id: 0,
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $addFields: {
-                monthSales: {
-                  $arrayElemAt: ['$monthSales', 0],
-                },
-              },
-            },
-            {
               $sort: {
                 [sort]: order,
-                _id: 1,
               },
             },
             {
@@ -668,10 +174,8 @@ export class ClientRepository extends AbstractRepository<Client> {
       },
     ];
 
-    const result = await this.saleModel.aggregate<ClientSaleMenu>(pipeline);
+    const result = await this.saleModel.aggregate<ClientSaleMenu>(newPipeLine);
     const initResult = result[0];
-
-    // return appendAd;
     return initResult;
   }
 

@@ -17,6 +17,8 @@ import { SaleInfo } from './dto/sale.output';
 import { CommonSaleByMallOutput } from './dto/common-sale.output';
 import { CommonSaleByMallInput } from './dto/common-sale.input';
 import * as dayjs from 'dayjs';
+import { CommonSaleMonthAgoInput } from './dto/common-sale-month-ago.input';
+import { CommonSaleByMallMonthAgoOutput } from './dto/common-sale-month-ago.output';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
@@ -53,6 +55,18 @@ export class SaleResolver {
   ) {
     const result = await this.saleService.commonSaleByMall(
       commonSaleByMallInput,
+    );
+    return result;
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => CommonSaleByMallMonthAgoOutput, { nullable: true })
+  async commonSaleMonthAgoByMall(
+    @Args('commonSaleMonthAgoInput')
+    commonSaleMonthAgoInput: CommonSaleMonthAgoInput,
+  ) {
+    const result = await this.saleService.commonMonthSaleByMall(
+      commonSaleMonthAgoInput,
     );
     return result;
   }
