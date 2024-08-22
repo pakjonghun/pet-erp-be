@@ -259,8 +259,6 @@ export class SaleService {
       clientCodeList,
     );
     const result = await this.saleRepository.saleModel.aggregate(pipeLine);
-    // console.dir(result, { depth: 30 });
-
     return result;
   }
 
@@ -508,7 +506,6 @@ export class SaleService {
     commonSaleInput: CommonSaleByMallInput,
     adPriceByType: Map<AdType, number>,
   ) {
-    console.log('commonSaleInput : ', commonSaleInput);
     return [];
   }
 
