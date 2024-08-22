@@ -18,6 +18,12 @@ export class ClientInfoMenu {
   @Field(() => Float, { nullable: true })
   accTotalPayment: number;
 
+  @Field(() => Float, { nullable: true })
+  accAdPrice: number;
+
+  @Field(() => Float, { nullable: true })
+  addAdPrice: number;
+
   @Field(() => String, { nullable: true })
   name: string;
 }

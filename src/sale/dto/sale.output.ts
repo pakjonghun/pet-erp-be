@@ -11,7 +11,7 @@ export class ClientId {
 
 @ObjectType()
 export class SaleInfo {
-  @Field(() => Int, { nullable: true })
+  @Field(() => Float, { nullable: true })
   accAdPrice: number;
 
   @Field(() => Int, { nullable: true })

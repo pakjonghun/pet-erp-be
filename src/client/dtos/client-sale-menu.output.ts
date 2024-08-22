@@ -18,6 +18,9 @@ class ProductSaleInfo {
   @Field(() => Float, { nullable: true })
   accTotalPayment: number;
 
+  @Field(() => Float, { nullable: true })
+  accAdPrice: number;
+
   @Field(() => String)
   name: string;
 }
@@ -58,6 +61,9 @@ export class ClientSaleMenu extends PickType(Client, [
 
   @Field(() => Float, { nullable: true })
   accTotalPayment: number;
+
+  @Field(() => Float, { nullable: true })
+  accAdPrice?: number;
 
   @Field(() => [ProductSaleInfo])
   products: ProductSaleInfo[];

@@ -681,7 +681,7 @@ export class ClientRepository extends AbstractRepository<Client> {
     skip,
     limit,
     keyword,
-    keywordTarget,
+    keywordTarget = 'name',
   }: ClientsInput) {
     const newSort = sort == 'storage' ? `${sort}.name` : sort;
 

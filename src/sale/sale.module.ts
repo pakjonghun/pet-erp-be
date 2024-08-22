@@ -17,11 +17,14 @@ import {
 } from './entities/sale.out.check.entity';
 import { Option, OptionSchema } from 'src/option/entities/option.entity';
 import { Ad, adSchema } from 'src/ad/entities/ad.entity';
+import { ClientDashboardView } from 'src/common/virtualView/ClientDashboardView/ClientDashboardView';
+import { clientDashboardSchema } from 'src/common/virtualView/ClientDashboardView/ClientDashboardViewSchema';
 
 @Module({
   exports: [SaleService],
   imports: [
     DatabaseModule.forFeature([
+      { name: ClientDashboardView.name, schema: clientDashboardSchema },
       { name: Product.name, schema: productSchema },
       { name: SaleOutCheck.name, schema: SaleOutCheckSchema },
       { name: Storage.name, schema: StorageSchema },

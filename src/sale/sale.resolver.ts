@@ -13,8 +13,10 @@ import { Sale } from './entities/sale.entity';
 import { FindDateInput } from 'src/common/dtos/find-date.input';
 import { SaleOrdersOutput } from './dto/orders.output';
 import { SaleOrdersInput } from './dto/orders.input';
-import * as dayjs from 'dayjs';
 import { SaleInfo } from './dto/sale.output';
+import { CommonSaleByMallOutput } from './dto/common-sale.output';
+import { CommonSaleByMallInput } from './dto/common-sale.input';
+import * as dayjs from 'dayjs';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
@@ -43,6 +45,18 @@ export class SaleResolver {
     return result;
   }
 
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => [CommonSaleByMallOutput], { nullable: true })
+  async commonSaleByMall(
+    @Args('commonSaleByMallInput', { nullable: true })
+    commonSaleByMallInput: CommonSaleByMallInput,
+  ) {
+    const result = await this.saleService.commonSaleByMall(
+      commonSaleByMallInput,
+    );
+    return result;
+  }
+
   @LogData({ description: '택배 비용수정', logType: LogTypeEnum.UPDATE })
   @Roles([AuthRoleEnum.ADMIN_DELIVERY])
   @Mutation(() => DeliveryCost)
@@ -63,6 +77,8 @@ export class SaleResolver {
   @Mutation(() => [Sale], { nullable: true })
   async loadSabangData() {
     const result = await this.sabangService.run();
+    await this.saleService.saveProductRate();
+    await this.saleService.saveClientProductRate();
     return result;
   }
 
