@@ -56,6 +56,11 @@ export class ProductResolver {
     return this.productService.remove(_id);
   }
 
+  //거래처 기준도 계산 잘못되 있음
+
+  //회사공통 : 모든 제품숫자로 나눈후 해당 거래처에 판매된 판매처 숫자만큼 나눠서 넣어줌
+  //거래처 제품, 제품 거래처 : 모든 제품수로 나눈후 거래처 숫자로 나눠서 넣어줌
+  //거래처 : 모든 제품숫자로 나눈후, 해당 거래처에 적용
   @Roles([AuthRoleEnum.ANY])
   @Query(() => ProductSaleMenuOutput, { nullable: true })
   async productSales(
