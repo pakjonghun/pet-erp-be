@@ -311,6 +311,7 @@ export class AdService {
       sort,
     });
 
+    console.log('result : ', result);
     return result;
   }
 

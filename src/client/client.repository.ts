@@ -62,8 +62,6 @@ export class ClientRepository extends AbstractRepository<Client> {
   async clientSaleMenu({
     from,
     to,
-    skip,
-    limit,
     clientCodeAndNameList,
     sort = 'accCount',
     order = -1,
@@ -145,12 +143,6 @@ export class ClientRepository extends AbstractRepository<Client> {
               $sort: {
                 [sort]: order,
               },
-            },
-            {
-              $skip: skip,
-            },
-            {
-              $limit: limit,
             },
           ],
           totalCount: [

@@ -13,6 +13,8 @@ const order = {
 export class FindDateScrollInput extends OmitType(FindManyDTO, [
   'sort',
   'order',
+  'limit',
+  'skip',
 ]) {
   @Field(() => Date)
   @IsDateValidate({ message: '올바른 날짜 형식을 입력하세요.' })

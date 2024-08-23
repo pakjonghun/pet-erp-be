@@ -9,3 +9,8 @@ export type SaleOut = {
   session: ClientSession;
   stock: any[];
 };
+
+export type Range = {
+  from: Date;
+  to: Date;
+};

@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Client } from 'src/client/entities/client.entity';
-import * as DataLoader from 'dataloader';
 import { ProductCodeName } from 'src/client/dtos/clients.output';
+import * as DataLoader from 'dataloader';
 
 @Injectable()
 export class AdClientLoader {
@@ -12,10 +12,10 @@ export class AdClientLoader {
   ) {}
 
   createLoader(): DataLoader<string, ProductCodeName> {
-    return new DataLoader(async (clientCode) => {
+    return new DataLoader(async (clientCodeList) => {
       const clients = await this.clientModel
         .find({
-          code: clientCode,
+          code: clientCodeList,
         })
         .select(['-_id', 'code', 'name'])
         .lean<ProductCodeName[]>();
@@ -27,8 +27,10 @@ export class AdClientLoader {
           clientMap.set(client.code, client);
         }
       });
-
-      return clients.map((client) => clientMap.get(client.code));
+      const result = clientCodeList.map((clientCode) =>
+        clientMap.get(clientCode),
+      );
+      return result;
     });
   }
 }

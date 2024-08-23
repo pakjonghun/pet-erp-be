@@ -96,7 +96,8 @@ export class FactoryResolver {
     if (!clientCode) return null;
 
     const client = (await adClientLoader.load(clientCode)) as ProductCodeName;
-
+    console.log('clientCode : ', clientCode);
+    console.log('client : ', client);
     return client;
   }
 }
