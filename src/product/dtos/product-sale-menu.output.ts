@@ -81,7 +81,7 @@ export class ProductSaleMenu extends PickType(Product, [
   @Field(() => Float, { nullable: true })
   accTotalPayment: number;
 
-  @Field(() => [ClientInfoMenu])
+  @Field(() => [ClientInfoMenu], { nullable: true })
   clients: ClientInfoMenu[];
 }
 

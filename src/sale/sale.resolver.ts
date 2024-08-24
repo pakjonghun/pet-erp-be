@@ -15,10 +15,11 @@ import { SaleOrdersOutput } from './dto/orders.output';
 import { SaleOrdersInput } from './dto/orders.input';
 import { SaleInfo } from './dto/sale.output';
 import { CommonSaleByMallOutput } from './dto/common-sale.output';
-import { CommonSaleByMallInput } from './dto/common-sale.input';
+import { CommonSaleByInput } from './dto/common-sale.input';
 import * as dayjs from 'dayjs';
 import { CommonSaleMonthAgoInput } from './dto/common-sale-month-ago.input';
 import { CommonSaleByMallMonthAgoOutput } from './dto/common-sale-month-ago.output';
+import { CommonSaleByProductOutput } from './dto/common-sale-by-product.output';
 
 @Resolver(() => DeliveryCost)
 export class SaleResolver {
@@ -50,12 +51,21 @@ export class SaleResolver {
   @Roles([AuthRoleEnum.ANY])
   @Query(() => [CommonSaleByMallOutput], { nullable: true })
   async commonSaleByMall(
-    @Args('commonSaleByMallInput', { nullable: true })
-    commonSaleByMallInput: CommonSaleByMallInput,
+    @Args('commonSaleByInput', { nullable: true })
+    commonSaleByInput: CommonSaleByInput,
   ) {
-    const result = await this.saleService.commonSaleByMall(
-      commonSaleByMallInput,
-    );
+    const result = await this.saleService.commonSaleByMall(commonSaleByInput);
+    return result;
+  }
+
+  @Roles([AuthRoleEnum.ANY])
+  @Query(() => [CommonSaleByProductOutput], { nullable: true })
+  async commonSaleByProduct(
+    @Args('commonSaleByInput', { nullable: true })
+    commonSaleByInput: CommonSaleByInput,
+  ) {
+    const result =
+      await this.saleService.commonSaleByProduct(commonSaleByInput);
     return result;
   }
 

@@ -20,15 +20,15 @@ import { SaleOrdersInput } from './dto/orders.input';
 import { SaleOrdersOutput } from './dto/orders.output';
 import { saleCommonMatch } from 'src/common/query/sale';
 import { Ad, AdType } from 'src/ad/entities/ad.entity';
-import { CommonSaleByMallInput } from './dto/common-sale.input';
+import { CommonSaleByInput } from './dto/common-sale.input';
 import { Client } from 'src/client/entities/client.entity';
 import { ClientDashboardView } from 'src/common/virtualView/ClientDashboardView/ClientDashboardView';
 import { CommonSaleMonthAgoInput } from './dto/common-sale-month-ago.input';
+import { Product } from 'src/product/entities/product.entity';
+import { CommonSaleByMallOutput } from './dto/common-sale.output';
 import * as ExcelJS from 'exceljs';
 import * as dayjs from 'dayjs';
-import { CommonSaleByProductInput } from './dto/common-sale-by-product.input';
-import { Product } from 'src/product/entities/product.entity';
-import { DateRange, Range } from './types';
+import { CommonSaleByProductOutput } from './dto/common-sale-by-product.output';
 // import { ColumnOption } from 'src/client/types';
 // import * as sola from 'solapi';
 
@@ -284,42 +284,7 @@ export class SaleService {
     return result[0];
   }
 
-  async commonSaleByMall(commonSaleInput: CommonSaleByMallInput) {
-    const totalCount = await this.saleRepository.saleModel.aggregate([
-      {
-        $match: {
-          ...saleCommonMatch,
-          saleAt: {
-            $gte: commonSaleInput.from,
-            $lte: commonSaleInput.to,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: '$mallId',
-        },
-      },
-      {
-        $count: 'count',
-      },
-    ]);
-
-    const totalClientLen = totalCount[0]?.count ?? 0;
-    const salePrice = await this.getAdPriceByType({
-      from: commonSaleInput.from,
-      to: commonSaleInput.to,
-    });
-
-    const adPriceByType = new Map<AdType, number>(
-      salePrice.map((s) => [
-        s._id,
-        s._id === AdType.COMPANY_RATE
-          ? s.accAdPrice / (totalClientLen || 1)
-          : s.accAdPrice,
-      ]),
-    );
-
+  async commonSaleByMall(commonSaleInput: CommonSaleByInput) {
     //회사공통 : 모든채널에 광고비 / (거래처숫자*거래처별 제품숫자)
     //채널공통 : 해당채널에만  광고비 / 채널 제품숫자
     //채널제품 : 해당채널의 해당 제품만 광고비 / (광고의 제품목록 , 목록과 같은 제품숫자)
@@ -327,72 +292,16 @@ export class SaleService {
     //채널별 제품숫자, 채널광고여부, 채널제품광고여부
     //채널제품 광고리스트,
 
-    type ByMallData = {
-      _id: string;
-      productCount: number;
-      products: {
-        productCode: string;
-        ads: Ad[];
-        name: string;
-        accCount: number;
-        accTotalPayment: number;
-        accWonCost: number;
-        accPayCost: number;
-        accDeliveryCost: number;
-        accAdPrice?: number;
-      }[];
-    };
-
     const pipeLine = this.commonSaleByMallId(commonSaleInput);
     const result =
-      await this.saleRepository.saleModel.aggregate<ByMallData>(pipeLine);
-    console.dir(result, { depth: 10 });
-
-    const dataByClient = new Map<string, ByMallData>(
-      result.map((r) => [r._id, r]),
-    );
-
-    const companyAdPrice = adPriceByType.get(AdType.COMPANY_RATE) ?? 0;
-    const adList = await this.adModel
-      .find({
-        type: { $ne: AdType.COMPANY_RATE },
-        from: { $lte: commonSaleInput.to },
-        to: { $gte: commonSaleInput.from },
-      })
-      .lean<Ad[]>();
-
-    //각 광고비별로 기간에 따른 토탈 광고비가 광고리스트로 있어야함.
-
-    dataByClient.forEach((d) => {
-      const productCount = d.productCount;
-      const companyAd = companyAdPrice / productCount;
-      const saleProductByCode = new Map<string, number>(
-        d.products.map((p) => [p.productCode, 1]),
+      await this.saleRepository.saleModel.aggregate<CommonSaleByMallOutput>(
+        pipeLine,
       );
-      const products = d.products.map((p) => {
-        const restAd = p.ads.reduce((acc, cur) => {
-          if (
-            cur.type == AdType.CHANNEL_APP_PRODUCT ||
-            cur.type == AdType.CHANNEL_SPECIAL_PRODUCT
-          ) {
-          }
-
-          if (cur.type == AdType.CHANNEL_PRODUCT_RATE) {
-            const saleMatchAdProductCount = cur.productCodeList.reduce(
-              (acc, cur) => (saleProductByCode.has(cur) ? 1 + acc : acc),
-              0,
-            );
-            return 0;
-            // return acc + targetadprice 필요  / saleMatchAdProductCount;
-          }
-        }, 0);
-      });
-    });
 
     return result;
   }
 
-  commonSaleByMallId({ from, to }: CommonSaleByMallInput): PipelineStage[] {
+  commonSaleByMallId({ from, to }: CommonSaleByInput): PipelineStage[] {
     return [
       {
         $match: {
@@ -408,7 +317,6 @@ export class SaleService {
             mallId: '$mallId',
             productCode: '$productCode',
           },
-          productCode: { $first: '$productCode' },
           productName: { $first: '$productName' },
           accCount: { $sum: '$count' },
           accTotalPayment: { $sum: '$totalPayment' },
@@ -418,83 +326,10 @@ export class SaleService {
         },
       },
       {
-        $lookup: {
-          from: 'clients',
-          localField: '_id.mallId',
-          foreignField: 'name',
-          as: 'clients',
-          pipeline: [
-            {
-              $project: {
-                code: 1,
-                name: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: {
-          clientCode: {
-            $arrayElemAt: ['$clients.code', 0],
-          },
-        },
-      },
-      {
-        $project: {
-          clients: 0,
-        },
-      },
-      {
-        $lookup: {
-          from: 'ads',
-          as: 'ads',
-          let: {
-            clientCode: '$clientCode',
-            mallId: '$_id.mallId',
-            productCode: '$productCode',
-          },
-          pipeline: [
-            {
-              $match: {
-                from: { $lte: to },
-                to: { $gte: from },
-                $or: [
-                  {
-                    $and: [
-                      {
-                        $expr: {
-                          $and: [
-                            { $eq: ['$clientCode', '$$clientCode'] },
-                            { $in: ['$$productCode', '$productCodeList'] },
-                          ],
-                        },
-                      },
-                      {
-                        $or: [
-                          { type: AdType.CHANNEL_SPECIAL_PRODUCT },
-                          { type: AdType.CHANNEL_APP_PRODUCT },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: AdType.CHANNEL_PRODUCT_RATE,
-                    clientCode: '$$clientCode',
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      },
-      {
         $group: {
           _id: '$_id.mallId',
-          productCount: { $sum: 1 },
           products: {
             $push: {
-              productCode: '$productCode',
               ads: '$ads',
               name: '$productName',
               accCount: '$accCount',
@@ -509,60 +344,19 @@ export class SaleService {
     ];
   }
 
-  async commonSaleByProduct(
-    commonSaleByProductInput: CommonSaleByProductInput,
-  ) {
-    const totalCount = await this.saleRepository.saleModel.aggregate([
-      {
-        $match: {
-          ...saleCommonMatch,
-          saleAt: {
-            $gte: commonSaleByProductInput.from,
-            $lte: commonSaleByProductInput.to,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: '$productCode',
-        },
-      },
-      {
-        $count: 'count',
-      },
-    ]);
+  async commonSaleByProduct(commonSaleInput: CommonSaleByInput) {
+    const pipeLine = this.commonSaleByProductCode(commonSaleInput);
+    const result =
+      await this.saleRepository.saleModel.aggregate<CommonSaleByProductOutput>(
+        pipeLine,
+      );
 
-    const totalProductLen = totalCount[0]?.count ?? 0;
+    console.dir(result, { depth: 10 });
 
-    const salePrice = await this.getAdPriceByType({
-      from: commonSaleByProductInput.from,
-      to: commonSaleByProductInput.to,
-    });
-
-    const adPriceByType = new Map<AdType, number>(
-      salePrice.map((s) => [
-        s._id,
-        s._id === AdType.COMPANY_RATE
-          ? s.accAdPrice / (totalProductLen || 1)
-          : s.accAdPrice,
-      ]),
-    );
-
-    const pipeline: PipelineStage[] = this.getCommonSaleByProductPipeLine(
-      commonSaleByProductInput,
-      adPriceByType,
-      totalProductLen,
-    );
-
-    const result = await this.saleRepository.saleModel.aggregate(pipeline);
     return result;
   }
 
-  private getCommonSaleByProductPipeLine(
-    { from, to, productCodeList }: CommonSaleByProductInput,
-    adPriceByType: Map<AdType, number>,
-    totalProductLen: number,
-  ) {
+  commonSaleByProductCode({ from, to }: CommonSaleByInput): PipelineStage[] {
     return [
       {
         $match: {
@@ -570,7 +364,6 @@ export class SaleService {
             $gte: from,
             $lte: to,
           },
-          productCode: { $in: productCodeList },
         },
       },
       {
@@ -579,177 +372,25 @@ export class SaleService {
             productCode: '$productCode',
             mallId: '$mallId',
           },
-          productName: { $first: '$productName' },
+          mallId: { $first: '$mallId' },
           accCount: { $sum: '$count' },
           accTotalPayment: { $sum: '$totalPayment' },
           accWonCost: { $sum: '$wonCost' },
           accPayCost: { $sum: '$payCost' },
           accDeliveryCost: { $sum: '$deliveryCost' },
-          clientCount: { $sum: 1 },
-        },
-      },
-      {
-        $lookup: {
-          from: 'clients',
-          localField: '_id.mallId',
-          foreignField: 'name',
-          as: 'clients',
-          pipeline: [
-            {
-              $project: {
-                code: 1,
-                name: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: {
-          clientCode: {
-            $arrayElemAt: ['$clients.code', 0],
-          },
-        },
-      },
-      {
-        $project: {
-          clients: 0,
-        },
-      },
-      {
-        $lookup: {
-          from: 'ads',
-          as: 'ads',
-          let: {
-            clientCount: '$clientCount',
-            clientCode: '$clientCode',
-            mallId: '$_id.mallId',
-            productCode: '$_id.productCode',
-          },
-          pipeline: [
-            {
-              $match: {
-                from: { $lte: to },
-                to: { $gte: from },
-                $or: [
-                  {
-                    $and: [
-                      {
-                        $expr: {
-                          $and: [
-                            { $eq: ['$clientCode', '$$clientCode'] },
-                            { $in: ['$$productCode', '$productCodeList'] },
-                          ],
-                        },
-                      },
-                      {
-                        $or: [
-                          { type: AdType.CHANNEL_SPECIAL_PRODUCT },
-                          { type: AdType.CHANNEL_APP_PRODUCT },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: AdType.CHANNEL_PRODUCT_RATE,
-                    clientCode: '$$clientCode',
-                  },
-                  {
-                    type: AdType.COMPANY_RATE,
-                  },
-                ],
-              },
-            },
-            {
-              $group: {
-                _id: '$type',
-              },
-            },
-            {
-              $addFields: {
-                accAdPrice: {
-                  $switch: {
-                    branches: [
-                      {
-                        case: { $eq: ['$_id', AdType.COMPANY_RATE] },
-                        then: {
-                          $divide: [
-                            adPriceByType.get(AdType.COMPANY_RATE) ?? 0,
-                            '$$clientCount',
-                          ],
-                        },
-                      },
-                      {
-                        case: { $eq: ['$_id', AdType.CHANNEL_APP_PRODUCT] },
-                        then: {
-                          $divide: [
-                            adPriceByType.get(AdType.CHANNEL_APP_PRODUCT) ?? 0,
-                            { $multiply: ['$$productCount', totalProductLen] },
-                          ],
-                        },
-                      },
-                      {
-                        case: {
-                          $eq: ['$_id', AdType.CHANNEL_SPECIAL_PRODUCT],
-                        },
-                        then: {
-                          $divide: [
-                            adPriceByType.get(AdType.CHANNEL_SPECIAL_PRODUCT) ??
-                              0,
-                            { $multiply: ['$$productCount', totalProductLen] },
-                          ],
-                        },
-                      },
-                      {
-                        case: {
-                          $eq: ['$_id', AdType.CHANNEL_PRODUCT_RATE],
-                        },
-                        then: {
-                          $divide: [
-                            adPriceByType.get(AdType.CHANNEL_PRODUCT_RATE) ?? 0,
-                            totalProductLen,
-                          ],
-                        },
-                      },
-                    ],
-                    default: 0,
-                  },
-                },
-              },
-            },
-            {
-              $group: {
-                _id: null,
-                accAdPrice: { $sum: '$accAdPrice' },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: {
-          accAdPrice: {
-            $arrayElemAt: ['$ads.accAdPrice', 0],
-          },
-        },
-      },
-      {
-        $project: {
-          ads: 0,
         },
       },
       {
         $group: {
-          _id: '$_id.mallId',
-          products: {
+          _id: '$_id.productCode',
+          clients: {
             $push: {
-              name: '$productName',
+              name: '$mallId',
               accCount: '$accCount',
               accTotalPayment: '$accTotalPayment',
               accWonCost: '$accWonCost',
               accPayCost: '$accPayCost',
               accDeliveryCost: '$accDeliveryCost',
-              accAdPrice: '$accAdPrice',
             },
           },
         },

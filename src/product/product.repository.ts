@@ -9,7 +9,7 @@ import { ProductSaleInput } from './dtos/product-sale.input';
 import { FindManyDTO, OrderEnum } from 'src/common/dtos/find-many.input';
 import { Sale } from 'src/sale/entities/sale.entity';
 import { ProductSaleMenuOutput } from './dtos/product-sale-menu.output';
-import { profit, profitRate } from 'src/common/query/sale';
+import { profit, profitRate, saleCommonMatch } from 'src/common/query/sale';
 import { ProductCategory } from 'src/product-category/entities/product-category.entity';
 import { Storage } from 'src/storage/entities/storage.entity';
 
@@ -254,8 +254,6 @@ export class ProductRepository extends AbstractRepository<Product> {
   async salesByProduct({
     from,
     to,
-    skip,
-    limit,
     productCodeList,
     sort,
     order,
@@ -263,15 +261,10 @@ export class ProductRepository extends AbstractRepository<Product> {
     const pipeline: PipelineStage[] = [
       {
         $match: {
-          orderStatus: '출고완료',
-          productCode: {
-            $exists: true,
-            $in: productCodeList,
+          ...saleCommonMatch,
+          $expr: {
+            $in: ['$productCode', productCodeList],
           },
-          count: { $exists: true },
-          payCost: { $exists: true },
-          wonCost: { $exists: true },
-          totalPayment: { $exists: true },
           saleAt: {
             $gte: from,
             $lt: to,
@@ -483,90 +476,10 @@ export class ProductRepository extends AbstractRepository<Product> {
               },
             },
             {
-              $lookup: {
-                let: {
-                  productCode: '$code',
-                },
-                from: 'sales',
-                as: 'clients',
-                pipeline: [
-                  {
-                    $match: {
-                      orderStatus: '출고완료',
-                      mallId: { $exists: true, $nin: ['로켓그로스', '정글북'] },
-                      count: { $exists: true },
-                      payCost: { $exists: true },
-                      wonCost: { $exists: true },
-                      totalPayment: { $exists: true },
-                      saleAt: {
-                        $gte: from,
-                        $lt: to,
-                      },
-                      $expr: {
-                        $eq: ['$productCode', '$$productCode'],
-                      },
-                    },
-                  },
-                  {
-                    $group: {
-                      _id: '$mallId',
-                      accCount: {
-                        $sum: '$count',
-                      },
-                      accPayCost: {
-                        $sum: '$payCost',
-                      },
-                      accWonCost: {
-                        $sum: '$wonCost',
-                      },
-                      accDeliveryCost: {
-                        $sum: {
-                          $multiply: ['$deliveryCost', '$deliveryBoxCount'],
-                        },
-                      },
-                      accTotalPayment: {
-                        $sum: '$totalPayment',
-                      },
-                    },
-                  },
-                  {
-                    $addFields: {
-                      name: '$_id',
-                    },
-                  },
-
-                  {
-                    $sort: {
-                      accCount: -1,
-                      _id: 1,
-                    },
-                  },
-                  {
-                    $project: {
-                      _id: 0,
-                    },
-                  },
-                ],
-              },
-            },
-
-            {
-              $project: {
-                prevSales: 0,
-                prevSale: 0,
-              },
-            },
-            {
               $sort: {
                 [sort]: order,
                 code: 1,
               },
-            },
-            {
-              $skip: skip,
-            },
-            {
-              $limit: limit,
             },
           ],
           totalCount: [

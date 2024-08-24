@@ -10,7 +10,12 @@ const order = {
 };
 
 @InputType()
-export class ProductSaleInput extends OmitType(FindManyDTO, ['order', 'sort']) {
+export class ProductSaleInput extends OmitType(FindManyDTO, [
+  'order',
+  'sort',
+  'limit',
+  'skip',
+]) {
   @Field(() => Date)
   @IsDateValidate({ message: '올바른 날짜 형식을 입력하세요.' })
   from: Date;
