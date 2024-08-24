@@ -54,21 +54,6 @@ export class ProductSaleMenu extends PickType(Product, [
   @Field(() => Int, { nullable: true })
   accCount: number;
 
-  // @Field(() => Int, { nullable: true })
-  // prevAccCount: number;
-
-  // @Field(() => Int, { nullable: true })
-  // prevAccPayCost: number;
-
-  // @Field(() => Int, { nullable: true })
-  // prevAccWonCost: number;
-
-  // @Field(() => Float, { nullable: true })
-  // prevAccDeliveryCost: number;
-
-  // @Field(() => Float, { nullable: true })
-  // prevAccTotalPayment: number;
-
   @Field(() => Float, { nullable: true })
   accProfit: number;
 
