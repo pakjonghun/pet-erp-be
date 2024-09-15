@@ -347,9 +347,13 @@ export class SaleService {
         },
       },
       {
-        $sort: {
-          accCount: -1,
-          _id: 1,
+        $addFields: {
+          products: {
+            $sortArray: {
+              input: '$products',
+              sortBy: { accCount: -1, id: 1 },
+            },
+          },
         },
       },
     ];
@@ -361,8 +365,6 @@ export class SaleService {
       await this.saleRepository.saleModel.aggregate<CommonSaleByProductOutput>(
         pipeLine,
       );
-
-    console.dir(result, { depth: 10 });
 
     return result;
   }
@@ -402,6 +404,16 @@ export class SaleService {
               accWonCost: '$accWonCost',
               accPayCost: '$accPayCost',
               accDeliveryCost: '$accDeliveryCost',
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          clients: {
+            $sortArray: {
+              input: '$clients',
+              sortBy: { accCount: -1, id: 1 },
             },
           },
         },
