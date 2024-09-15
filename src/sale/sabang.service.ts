@@ -122,7 +122,7 @@ export class SabandService {
     const location = result.Location;
     const { saleData, noPayCost } = await this.getSaleData(location);
 
-    await this.awsS3Service.delete(params);
+    await this.awsS3Service.delete({ Bucket: params.Bucket, key: params.Key });
 
     const session = await this.connection.startSession();
     session.startTransaction();

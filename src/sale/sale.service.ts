@@ -278,6 +278,11 @@ export class SaleService {
           },
         },
       },
+      {
+        $sort: {
+          accCount: -1,
+        },
+      },
     ];
 
     const result = await this.saleRepository.saleModel.aggregate(pipeLine);
@@ -339,6 +344,12 @@ export class SaleService {
               accDeliveryCost: '$accDeliveryCost',
             },
           },
+        },
+      },
+      {
+        $sort: {
+          accCount: -1,
+          _id: 1,
         },
       },
     ];

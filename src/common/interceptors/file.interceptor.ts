@@ -25,7 +25,6 @@ export class FileInspector implements NestInterceptor {
 
           return new StreamableFile(data);
         }
-
         return data;
       }),
     );
