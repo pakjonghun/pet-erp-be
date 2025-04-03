@@ -207,6 +207,7 @@ export class SabandService {
       포동_포인트결제: '포동',
       AliExpress: '알리익스프레스',
       '펫그라운드 (견생냥품)': '견생냥품',
+      '홈&쇼핑':'홈&쇼핑(신)'
     };
 
     type RawSale = Pick<Sale, 'mallId' | 'productCode' | 'productName'>;
